@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+pdfplumber
+requests
+cohere
+python-dotenv
+supabase
