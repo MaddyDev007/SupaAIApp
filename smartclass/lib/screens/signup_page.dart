@@ -11,6 +11,7 @@ class SignupPage extends StatefulWidget {
 class _SignupPageState extends State<SignupPage> {
   final _formKey = GlobalKey<FormState>();
 
+  final TextEditingController _nameController = TextEditingController(); // 👈 Added
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -18,7 +19,6 @@ class _SignupPageState extends State<SignupPage> {
   bool _isLoading = false;
   String _errorMsg = '';
 
-  // New dropdown fields
   String? _selectedDept;
   String? _selectedYear;
 
@@ -27,6 +27,7 @@ class _SignupPageState extends State<SignupPage> {
 
   @override
   void dispose() {
+    _nameController.dispose(); // 👈 Dispose properly
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -40,6 +41,7 @@ class _SignupPageState extends State<SignupPage> {
       _errorMsg = '';
     });
 
+    final name = _nameController.text.trim(); // 👈 Get name
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
@@ -56,6 +58,7 @@ class _SignupPageState extends State<SignupPage> {
 
       await _supabase.from('profiles').insert({
         'id': user.id,
+        'name': name, // 👈 Store in DB
         'email': email,
         'role': role,
         'department': _selectedDept,
@@ -69,7 +72,7 @@ class _SignupPageState extends State<SignupPage> {
         builder: (_) => AlertDialog(
           title: const Text('Signup Successful'),
           content: Text(
-              'You are registered as a $role in $_selectedDept ($_selectedYear).'),
+              'Welcome $name!\nYou are registered as a $role in $_selectedDept ($_selectedYear).'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -137,6 +140,16 @@ class _SignupPageState extends State<SignupPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                _buildTextFormField(
+                  label: 'Name',
+                  controller: _nameController,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Name is required';
+                    }
+                    return null;
+                  },
+                ),
                 _buildTextFormField(
                   label: 'Email',
                   controller: _emailController,
