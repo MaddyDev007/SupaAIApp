@@ -92,3 +92,48 @@ def ask_chatbot(question: str):
     except Exception as e:
         print(f"[Chatbot Error] {e}")
         raise HTTPException(status_code=500, detail="Chatbot failed to respond.")
+
+def generate_exam_questions(text: str):
+    prompt = f"""
+    You are an exam question generator.
+    Based on the following study material, generate:
+    - 5 short 2-mark questions (one or two sentences, direct answers).
+    - 2 long 13-mark questions (essay type, analytical, detailed).
+
+    Study Material:
+    {text[:2000]}
+
+    Output format (valid JSON only, no text outside JSON):
+    {{
+      "2_mark": ["Q1", "Q2", ...],
+      "13_mark": ["Q1", "Q2"]
+    }}
+    """
+
+    try:
+        # ✅ Correct Cohere API call
+        response = co.chat(
+            model="command-r-plus",
+            message=prompt,     # not "messages"
+            temperature=0.3
+        )
+
+        raw = response.text.strip()
+        print("🧾 Raw Cohere Output:\n", raw)
+
+        # ✅ Try direct JSON parsing
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            # Extract JSON object safely
+            start = raw.find("{")
+            end = raw.rfind("}")
+            if start != -1 and end != -1:
+                cleaned = raw[start:end+1]
+                return json.loads(cleaned)
+
+            raise HTTPException(status_code=500, detail="Malformed JSON from Cohere")
+
+    except Exception as e:
+        print(f"[Exam Generation Error] {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate exam questions")

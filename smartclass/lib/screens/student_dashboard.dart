@@ -3,6 +3,7 @@ import 'package:smartclass/screens/view_materials_page.dart';
 import 'quiz_list_page.dart';
 import 'chatbot_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'viewqnpdf.dart';
 
 class StudentDashboard extends StatelessWidget {
   const StudentDashboard({super.key});
@@ -105,6 +106,23 @@ class StudentDashboard extends StatelessWidget {
                       context,
                       MaterialPageRoute(
                         builder: (context) => ViewMaterialsPage(
+                          department: department,
+                          year: year,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 20),
+
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.picture_as_pdf),
+                  label: const Text('View qn Materials'),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ViewMaterialsQNPage(
                           department: department,
                           year: year,
                         ),

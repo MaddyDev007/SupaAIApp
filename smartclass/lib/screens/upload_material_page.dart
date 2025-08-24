@@ -101,6 +101,67 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
     }
   }
 
+  Future<void> generateExam() async {
+    if (uploadedFileUrl == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please upload the material first')),
+      );
+      return;
+    }
+
+    setState(() => generating = true);
+    try {
+      
+      // Call backend /question/generate-exam
+      final uploadPayload = {
+        'pdf_url': uploadedFileUrl,
+        'metadata': {
+          'material_id': uploadedMaterialId,
+          'department': _selectedDept,
+          'year': _selectedYear,
+          'subject': subjectCtrl.text.trim(),
+          'teacher_id': supabase.auth.currentUser!.id,
+        }
+      };
+
+      final res = await http.post(
+        Uri.parse('http://127.0.0.1:8000/question/generate-exam'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(uploadPayload),
+      );
+
+      if (res.statusCode != 200) {
+        throw Exception('Backend failed: ${res.statusCode}');
+      }
+
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      final examQuestions = body['questions'];
+      final examPdfUrl = body['file_url'];
+
+      // Store in questions table
+      await supabase.from('questions').insert({
+        'material_id': uploadedMaterialId,
+        'teacher_id': supabase.auth.currentUser!.id,
+        'department': _selectedDept,
+        'year': _selectedYear,
+        'subject': subjectCtrl.text.trim(),
+        'questions': examQuestions,
+        'file_url': examPdfUrl,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('✅ Exam generated! PDF available at $examPdfUrl')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ Exam Generation Error: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => generating = false);
+    }
+  }
+
   Future<void> generateQuiz() async {
     if (uploadedMaterialId == null || uploadedFileUrl == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -223,6 +284,14 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
               label: generating
                   ? const Text('Generating...')
                   : const Text('Generate Quiz'),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: generating ? null : generateExam,
+              icon: const Icon(Icons.quiz),
+              label: generating
+                  ? const Text('Generating...')
+                  : const Text('Generate Exam'),
             ),
           ],
         ),
