@@ -16,7 +16,8 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
 
   PlatformFile? selectedFile;
   bool uploading = false;
-  bool generating = false;
+  bool generatingQuiz = false;
+  bool generatingExam = false;
 
   final List<String> _departments = ['CSE', 'EEE', 'ECE', 'Mech'];
   final List<String> _years = ['1st year', '2nd year', '3rd year', '4th year'];
@@ -26,7 +27,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
 
   final TextEditingController subjectCtrl = TextEditingController();
 
-  String? uploadedMaterialId; ////
+  String? uploadedMaterialId;
   String? uploadedFileUrl;
 
   @override
@@ -109,11 +110,9 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       return;
     }
 
-    setState(() => generating = true);
+    setState(() => generatingExam = true);
     try {
-      
-      // Call backend /question/generate-exam
-      final uploadPayload = {
+      final payload = {
         'pdf_url': uploadedFileUrl,
         'metadata': {
           'material_id': uploadedMaterialId,
@@ -127,7 +126,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       final res = await http.post(
         Uri.parse('http://127.0.0.1:8000/question/generate-exam'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(uploadPayload),
+        body: jsonEncode(payload),
       );
 
       if (res.statusCode != 200) {
@@ -135,20 +134,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       }
 
       final body = jsonDecode(res.body) as Map<String, dynamic>;
-      final examQuestions = body['questions'];
       final examPdfUrl = body['file_url'];
-
-      // Store in questions table
-      await supabase.from('questions').insert({
-        'material_id': uploadedMaterialId,
-        'teacher_id': supabase.auth.currentUser!.id,
-        'department': _selectedDept,
-        'year': _selectedYear,
-        'subject': subjectCtrl.text.trim(),
-        'questions': examQuestions,
-        'file_url': examPdfUrl,
-        'created_at': DateTime.now().toIso8601String(),
-      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('✅ Exam generated! PDF available at $examPdfUrl')),
@@ -158,7 +144,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         SnackBar(content: Text('❌ Exam Generation Error: $e')),
       );
     } finally {
-      if (mounted) setState(() => generating = false);
+      if (mounted) setState(() => generatingExam = false);
     }
   }
 
@@ -170,10 +156,9 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       return;
     }
 
-    setState(() => generating = true);
+    setState(() => generatingQuiz = true);
     try {
-      // 1) Call backend /upload
-      final uploadPayload = {
+      final payload = {
         'pdf_url': uploadedFileUrl,
         'metadata': {
           'material_id': uploadedMaterialId,
@@ -187,7 +172,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       final uploadRes = await http.post(
         Uri.parse('http://127.0.0.1:8000/upload/'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(uploadPayload),
+        body: jsonEncode(payload),
       );
 
       if (uploadRes.statusCode != 200) {
@@ -197,7 +182,6 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       final body = jsonDecode(uploadRes.body) as Map<String, dynamic>;
       final questions = body['questions'];
 
-      // 2) Store quiz
       final storePayload = {
         'material_id': uploadedMaterialId,
         'teacher_id': body['metadata']['teacher_id'],
@@ -226,14 +210,14 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         SnackBar(content: Text('❌ Quiz Generation Error: $e')),
       );
     } finally {
-      if (mounted) setState(() => generating = false);
+      if (mounted) setState(() => generatingQuiz = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Upload & Generate Quiz')),
+      appBar: AppBar(title: const Text('Upload & Generate Quiz/Exam')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -252,7 +236,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
               value: _selectedYear,
               decoration: const InputDecoration(labelText: 'Year'),
               items: _years
-                  .map((y) => DropdownMenuItem(value: y, child: Text('$y ')))
+                  .map((y) => DropdownMenuItem(value: y, child: Text(y)))
                   .toList(),
               onChanged: (v) => setState(() => _selectedYear = v),
             ),
@@ -279,18 +263,18 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
             ),
             const SizedBox(height: 12),
             ElevatedButton.icon(
-              onPressed: generating ? null : generateQuiz,
+              onPressed: generatingQuiz ? null : generateQuiz,
               icon: const Icon(Icons.quiz),
-              label: generating
-                  ? const Text('Generating...')
+              label: generatingQuiz
+                  ? const Text('Generating Quiz...')
                   : const Text('Generate Quiz'),
             ),
             const SizedBox(height: 12),
             ElevatedButton.icon(
-              onPressed: generating ? null : generateExam,
-              icon: const Icon(Icons.quiz),
-              label: generating
-                  ? const Text('Generating...')
+              onPressed: generatingExam ? null : generateExam,
+              icon: const Icon(Icons.description),
+              label: generatingExam
+                  ? const Text('Generating Exam...')
                   : const Text('Generate Exam'),
             ),
           ],
