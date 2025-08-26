@@ -11,13 +11,17 @@ class SignupPage extends StatefulWidget {
 class _SignupPageState extends State<SignupPage> {
   final _formKey = GlobalKey<FormState>();
 
-  final TextEditingController _nameController = TextEditingController(); // 👈 Added
+  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
   final SupabaseClient _supabase = Supabase.instance.client;
 
   bool _isLoading = false;
   String _errorMsg = '';
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   String? _selectedDept;
   String? _selectedYear;
@@ -27,21 +31,28 @@ class _SignupPageState extends State<SignupPage> {
 
   @override
   void dispose() {
-    _nameController.dispose(); // 👈 Dispose properly
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
   Future<void> _signUp() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (_passwordController.text.trim() !=
+        _confirmPasswordController.text.trim()) {
+      setState(() => _errorMsg = "Passwords do not match");
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMsg = '';
     });
 
-    final name = _nameController.text.trim(); // 👈 Get name
+    final name = _nameController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
@@ -58,7 +69,7 @@ class _SignupPageState extends State<SignupPage> {
 
       await _supabase.from('profiles').insert({
         'id': user.id,
-        'name': name, // 👈 Store in DB
+        'name': name,
         'email': email,
         'role': role,
         'department': _selectedDept,
@@ -67,23 +78,9 @@ class _SignupPageState extends State<SignupPage> {
 
       if (!context.mounted) return;
 
-      await showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Signup Successful'),
-          content: Text(
-              'Welcome $name!\nYou are registered as a $role in $_selectedDept ($_selectedYear).'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
-            )
-          ],
-        ),
-      );
-
-      final route =
-          role == 'teacher' ? '/teacher-dashboard' : '/student-dashboard';
+      final route = role == 'teacher'
+          ? '/teacher-dashboard'
+          : '/student-dashboard';
       Navigator.pushReplacementNamed(context, route);
     } on AuthException catch (e) {
       setState(() => _errorMsg = e.message);
@@ -96,14 +93,21 @@ class _SignupPageState extends State<SignupPage> {
 
   Widget _buildTextFormField({
     required String label,
+    required IconData icon,
     required TextEditingController controller,
     required String? Function(String?) validator,
     bool obscure = false,
+    Widget? suffixIcon,
   }) {
     return TextFormField(
       controller: controller,
       obscureText: obscure,
-      decoration: InputDecoration(labelText: label),
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        prefixIcon: Icon(icon),
+        suffixIcon: suffixIcon,
+      ),
       validator: validator,
     );
   }
@@ -115,15 +119,15 @@ class _SignupPageState extends State<SignupPage> {
     required void Function(String?) onChanged,
   }) {
     return DropdownButtonFormField<String>(
-      decoration: InputDecoration(labelText: label),
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      ),
       value: value,
       onChanged: onChanged,
       validator: (val) => val == null ? 'Please select $label' : null,
       items: items
-          .map((item) => DropdownMenuItem(
-                value: item,
-                child: Text(item),
-              ))
+          .map((item) => DropdownMenuItem(value: item, child: Text(item)))
           .toList(),
     );
   }
@@ -131,27 +135,41 @@ class _SignupPageState extends State<SignupPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Sign Up')),
+      backgroundColor: Colors.grey[100],
+      appBar: AppBar(
+        title: const Text(
+          'Create Account',
+          style: TextStyle(
+            color: Colors.deepPurple,
+            fontWeight: FontWeight.bold,
+            fontSize: 30,
+          ),
+        ),
+        backgroundColor: Colors.grey[100],
+        elevation: 0,
+        centerTitle: true,
+      ),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                const SizedBox(height: 20),
                 _buildTextFormField(
-                  label: 'Name',
+                  label: 'Full Name',
+                  icon: Icons.person_outline,
                   controller: _nameController,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Name is required';
-                    }
-                    return null;
-                  },
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Name is required'
+                      : null,
                 ),
+                const SizedBox(height: 16),
                 _buildTextFormField(
                   label: 'Email',
+                  icon: Icons.email_outlined,
                   controller: _emailController,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -161,10 +179,12 @@ class _SignupPageState extends State<SignupPage> {
                     return null;
                   },
                 ),
+                const SizedBox(height: 16),
                 _buildTextFormField(
                   label: 'Password',
+                  icon: Icons.lock_outline,
                   controller: _passwordController,
-                  obscure: true,
+                  obscure: _obscurePassword,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Password is required';
@@ -174,39 +194,104 @@ class _SignupPageState extends State<SignupPage> {
                     }
                     return null;
                   },
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                  ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 16),
+                _buildTextFormField(
+                  label: 'Confirm Password',
+                  icon: Icons.lock_reset_outlined,
+                  controller: _confirmPasswordController,
+                  obscure: _obscureConfirmPassword,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Confirm your password';
+                    }
+                    if (value != _passwordController.text) {
+                      return 'Passwords do not match';
+                    }
+                    return null;
+                  },
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureConfirmPassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscureConfirmPassword = !_obscureConfirmPassword;
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
                 _buildDropdownField(
                   label: 'Department',
                   items: _departments,
                   value: _selectedDept,
                   onChanged: (val) => setState(() => _selectedDept = val),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 16),
                 _buildDropdownField(
                   label: 'Year',
                   items: _years,
                   value: _selectedYear,
                   onChanged: (val) => setState(() => _selectedYear = val),
                 ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _signUp,
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Sign Up'),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.deepPurple,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: _isLoading ? null : _signUp,
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text(
+                            'Sign Up',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                  ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 16),
                 if (_errorMsg.isNotEmpty)
-                  Text(_errorMsg, style: const TextStyle(color: Colors.red)),
+                  Center(
+                    child: Text(
+                      _errorMsg,
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ),
                 TextButton(
                   onPressed: () =>
                       Navigator.pushReplacementNamed(context, '/login'),
-                  child: const Text('Back to login'),
+                  child: const Text("Already have an account? Login"),
                 ),
               ],
             ),

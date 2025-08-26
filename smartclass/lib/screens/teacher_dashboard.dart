@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'upload_material_page.dart';
 import 'result_page.dart';
+import 'teacher_analytics_dashboard.dart';
 
 class TeacherDashboard extends StatelessWidget {
   const TeacherDashboard({super.key});
@@ -63,6 +64,27 @@ class TeacherDashboard extends StatelessWidget {
               );
             },
           ),
+          const SizedBox(height: 20),
+
+          ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const TeacherAnalyticsPage(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.bar_chart),
+                  label: const Text("Analytics"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurple,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
         ],
       ),
     );

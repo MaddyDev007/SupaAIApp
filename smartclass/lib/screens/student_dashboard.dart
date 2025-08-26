@@ -4,6 +4,7 @@ import 'quiz_list_page.dart';
 import 'chatbot_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'viewqnpdf.dart';
+import 'analytics_dashboard.dart';
 
 class StudentDashboard extends StatelessWidget {
   const StudentDashboard({super.key});
@@ -136,6 +137,27 @@ class StudentDashboard extends StatelessWidget {
                       ),
                     );
                   },
+                ),
+                const SizedBox(height: 20),
+                
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AnalyticsDashboard(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.bar_chart),
+                  label: const Text("Analytics"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurple,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
               ],
             ),

@@ -16,6 +16,7 @@ class _LoginPageState extends State<LoginPage> {
 
   bool _isLoading = false;
   String _errorMsg = '';
+  bool _obscurePassword = true; // 👁️ toggle for password
 
   @override
   void dispose() {
@@ -55,7 +56,8 @@ class _LoginPageState extends State<LoginPage> {
         if (!context.mounted) return;
 
         final role = user['role'] as String;
-        final route = role == 'teacher' ? '/teacher-dashboard' : '/student-dashboard';
+        final route =
+            role == 'teacher' ? '/teacher-dashboard' : '/student-dashboard';
         Navigator.pushReplacementNamed(context, route);
       } else {
         setState(() => _errorMsg = 'Invalid email or password.');
@@ -71,42 +73,121 @@ class _LoginPageState extends State<LoginPage> {
     required String label,
     required TextEditingController controller,
     bool obscure = false,
+    Widget? suffixIcon,
   }) {
     return TextField(
       controller: controller,
       obscureText: obscure,
-      decoration: InputDecoration(labelText: label),
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        prefixIcon: label == "Email" ? const Icon(Icons.email_outlined) : const Icon( Icons.lock_outline),
+        suffixIcon: suffixIcon,
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Login')),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildTextField(label: 'Email', controller: _emailController),
-            _buildTextField(label: 'Password', controller: _passwordController, obscure: true),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: _isLoading ? null : _loginUser,
-              child: _isLoading
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('Login'),
-            ),
-            if (_errorMsg.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: Text(_errorMsg, style: const TextStyle(color: Colors.red)),
+      backgroundColor: Colors.grey[100],
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // 🔹 App Logo / Icon
+              Icon(Icons.school, size: 80, color: Colors.deepPurple),
+              const SizedBox(height: 20),
+
+              // 🔹 Title
+              Text("Welcome Back",
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.deepPurple,
+                      )),
+              const SizedBox(height: 40),
+
+              // 🔹 Email Field
+              _buildTextField(
+                label: 'Email',
+                controller: _emailController,
               ),
-            TextButton(
-              onPressed: () => Navigator.pushReplacementNamed(context, '/signup'),
-              child: const Text("Don't have an account? Sign up"),
-            ),
-          ],
+              const SizedBox(height: 16),
+
+              // 🔹 Password Field with Eye Icon
+              _buildTextField(
+                label: 'Password',
+                controller: _passwordController,
+                obscure: _obscurePassword,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscurePassword
+                        ? Icons.visibility_off
+                        : Icons.visibility,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // 🔹 Login Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _loginUser,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    backgroundColor: Colors.deepPurple,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? const CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white)
+                      : const Text(
+                          'Login',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                ),
+              ),
+
+              // 🔹 Error Message
+              if (_errorMsg.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: Text(
+                    _errorMsg,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+
+              const SizedBox(height: 16),
+
+              // 🔹 Sign Up
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text("Don’t have an account?"),
+                  TextButton(
+                    onPressed: () =>
+                        Navigator.pushReplacementNamed(context, '/signup'),
+                    child: const Text(
+                      "Sign up",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
