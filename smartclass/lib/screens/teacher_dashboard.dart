@@ -17,6 +17,15 @@ class TeacherDashboard extends StatelessWidget {
               Navigator.pushReplacementNamed(context, '/login');
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.account_circle),
+            onPressed: () {
+              Navigator.pushNamed(
+                context,
+                '/profile',
+              ); 
+            },
+          ),
         ],
       ),
       body: ListView(

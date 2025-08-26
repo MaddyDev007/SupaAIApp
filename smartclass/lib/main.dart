@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'secrets.dart'; 
+import 'secrets.dart';
 import 'screens/login_page.dart';
 import 'screens/signup_page.dart';
 import 'screens/teacher_dashboard.dart';
@@ -9,6 +9,7 @@ import 'screens/upload_material_page.dart';
 import 'screens/quiz_page.dart';
 import 'screens/result_page.dart';
 import 'screens/chatbot_page.dart';
+import 'screens/profile_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,6 +36,9 @@ class MyApp extends StatelessWidget {
       // Dynamic route handling to pass arguments to QuizPage
       onGenerateRoute: (settings) {
         switch (settings.name) {
+          case '/profile':
+            return MaterialPageRoute(builder: (_) => const ProfilePage());
+
           case '/login':
             return MaterialPageRoute(builder: (_) => const LoginPage());
           case '/signup':
@@ -44,14 +48,14 @@ class MyApp extends StatelessWidget {
           case '/student-dashboard':
             return MaterialPageRoute(builder: (_) => const StudentDashboard());
           case '/upload':
-            return MaterialPageRoute(builder: (_) => const UploadMaterialPage());
+            return MaterialPageRoute(
+              builder: (_) => const UploadMaterialPage(),
+            );
           case '/quiz':
             final args = settings.arguments as Map<String, dynamic>;
             return MaterialPageRoute(
-              builder: (_) => QuizPage(
-                department: args['department'],
-                year: args['year'],
-              ),
+              builder: (_) =>
+                  QuizPage(department: args['department'], year: args['year']),
             );
           case '/results':
             return MaterialPageRoute(builder: (_) => const ResultPage());
@@ -113,8 +117,6 @@ class _SplashRedirectorState extends State<SplashRedirector> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
-    );
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }

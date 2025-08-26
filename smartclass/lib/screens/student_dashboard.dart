@@ -20,8 +20,6 @@ class StudentDashboard extends StatelessWidget {
 
     return response;
   }
-  
-
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +32,15 @@ class StudentDashboard extends StatelessWidget {
             onPressed: () {
               Supabase.instance.client.auth.signOut();
               Navigator.pushReplacementNamed(context, '/login');
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.account_circle),
+            onPressed: () {
+              Navigator.pushNamed(
+                context,
+                '/profile',
+              ); // 🔹 route to profile page
             },
           ),
         ],
@@ -52,9 +59,7 @@ class StudentDashboard extends StatelessWidget {
 
           final department = student['department'] as String;
           final year = student['year'] as String;
-          
-          
-          
+
           return Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -76,8 +81,10 @@ class StudentDashboard extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            QuizListPage(department: department, year: year , /* subject: subject, */), //1
+                        builder: (context) => QuizListPage(
+                          department: department,
+                          year: year /* subject: subject, */,
+                        ), //1
                       ),
                     );
                   },
