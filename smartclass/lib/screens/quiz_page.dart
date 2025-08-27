@@ -130,7 +130,6 @@ class _QuizPageState extends State<QuizPage> {
           .single();
 
       final studentName = profileRes['email'];
-
       await supabase.from('results').insert({
         'quiz_id': quizId,
         'student_id': user.id,
@@ -142,6 +141,7 @@ class _QuizPageState extends State<QuizPage> {
         'answers': jsonEncode(questions.map((q) => q['answer']).toList()),
       });
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error saving result: $e")),
       );

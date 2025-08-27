@@ -53,7 +53,6 @@ class _LoginPageState extends State<LoginPage> {
             .eq('id', userId)
             .single();
 
-        if (!context.mounted) return;
 
         final role = user['role'] as String;
         final route = role == 'teacher'

@@ -81,6 +81,7 @@ class _SignupPageState extends State<SignupPage> {
       final route = role == 'teacher'
           ? '/teacher-dashboard'
           : '/student-dashboard';
+
       Navigator.pushReplacementNamed(context, route);
     } on AuthException catch (e) {
       setState(() => _errorMsg = e.message);
@@ -129,6 +130,13 @@ class _SignupPageState extends State<SignupPage> {
       decoration: InputDecoration(
         labelText: label,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            color: Colors.blueAccent, // Color when focused
+            width: 2,
+          ),
+        ),
       ),
       value: value,
       onChanged: onChanged,
@@ -254,6 +262,7 @@ class _SignupPageState extends State<SignupPage> {
                   label: 'Year',
                   items: _years,
                   value: _selectedYear,
+
                   onChanged: (val) => setState(() => _selectedYear = val),
                 ),
                 const SizedBox(height: 24),

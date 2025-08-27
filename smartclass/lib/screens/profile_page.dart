@@ -85,6 +85,7 @@ class ProfilePage extends StatelessWidget {
                         ),
                         onPressed: () async {
                           await Supabase.instance.client.auth.signOut();
+                          if (!context.mounted) return;
                           Navigator.pushReplacementNamed(context, '/login');
                         },
                       ),

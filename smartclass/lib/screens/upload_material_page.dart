@@ -92,7 +92,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         uploadedMaterialId = insertRes['id'] as String;
         uploadedFileUrl = publicUrl;
       });
-
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('✅ Material uploaded successfully')),
       );
@@ -138,7 +138,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
 
       final body = jsonDecode(res.body) as Map<String, dynamic>;
       final examPdfUrl = body['file_url'];
-
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('✅ Exam generated! PDF at $examPdfUrl')),
       );
@@ -204,7 +204,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       if (storeRes.statusCode != 200) {
         throw Exception('Backend /quiz/store failed: ${storeRes.statusCode}');
       }
-
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('✅ Quiz generated successfully')),
       );

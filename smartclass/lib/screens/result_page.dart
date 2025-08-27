@@ -53,6 +53,7 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
       results = List<Map<String, dynamic>>.from(response);
       _listController.forward(from: 0);
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text("Failed to load results: $e")));
     } finally {
