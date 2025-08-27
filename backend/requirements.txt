@@ -5,3 +5,6 @@ requests
 cohere
 python-dotenv
 supabase
+pdfplumber
+pydantic
+reportlab
