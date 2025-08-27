@@ -105,6 +105,13 @@ class _SignupPageState extends State<SignupPage> {
       decoration: InputDecoration(
         labelText: label,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            color: Colors.blueAccent, // Color when focused
+            width: 2,
+          ),
+        ),
         prefixIcon: Icon(icon),
         suffixIcon: suffixIcon,
       ),
@@ -135,17 +142,17 @@ class _SignupPageState extends State<SignupPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.blue.shade50,
       appBar: AppBar(
         title: const Text(
           'Create Account',
           style: TextStyle(
-            color: Colors.deepPurple,
+            color: Colors.blue,
             fontWeight: FontWeight.bold,
             fontSize: 30,
           ),
         ),
-        backgroundColor: Colors.grey[100],
+        backgroundColor: Colors.blue.shade50,
         elevation: 0,
         centerTitle: true,
       ),
@@ -254,8 +261,8 @@ class _SignupPageState extends State<SignupPage> {
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Colors.blue,
+                      padding: const EdgeInsets.symmetric(vertical: 20),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -267,13 +274,13 @@ class _SignupPageState extends State<SignupPage> {
                             height: 20,
                             child: CircularProgressIndicator(
                               color: Colors.white,
-                              strokeWidth: 2,
+                              strokeWidth: 1,
                             ),
                           )
                         : const Text(
                             'Sign Up',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
@@ -291,7 +298,10 @@ class _SignupPageState extends State<SignupPage> {
                 TextButton(
                   onPressed: () =>
                       Navigator.pushReplacementNamed(context, '/login'),
-                  child: const Text("Already have an account? Login"),
+                  child: const Text(
+                    "Already have an account? Login",
+                    style: TextStyle(color: Colors.blue),
+                  ),
                 ),
               ],
             ),

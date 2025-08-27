@@ -1,4 +1,3 @@
-//import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -17,26 +16,43 @@ class ViewMaterialsQNPage extends StatefulWidget {
   });
 
   @override
-  State<ViewMaterialsQNPage> createState() => _ViewMaterialsPageState();
+  State<ViewMaterialsQNPage> createState() => _ViewMaterialsQNPageState();
 }
 
-class _ViewMaterialsPageState extends State<ViewMaterialsQNPage> {
+class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
+    with TickerProviderStateMixin {
   final supabase = Supabase.instance.client;
 
   bool _loading = true;
   String? _errorMessage;
   List<Map<String, dynamic>> _materials = [];
 
+  late final AnimationController _listController;
+  late final Animation<double> _listAnimation;
+
   @override
   void initState() {
     super.initState();
+    _listController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _listAnimation =
+        CurvedAnimation(parent: _listController, curve: Curves.easeOut);
     _fetchMaterials();
+  }
+
+  @override
+  void dispose() {
+    _listController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchMaterials() async {
     setState(() {
       _loading = true;
       _errorMessage = null;
+      _materials = [];
     });
 
     try {
@@ -50,12 +66,12 @@ class _ViewMaterialsPageState extends State<ViewMaterialsQNPage> {
       _materials = (data as List)
           .map((item) => Map<String, dynamic>.from(item))
           .toList();
+
+      _listController.forward(from: 0); // start animation
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
-      if (mounted) {
-        setState(() => _loading = false);
-      }
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -82,7 +98,6 @@ class _ViewMaterialsPageState extends State<ViewMaterialsQNPage> {
         SnackBar(content: Text('Downloaded to $savePath')),
       );
 
-      // Open file after download
       await OpenFile.open(savePath);
     } catch (e) {
       if (!mounted) return;
@@ -90,6 +105,64 @@ class _ViewMaterialsPageState extends State<ViewMaterialsQNPage> {
         SnackBar(content: Text('Download failed: $e')),
       );
     }
+  }
+
+  Widget _buildMaterialCard(Map<String, dynamic> material, int index) {
+    final blue = Colors.blue;
+    final subject = material['subject'] ?? 'Untitled';
+    final url = material['file_url'] as String;
+
+    final slideTween =
+        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
+            .chain(CurveTween(curve: Curves.easeOut));
+
+    return FadeTransition(
+      opacity: _listAnimation,
+      child: SlideTransition(
+        position: _listAnimation.drive(slideTween),
+        child: Card(
+          elevation: 3,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          child: ListTile(
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            title: Text(
+              subject,
+              style:
+                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            subtitle: Text(
+              '${material['department']} • ${material['year']}',
+              style: const TextStyle(color: Colors.grey),
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                InkWell(
+                  onTap: () => _openMaterial(url),
+                  borderRadius: BorderRadius.circular(50),
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Icon(Icons.open_in_new, color: blue),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                InkWell(
+                  onTap: () => _downloadMaterial(url, "$subject.pdf"),
+                  borderRadius: BorderRadius.circular(50),
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: Icon(Icons.download, color: blue),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildContent() {
@@ -119,42 +192,38 @@ class _ViewMaterialsPageState extends State<ViewMaterialsQNPage> {
       );
     }
 
-    return ListView.separated(
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
       itemCount: _materials.length,
-      separatorBuilder: (_, __) => const Divider(height: 1),
-      itemBuilder: (context, index) {
-        final material = _materials[index];
-        final subject = material['subject'] ?? 'Untitled';
-        final url = material['file_url'] as String;
-
-        return ListTile(
-          title: Text(subject),
-          subtitle: Text('${material['department']} • ${material['year']}'),
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.open_in_new),
-                onPressed: () => _openMaterial(url),
-              ),
-              IconButton(
-                icon: const Icon(Icons.download),
-                onPressed: () => _downloadMaterial(url, "$subject.pdf"),
-              ),
-            ],
-          ),
-        );
-      },
+      itemBuilder: (context, index) =>
+          _buildMaterialCard(_materials[index], index),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final blue = Colors.blue;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Materials')),
-      body: RefreshIndicator(
-        onRefresh: _fetchMaterials,
-        child: _buildContent(),
+      appBar: AppBar(
+        title: const Text('Question bank', style: TextStyle(color: Colors.white)),
+        centerTitle: true,
+        backgroundColor: blue,
+        elevation: 0,
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [blue.shade50, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: RefreshIndicator(
+          onRefresh: _fetchMaterials,
+          color: blue,
+          child: _buildContent(),
+        ),
       ),
     );
   }

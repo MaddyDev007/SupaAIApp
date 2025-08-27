@@ -56,8 +56,10 @@ class _LoginPageState extends State<LoginPage> {
         if (!context.mounted) return;
 
         final role = user['role'] as String;
-        final route =
-            role == 'teacher' ? '/teacher-dashboard' : '/student-dashboard';
+        final route = role == 'teacher'
+            ? '/teacher-dashboard'
+            : '/student-dashboard';
+
         Navigator.pushReplacementNamed(context, route);
       } else {
         setState(() => _errorMsg = 'Invalid email or password.');
@@ -81,7 +83,16 @@ class _LoginPageState extends State<LoginPage> {
       decoration: InputDecoration(
         labelText: label,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        prefixIcon: label == "Email" ? const Icon(Icons.email_outlined) : const Icon( Icons.lock_outline),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            color: Colors.blueAccent, // Color when focused
+            width: 2,
+          ),
+        ),
+        prefixIcon: label == "Email"
+            ? const Icon(Icons.email_outlined)
+            : const Icon(Icons.lock_outline),
         suffixIcon: suffixIcon,
       ),
     );
@@ -90,7 +101,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.blue.shade50,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -98,22 +109,21 @@ class _LoginPageState extends State<LoginPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // 🔹 App Logo / Icon
-              Icon(Icons.school, size: 80, color: Colors.deepPurple),
+              Icon(Icons.school, size: 80, color: Colors.blue),
               const SizedBox(height: 20),
 
               // 🔹 Title
-              Text("Welcome Back",
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.deepPurple,
-                      )),
+              Text(
+                "Welcome Back",
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
+                ),
+              ),
               const SizedBox(height: 40),
 
               // 🔹 Email Field
-              _buildTextField(
-                label: 'Email',
-                controller: _emailController,
-              ),
+              _buildTextField(label: 'Email', controller: _emailController),
               const SizedBox(height: 16),
 
               // 🔹 Password Field with Eye Icon
@@ -123,9 +133,7 @@ class _LoginPageState extends State<LoginPage> {
                 obscure: _obscurePassword,
                 suffixIcon: IconButton(
                   icon: Icon(
-                    _obscurePassword
-                        ? Icons.visibility_off
-                        : Icons.visibility,
+                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
                   ),
                   onPressed: () {
                     setState(() {
@@ -142,19 +150,28 @@ class _LoginPageState extends State<LoginPage> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _loginUser,
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    backgroundColor: Colors.deepPurple,
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    backgroundColor: Colors.blue,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: _isLoading
-                      ? const CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white)
+                      ? const Text(
+                          'Login...',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey,
+                          ),
+                        )
                       : const Text(
                           'Login',
                           style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
                         ),
                 ),
               ),
@@ -181,7 +198,10 @@ class _LoginPageState extends State<LoginPage> {
                         Navigator.pushReplacementNamed(context, '/signup'),
                     child: const Text(
                       "Sign up",
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.blue,
+                      ),
                     ),
                   ),
                 ],

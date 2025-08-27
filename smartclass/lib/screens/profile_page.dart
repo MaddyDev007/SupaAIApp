@@ -20,13 +20,16 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.blue.shade50,
       appBar: AppBar(
-        title: const Text("My Profile"),
+        backgroundColor: Colors.blue,
+        title: const Text("My Profile", style: TextStyle(color: Colors.white)),
+        centerTitle: true,
       ),
       body: FutureBuilder<Map<String, dynamic>?>(
         future: _fetchStudentDetails(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
@@ -35,25 +38,57 @@ class ProfilePage extends StatelessWidget {
             return const Center(child: Text('No profile found.'));
           }
 
-          return Padding(
-            padding: const EdgeInsets.all(16),
+          return Center(
             child: Card(
+              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
               ),
-              elevation: 4,
+              elevation: 6,
               child: Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(24),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Name: ${student['name']}", style: const TextStyle(fontSize: 16)),
+                    Center(
+                      child: CircleAvatar(
+                        radius: 40,
+                        backgroundColor: Colors.blue.shade100,
+                        child: const Icon(Icons.person, size: 50, color: Colors.blue),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text("👤 Name: ${student['name']}",
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
                     const SizedBox(height: 10),
-                    Text("Email: ${student['email']}", style: const TextStyle(fontSize: 16)),
+                    Text("📧 Email: ${student['email']}",
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
                     const SizedBox(height: 10),
-                    Text("Department: ${student['department']}", style: const TextStyle(fontSize: 16)),
+                    Text("🏫 Department: ${student['department']}",
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
                     const SizedBox(height: 10),
-                    Text("Year: ${student['year']}", style: const TextStyle(fontSize: 16)),
+                    Text("📅 Year: ${student['year']}",
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                    const SizedBox(height: 20),
+                    Center(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.logout , color: Colors.white),
+                        label: const Text("Logout", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.redAccent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 12),
+                        ),
+                        onPressed: () async {
+                          await Supabase.instance.client.auth.signOut();
+                          Navigator.pushReplacementNamed(context, '/login');
+                        },
+                      ),
+                    ),
                   ],
                 ),
               ),

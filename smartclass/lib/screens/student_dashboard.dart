@@ -29,13 +29,6 @@ class StudentDashboard extends StatelessWidget {
         title: const Text('Student Dashboard'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              Supabase.instance.client.auth.signOut();
-              Navigator.pushReplacementNamed(context, '/login');
-            },
-          ),
-          IconButton(
             icon: const Icon(Icons.account_circle),
             onPressed: () {
               Navigator.pushNamed(
@@ -152,7 +145,7 @@ class StudentDashboard extends StatelessWidget {
                   icon: const Icon(Icons.bar_chart),
                   label: const Text("Analytics"),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurple,
+                    backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),

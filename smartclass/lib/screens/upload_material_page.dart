@@ -48,42 +48,45 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
   }
 
   Future<void> uploadMaterialOnly() async {
-    if (selectedFile == null) {
+    if (selectedFile == null ||
+        _selectedDept == null ||
+        _selectedYear == null ||
+        subjectCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please choose a PDF')),
-      );
-      return;
-    }
-    if (_selectedDept == null || _selectedYear == null || subjectCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select Department, Year and enter Subject')),
+        const SnackBar(content: Text('⚠️ Fill all fields and pick a PDF')),
       );
       return;
     }
 
     setState(() => uploading = true);
-    final filePath = '${DateTime.now().millisecondsSinceEpoch}_${selectedFile!.name}';
+    final filePath =
+        '${DateTime.now().millisecondsSinceEpoch}_${selectedFile!.name}';
     final fileTitle = selectedFile!.name.replaceAll('.pdf', '');
 
     try {
-      // 1) Upload file
-      await supabase.storage.from('lessons').uploadBinary(
-        filePath,
-        selectedFile!.bytes!,
-        fileOptions: const FileOptions(contentType: 'application/pdf'),
-      );
+      await supabase.storage
+          .from('lessons')
+          .uploadBinary(
+            filePath,
+            selectedFile!.bytes!,
+            fileOptions: const FileOptions(contentType: 'application/pdf'),
+          );
+
       final publicUrl = supabase.storage.from('lessons').getPublicUrl(filePath);
 
-      // 2) Insert into DB
-      final insertRes = await supabase.from('materials').insert({
-        'title': fileTitle,
-        'file_url': publicUrl,
-        'subject': subjectCtrl.text.trim(),
-        'department': _selectedDept,
-        'year': _selectedYear,
-        'teacher_id': supabase.auth.currentUser!.id,
-        'created_at': DateTime.now().toIso8601String(),
-      }).select('id').single();
+      final insertRes = await supabase
+          .from('materials')
+          .insert({
+            'title': fileTitle,
+            'file_url': publicUrl,
+            'subject': subjectCtrl.text.trim(),
+            'department': _selectedDept,
+            'year': _selectedYear,
+            'teacher_id': supabase.auth.currentUser!.id,
+            'created_at': DateTime.now().toIso8601String(),
+          })
+          .select('id')
+          .single();
 
       setState(() {
         uploadedMaterialId = insertRes['id'] as String;
@@ -94,9 +97,9 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         const SnackBar(content: Text('✅ Material uploaded successfully')),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ Upload Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('❌ Upload Error: $e')));
     } finally {
       if (mounted) setState(() => uploading = false);
     }
@@ -104,9 +107,9 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
 
   Future<void> generateExam() async {
     if (uploadedFileUrl == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please upload the material first')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('⚠️ Upload material first')));
       return;
     }
 
@@ -120,7 +123,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           'year': _selectedYear,
           'subject': subjectCtrl.text.trim(),
           'teacher_id': supabase.auth.currentUser!.id,
-        }
+        },
       };
 
       final res = await http.post(
@@ -137,12 +140,12 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       final examPdfUrl = body['file_url'];
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('✅ Exam generated! PDF available at $examPdfUrl')),
+        SnackBar(content: Text('✅ Exam generated! PDF at $examPdfUrl')),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ Exam Generation Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('❌ Exam Generation Error: $e')));
     } finally {
       if (mounted) setState(() => generatingExam = false);
     }
@@ -150,9 +153,9 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
 
   Future<void> generateQuiz() async {
     if (uploadedMaterialId == null || uploadedFileUrl == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please upload the material first')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('⚠️ Upload material first')));
       return;
     }
 
@@ -166,7 +169,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           'year': _selectedYear,
           'subject': subjectCtrl.text.trim(),
           'teacher_id': supabase.auth.currentUser!.id,
-        }
+        },
       };
 
       final uploadRes = await http.post(
@@ -206,9 +209,9 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         const SnackBar(content: Text('✅ Quiz generated successfully')),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('❌ Quiz Generation Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('❌ Quiz Generation Error: $e')));
     } finally {
       if (mounted) setState(() => generatingQuiz = false);
     }
@@ -216,68 +219,167 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
 
   @override
   Widget build(BuildContext context) {
+    final blue = Colors.blue;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Upload & Generate Quiz/Exam')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            DropdownButtonFormField<String>(
-              value: _selectedDept,
-              decoration: const InputDecoration(labelText: 'Department'),
-              items: _departments
-                  .map((d) => DropdownMenuItem(value: d, child: Text(d)))
-                  .toList(),
-              onChanged: (v) => setState(() => _selectedDept = v),
+      backgroundColor: Colors.blue.shade50,
+      appBar: AppBar(
+        title: const Text(
+          'Upload & Generate',
+          style: TextStyle(color: Colors.white),
+        ),
+        centerTitle: true,
+        backgroundColor: blue,
+        elevation: 0,
+      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [blue.shade50, Colors.white],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Card(
+            elevation: 6,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
             ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              value: _selectedYear,
-              decoration: const InputDecoration(labelText: 'Year'),
-              items: _years
-                  .map((y) => DropdownMenuItem(value: y, child: Text(y)))
-                  .toList(),
-              onChanged: (v) => setState(() => _selectedYear = v),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  DropdownButtonFormField<String>(
+                    value: _selectedDept,
+                    decoration: InputDecoration(
+                      labelText: 'Department',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Colors.blueAccent, // Color when focused
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                    items: _departments
+                        .map((d) => DropdownMenuItem(value: d, child: Text(d)))
+                        .toList(),
+                    onChanged: (v) => setState(() => _selectedDept = v),
+                  ),
+                  const SizedBox(height: 16),
+                  DropdownButtonFormField<String>(
+                    value: _selectedYear,
+                    decoration: InputDecoration(
+                      labelText: 'Year',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Colors.blueAccent, // Color when focused
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                    items: _years
+                        .map((y) => DropdownMenuItem(value: y, child: Text(y)))
+                        .toList(),
+                    onChanged: (v) => setState(() => _selectedYear = v),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: subjectCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'Subject',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Colors.blueAccent, // Color when focused
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton.icon(
+                    onPressed: pickPDF,
+                    icon: const Icon(Icons.attach_file, color: Colors.white),
+                    label: const Text('Pick PDF', style: TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: blue,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Center(
+                    child: Text(
+                      selectedFile?.name ?? 'No file selected',
+                      style: const TextStyle(fontStyle: FontStyle.italic),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton.icon(
+                    onPressed: uploading ? null : uploadMaterialOnly,
+                    icon: const Icon(Icons.upload_file, color: Colors.white),
+                    label: Text(uploading ? 'Uploading...' : 'Upload Material',
+                        style: const TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: blue,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: generatingQuiz ? null : generateQuiz,
+                    icon: const Icon(Icons.quiz, color: Colors.white),
+                    label: Text(
+                      generatingQuiz ? 'Generating Quiz...' : 'Generate Quiz',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: blue,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: generatingExam ? null : generateExam,
+                    icon: const Icon(Icons.description, color: Colors.white),
+                    label: Text(
+                      generatingExam ? 'Generating Exam...' : 'Generate Exam',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: blue,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: subjectCtrl,
-              decoration: const InputDecoration(labelText: 'Subject'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: pickPDF,
-              icon: const Icon(Icons.attach_file),
-              label: const Text('Pick PDF'),
-            ),
-            const SizedBox(height: 10),
-            Text(selectedFile?.name ?? 'No file selected'),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: uploading ? null : uploadMaterialOnly,
-              icon: const Icon(Icons.upload_file),
-              label: uploading
-                  ? const Text('Uploading...')
-                  : const Text('Upload Material'),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: generatingQuiz ? null : generateQuiz,
-              icon: const Icon(Icons.quiz),
-              label: generatingQuiz
-                  ? const Text('Generating Quiz...')
-                  : const Text('Generate Quiz'),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: generatingExam ? null : generateExam,
-              icon: const Icon(Icons.description),
-              label: generatingExam
-                  ? const Text('Generating Exam...')
-                  : const Text('Generate Exam'),
-            ),
-          ],
+          ),
         ),
       ),
     );

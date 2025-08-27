@@ -54,7 +54,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
       appBar: AppBar(
         title: const Text(
           "Performance Analytics",
-          style: TextStyle(color: Colors.deepPurple, fontWeight: FontWeight.bold),
+          style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         backgroundColor: Colors.grey[100],
@@ -110,7 +110,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                               barRods: [
                                 BarChartRodData(
                                   toY: (data['score'] as num).toDouble(),
-                                  color: Colors.deepPurple,
+                                  color: Colors.blue,
                                   width: 16,
                                 ),
                               ],

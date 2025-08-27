@@ -13,12 +13,6 @@ class TeacherDashboard extends StatelessWidget {
         title: const Text('Teacher Dashboard'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () {
-              Navigator.pushReplacementNamed(context, '/login');
-            },
-          ),
-          IconButton(
             icon: const Icon(Icons.account_circle),
             onPressed: () {
               Navigator.pushNamed(
@@ -78,7 +72,7 @@ class TeacherDashboard extends StatelessWidget {
                   icon: const Icon(Icons.bar_chart),
                   label: const Text("Analytics"),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurple,
+                    backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
