@@ -92,7 +92,7 @@ class _QuizListPageState extends State<QuizListPage>
             borderRadius: BorderRadius.circular(16),
           ),
           elevation: 3,
-          color: attempted ? Colors.grey.shade100 : Colors.white,
+          color: attempted ? Colors.white : Colors.white,
           child: ListTile(
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
