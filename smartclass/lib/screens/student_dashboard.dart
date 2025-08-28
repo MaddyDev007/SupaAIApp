@@ -24,46 +24,40 @@ class StudentDashboard extends StatelessWidget {
   }
 
   Widget _dashboardCard({
-  required String title,
-  required IconData icon,
-  required VoidCallback onTap,
-  Color color = Colors.blue,
-}) {
-  return SizedBox(
-    width: 150,
-    height: 150,
-    child: Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 4,
-      child: Material(
-        color: Colors.transparent, // make material transparent
-        child: InkWell(
+    required String title,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      splashColor: color.withAlpha(100),
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(16),
-          splashColor: color.withAlpha(100),
-          onTap: onTap,
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, size: 40, color: color),
-                const SizedBox(height: 12),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
+          border: Border.all(color: color.withValues(alpha: 0.3), width: 1.2),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 48, color: color),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
             ),
-          ),
+          ],
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   int _getCrossAxisCount(double width) {
     if (width > 1000) return 5;
@@ -88,7 +82,11 @@ class StudentDashboard extends StatelessWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.account_circle, color: Colors.white, size: 28),
+            icon: const Icon(
+              Icons.account_circle,
+              color: Colors.white,
+              size: 28,
+            ),
             onPressed: () => Navigator.pushNamed(context, '/profile'),
           ),
         ],
@@ -96,10 +94,14 @@ class StudentDashboard extends StatelessWidget {
       body: FutureBuilder<Map<String, dynamic>?>(
         future: _fetchStudentDetails(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
           final student = snapshot.data;
-          if (student == null) return const Center(child: Text('Student details not found.'));
+          if (student == null) {
+            return const Center(child: Text('Student details not found.'));
+          }
 
           final name = student['name'] as String? ?? 'Student';
           final department = student['department'] as String;
@@ -198,7 +200,8 @@ class StudentDashboard extends StatelessWidget {
                               onTap: () => Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const AnalyticsDashboard(),
+                                  builder: (context) =>
+                                      const AnalyticsDashboard(),
                                 ),
                               ),
                             ),

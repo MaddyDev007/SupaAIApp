@@ -20,68 +20,115 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue.shade50,
+      backgroundColor: const Color(0xfff5f7fb),
       appBar: AppBar(
-        backgroundColor: Colors.blue,
-        title: const Text("My Profile", style: TextStyle(color: Colors.white)),
+        elevation: 0,
+        backgroundColor: Colors.blue.shade600,
+        title: const Text(
+          "My Profile",
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+            letterSpacing: 1.1,
+          ),
+        ),
         centerTitle: true,
       ),
       body: FutureBuilder<Map<String, dynamic>?>(
         future: _fetchStudentDetails(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(color: Colors.blue),
+            );
           }
 
           final student = snapshot.data;
           if (student == null) {
-            return const Center(child: Text('No profile found.'));
+            return const Center(
+              child: Text(
+                'No profile found.',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+            );
           }
 
-          return Center(
-            child: Card(
-              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              elevation: 6,
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: CircleAvatar(
-                        radius: 40,
-                        backgroundColor: Colors.blue.shade100,
-                        child: const Icon(Icons.person, size: 50, color: Colors.blue),
-                      ),
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Center(
+              child: Container(
+                width: double.infinity,
+                constraints: const BoxConstraints(maxWidth: 450),
+                decoration: BoxDecoration(
+                  color: Colors.white.withAlpha(230),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.blue.withOpacity(0.15),
+                      blurRadius: 15,
+                      offset: const Offset(0, 8),
                     ),
-                    const SizedBox(height: 20),
-                    Text("👤 Name: ${student['name']}",
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 10),
-                    Text("📧 Email: ${student['email']}",
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 10),
-                    Text("🏫 Department: ${student['department']}",
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 10),
-                    Text("📅 Year: ${student['year']}",
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 20),
-                    Center(
-                      child: ElevatedButton.icon(
-                        icon: const Icon(Icons.logout , color: Colors.white),
-                        label: const Text("Logout", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircleAvatar(
+                        radius: 48,
+                        backgroundColor: Colors.blue.shade100,
+                        child: const Icon(
+                          Icons.person,
+                          size: 55,
+                          color: Colors.blue,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      Text(
+                        student['name'] ?? "Unknown",
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.8,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        student['email'] ?? "No Email",
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                      const Divider(height: 30, thickness: 1.2),
+
+                      _buildInfoTile(Icons.school, "Department", student['department']),
+                      const SizedBox(height: 14),
+                      _buildInfoTile(Icons.calendar_today, "Year", student['year']),
+
+                      const SizedBox(height: 28),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.logout, color: Colors.white),
+                        label: const Text(
+                          "Logout",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.redAccent,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 12),
+                              horizontal: 32, vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          elevation: 5,
+                          shadowColor: Colors.redAccent.withOpacity(0.4),
                         ),
                         onPressed: () async {
                           await Supabase.instance.client.auth.signOut();
@@ -89,13 +136,39 @@ class ProfilePage extends StatelessWidget {
                           Navigator.pushReplacementNamed(context, '/login');
                         },
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildInfoTile(IconData icon, String label, dynamic value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.blue.shade600, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              "$label: ${value ?? "-"}",
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
