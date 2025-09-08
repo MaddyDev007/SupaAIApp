@@ -95,7 +95,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: 350),
           curve: Curves.easeOut,
         );
       }
@@ -114,21 +114,32 @@ class _ChatbotPageState extends State<ChatbotPage> {
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-        padding: const EdgeInsets.all(12),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        constraints:
+            BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
         decoration: BoxDecoration(
-          color: isUser ? Colors.blue[200] : Colors.grey[300],
+          color: isUser ? Colors.blue.shade100 : Colors.grey.shade200,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
-            bottomLeft: isUser ? const Radius.circular(16) : const Radius.circular(0),
-            bottomRight: isUser ? const Radius.circular(0) : const Radius.circular(16),
+            bottomLeft: isUser ? const Radius.circular(16) : Radius.zero,
+            bottomRight: isUser ? Radius.zero : const Radius.circular(16),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            )
+          ],
         ),
         child: Text(
           message['msg'] ?? '',
-          style: const TextStyle(fontSize: 15),
+          style: TextStyle(
+            fontSize: 15,
+            color: isUser ? Colors.black87 : Colors.black87,
+          ),
         ),
       ),
     );
@@ -138,10 +149,10 @@ class _ChatbotPageState extends State<ChatbotPage> {
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+        margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.grey[300],
+          color: Colors.grey.shade200,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
@@ -169,12 +180,22 @@ class _ChatbotPageState extends State<ChatbotPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xfff5f7fb),
       appBar: AppBar(
-        title: const Text('AI Chatbot'),
+        elevation: 0,
+        backgroundColor: Colors.blue.shade600,
+        title: const Text(
+          'AI Chatbot',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.1,
+            color: Colors.white,
+          ),
+        ),
         actions: [
           IconButton(
             tooltip: "Clear Chat",
-            icon: const Icon(Icons.delete),
+            icon: const Icon(Icons.delete, color: Colors.white),
             onPressed: _clearChat,
           ),
         ],
@@ -194,31 +215,49 @@ class _ChatbotPageState extends State<ChatbotPage> {
               },
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: controller,
-                    decoration: InputDecoration(
-                      hintText: "Ask something...",
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
+          SafeArea(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withValues(alpha: 0.3),
+                    blurRadius: 6,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: controller,
+                      decoration: InputDecoration(
+                        hintText: "Ask something...",
+                        hintStyle: TextStyle(color: Colors.grey.shade600),
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding:
+                            const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                     ),
                   ),
-                ),
-                const SizedBox(width: 6),
-                CircleAvatar(
-                  backgroundColor: Colors.blue,
-                  child: IconButton(
-                    icon: const Icon(Icons.send, color: Colors.white),
-                    onPressed: () => sendMessage(controller.text),
+                  const SizedBox(width: 8),
+                  CircleAvatar(
+                    backgroundColor: Colors.blue.shade600,
+                    radius: 24,
+                    child: IconButton(
+                      icon: const Icon(Icons.send, color: Colors.white),
+                      onPressed: () => sendMessage(controller.text),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
