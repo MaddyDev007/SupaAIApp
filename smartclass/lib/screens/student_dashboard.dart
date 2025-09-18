@@ -6,6 +6,7 @@ import 'chatbot_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'viewqnpdf.dart';
 import 'analytics_dashboard.dart';
+import 'notes_page.dart';
 
 class StudentDashboard extends StatelessWidget {
   const StudentDashboard({super.key});
@@ -190,6 +191,17 @@ class StudentDashboard extends StatelessWidget {
                                     department: department,
                                     year: year,
                                   ),
+                                ),
+                              ),
+                            ),
+                            _dashboardCard(
+                              title: 'Notes',
+                              icon: Icons.folder,
+                              color: const Color.fromARGB(255, 52, 87, 201),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => NotesPage()
                                 ),
                               ),
                             ),
