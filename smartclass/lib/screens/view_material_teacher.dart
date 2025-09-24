@@ -198,9 +198,12 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Uploaded Materials', style: TextStyle(color: Colors.white)),
+        title: const Text('My Uploaded Materials', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
         centerTitle: true,
         backgroundColor: blue,
+        iconTheme: IconThemeData(
+          color: Colors.white, // <-- change back arrow color here
+        ),
         elevation: 0,
       ),
       body: Container(

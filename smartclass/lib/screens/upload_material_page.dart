@@ -226,7 +226,10 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       appBar: AppBar(
         title: const Text(
           'Upload & Generate',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: Colors.white , fontWeight: FontWeight.w500),
+        ),
+        iconTheme: IconThemeData(
+          color: Colors.white, // <-- change back arrow color here
         ),
         centerTitle: true,
         backgroundColor: blue,

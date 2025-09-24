@@ -206,9 +206,12 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Materials', style: TextStyle(color: Colors.white)),
+        title: const Text('Materials', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
         centerTitle: true,
         backgroundColor: blue,
+        iconTheme: IconThemeData(
+          color: Colors.white, // <-- change back arrow color here
+        ),
         elevation: 0,
       ),
       body: Container(

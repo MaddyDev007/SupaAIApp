@@ -206,8 +206,11 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Question bank', style: TextStyle(color: Colors.white)),
+        title: const Text('Question bank', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
         centerTitle: true,
+        iconTheme: IconThemeData(
+          color: Colors.white, // <-- change back arrow color here
+        ),
         backgroundColor: blue,
         elevation: 0,
       ),

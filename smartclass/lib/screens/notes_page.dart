@@ -46,7 +46,10 @@ class _NotesPageState extends State<NotesPage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: Text("Notes", style: TextStyle(color: Colors.white)),
+        title: Text("Notes", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
+        iconTheme: IconThemeData(
+          color: Colors.white, // <-- change back arrow color here
+        ),
         backgroundColor: Colors.blue,
         centerTitle: true,
       ),

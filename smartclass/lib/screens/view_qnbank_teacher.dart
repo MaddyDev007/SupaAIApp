@@ -203,7 +203,10 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
     return Scaffold(
       appBar: AppBar(
         title: const Text('My Uploaded QN Banks',
-            style: TextStyle(color: Colors.white)),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
+        iconTheme: IconThemeData(
+          color: Colors.white, // <-- change back arrow color here
+        ),
         centerTitle: true,
         backgroundColor: blue,
         elevation: 0,

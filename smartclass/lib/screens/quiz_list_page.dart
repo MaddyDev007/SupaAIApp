@@ -6,11 +6,7 @@ class QuizListPage extends StatefulWidget {
   final String department;
   final String year;
 
-  const QuizListPage({
-    super.key,
-    required this.department,
-    required this.year,
-  });
+  const QuizListPage({super.key, required this.department, required this.year});
 
   @override
   State<QuizListPage> createState() => _QuizListPageState();
@@ -33,8 +29,10 @@ class _QuizListPageState extends State<QuizListPage>
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    _listAnimation =
-        CurvedAnimation(parent: _listController, curve: Curves.easeOut);
+    _listAnimation = CurvedAnimation(
+      parent: _listController,
+      curve: Curves.easeOut,
+    );
   }
 
   @override
@@ -78,9 +76,10 @@ class _QuizListPageState extends State<QuizListPage>
     final attempted = quiz['attempted'] ?? false;
     final score = quiz['score'];
 
-    final slideTween =
-        Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero)
-            .chain(CurveTween(curve: Curves.easeOut));
+    final slideTween = Tween<Offset>(
+      begin: const Offset(0, 0.1),
+      end: Offset.zero,
+    ).chain(CurveTween(curve: Curves.easeOut));
 
     return FadeTransition(
       opacity: _listAnimation,
@@ -94,8 +93,10 @@ class _QuizListPageState extends State<QuizListPage>
           elevation: 3,
           color: attempted ? Colors.white : Colors.white,
           child: ListTile(
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 16,
+            ),
             title: Text(
               subject,
               style: TextStyle(
@@ -143,10 +144,13 @@ class _QuizListPageState extends State<QuizListPage>
       appBar: AppBar(
         title: const Text(
           "Available Quizzes",
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
         ),
         centerTitle: true,
         backgroundColor: blue,
+        iconTheme: IconThemeData(
+          color: Colors.white, // <-- change back arrow color here
+        ),
         elevation: 0,
       ),
       body: Container(

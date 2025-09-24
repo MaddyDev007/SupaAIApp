@@ -21,8 +21,11 @@ class ViewNotePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.blue.shade50,
       appBar: AppBar(
-        title: const Text("View Note", style: TextStyle(color: Colors.white)),
+        title: const Text("View Note", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
         backgroundColor: Colors.blue,
+        iconTheme: IconThemeData(
+          color: Colors.white, // <-- change back arrow color here
+        ),
         centerTitle: true,
         elevation: 0,
       ),

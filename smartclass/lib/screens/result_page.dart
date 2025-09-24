@@ -120,10 +120,13 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Quiz Results", style: TextStyle(color: Colors.white)),
+        title: const Text("Quiz Results", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
         centerTitle: true,
         backgroundColor: blue,
         elevation: 0,
+        iconTheme: IconThemeData(
+          color: Colors.white, // <-- change back arrow color here
+        ),
       ),
       body: Container(
         decoration: BoxDecoration(

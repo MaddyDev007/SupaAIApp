@@ -155,14 +155,17 @@ class _SignupPageState extends State<SignupPage> {
         title: const Text(
           'Create Account',
           style: TextStyle(
-            color: Colors.blue,
-            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            fontWeight: FontWeight.w500,
             fontSize: 30,
           ),
         ),
-        backgroundColor: Colors.blue.shade50,
+        backgroundColor: Colors.blue,
         elevation: 0,
         centerTitle: true,
+        iconTheme: IconThemeData(
+          color: Colors.white, // <-- change back arrow color here
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),

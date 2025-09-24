@@ -79,7 +79,7 @@ class StudentDashboard extends StatelessWidget {
         backgroundColor: Colors.blue,
         title: const Text(
           'Student Dashboard',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
         ),
         actions: [
           IconButton(

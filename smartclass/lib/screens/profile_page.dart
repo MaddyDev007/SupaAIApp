@@ -24,11 +24,14 @@ class ProfilePage extends StatelessWidget {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.blue.shade600,
+        iconTheme: IconThemeData(
+          color: Colors.white, // <-- change back arrow color here
+        ),
         title: const Text(
           "My Profile",
           style: TextStyle(
             fontSize: 20,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w500,
             color: Colors.white,
             letterSpacing: 1.1,
           ),
@@ -105,9 +108,17 @@ class ProfilePage extends StatelessWidget {
                       ),
                       const Divider(height: 30, thickness: 1.2),
 
-                      _buildInfoTile(Icons.school, "Department", student['department']),
+                      _buildInfoTile(
+                        Icons.school,
+                        "Department",
+                        student['department'],
+                      ),
                       const SizedBox(height: 14),
-                      _buildInfoTile(Icons.calendar_today, "Year", student['year']),
+                      _buildInfoTile(
+                        Icons.calendar_today,
+                        "Year",
+                        student['year'],
+                      ),
 
                       const SizedBox(height: 28),
                       ElevatedButton.icon(
@@ -123,7 +134,9 @@ class ProfilePage extends StatelessWidget {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.redAccent,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 32, vertical: 14),
+                            horizontal: 32,
+                            vertical: 14,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(14),
                           ),

@@ -116,8 +116,9 @@ class _ChatbotPageState extends State<ChatbotPage> {
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        constraints:
-            BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
         decoration: BoxDecoration(
           color: isUser ? Colors.blue.shade100 : Colors.grey.shade200,
           borderRadius: BorderRadius.only(
@@ -131,7 +132,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
               color: Colors.black12,
               blurRadius: 4,
               offset: const Offset(0, 2),
-            )
+            ),
           ],
         ),
         child: Text(
@@ -184,10 +185,13 @@ class _ChatbotPageState extends State<ChatbotPage> {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.blue.shade600,
+        iconTheme: IconThemeData(
+          color: Colors.white, // <-- change back arrow color here
+        ),
         title: const Text(
           'AI Chatbot',
           style: TextStyle(
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w500,
             letterSpacing: 1.1,
             color: Colors.white,
           ),
@@ -242,8 +246,10 @@ class _ChatbotPageState extends State<ChatbotPage> {
                           borderRadius: BorderRadius.circular(20),
                           borderSide: BorderSide.none,
                         ),
-                        contentPadding:
-                            const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 0,
+                        ),
                       ),
                     ),
                   ),

@@ -58,7 +58,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
       appBar: AppBar(
         title: const Text(
           "Performance Analytics",
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w500),
         ),
         centerTitle: true,
         elevation: 0,

@@ -16,7 +16,7 @@ class _LoginPageState extends State<LoginPage> {
 
   bool _isLoading = false;
   String _errorMsg = '';
-  bool _obscurePassword = true; // 👁️ toggle for password
+  bool _obscurePassword = true; 
 
   @override
   void dispose() {

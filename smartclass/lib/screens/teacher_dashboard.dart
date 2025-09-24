@@ -75,7 +75,7 @@ class TeacherDashboard extends StatelessWidget {
         backgroundColor: Colors.blue,
         title: const Text(
           'Teacher Dashboard',
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
         ),
         actions: [
           IconButton(

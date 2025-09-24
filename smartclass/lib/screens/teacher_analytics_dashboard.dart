@@ -53,7 +53,7 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
       appBar: AppBar(
         title: const Text(
           "Teacher Analytics Dashboard",
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.w500),
         ),
         centerTitle: true,
         elevation: 0,
