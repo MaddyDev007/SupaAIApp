@@ -190,20 +190,14 @@ class _QuizPageState extends State<QuizPage>
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
         ),
         centerTitle: true,
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.blue,
         elevation: 0,
         iconTheme: IconThemeData(
           color: Colors.white, // <-- change back arrow color here
         ),
       ),
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF6A11CB), Color(0xFF2575FC)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
+        color: Colors.blue.shade50,
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -219,7 +213,7 @@ class _QuizPageState extends State<QuizPage>
                       CircularProgressIndicator(
                         value: progress,
                         strokeWidth: 8,
-                        valueColor: const AlwaysStoppedAnimation(Colors.white),
+                        valueColor: const AlwaysStoppedAnimation(Colors.black),
                         backgroundColor: Colors.white24,
                       ),
                       Center(
@@ -228,7 +222,7 @@ class _QuizPageState extends State<QuizPage>
                           style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: Colors.black,
                           ),
                         ),
                       ),
@@ -241,12 +235,12 @@ class _QuizPageState extends State<QuizPage>
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: Colors.white24, width: 1),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 10,
                       ),
                     ],
@@ -255,7 +249,7 @@ class _QuizPageState extends State<QuizPage>
                     children: [
                       Text(
                         "Q${currentIndex + 1}/${questions.length}",
-                        style: const TextStyle(color: Colors.white70),
+                        style: const TextStyle(color: Colors.black54),
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -263,7 +257,7 @@ class _QuizPageState extends State<QuizPage>
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: Colors.black,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -285,8 +279,8 @@ class _QuizPageState extends State<QuizPage>
                           gradient: isSelected
                               ? const LinearGradient(
                                   colors: [
-                                    Color(0xFF43E97B),
-                                    Color(0xFF38F9D7),
+                                    Color.fromARGB(255, 48, 169, 88),
+                                    Color.fromARGB(255, 41, 185, 159),
                                   ],
                                 )
                               : const LinearGradient(
@@ -296,7 +290,7 @@ class _QuizPageState extends State<QuizPage>
                           border: Border.all(
                             color: isSelected
                                 ? Colors.greenAccent
-                                : Colors.white30,
+                                : Colors.black26,
                             width: 2,
                           ),
                         ),
@@ -304,7 +298,7 @@ class _QuizPageState extends State<QuizPage>
                           title: Text(
                             q['options'][i],
                             style: TextStyle(
-                              color: isSelected ? Colors.black : Colors.white,
+                              color: isSelected ? Colors.white : Colors.black,
                               fontWeight: isSelected
                                   ? FontWeight.bold
                                   : FontWeight.normal,
@@ -326,12 +320,12 @@ class _QuizPageState extends State<QuizPage>
                   children: [
                     Text(
                       "Score: $score",
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                      style: const TextStyle(color: Colors.black, fontSize: 16),
                     ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        backgroundColor: Colors.black,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),

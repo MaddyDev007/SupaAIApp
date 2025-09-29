@@ -131,13 +131,13 @@ class _NotesPageState extends State<NotesPage> {
                           ),
 
                           IconButton(
-                            icon: const Icon(Icons.edit),
+                            icon: const Icon(Icons.edit, color: Colors.blueAccent,),
                             onPressed: () {
                               _openEditNotePage(note: note);
                             },
                           ),
                           IconButton(
-                            icon: const Icon(Icons.delete),
+                            icon: const Icon(Icons.delete, color: Colors.redAccent,),
                             onPressed: () => _deleteNote(note['id']),
                           ),
                         ],

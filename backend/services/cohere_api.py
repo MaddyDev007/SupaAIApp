@@ -37,7 +37,7 @@ Content:
 """
 
     try:
-        response = co.chat(message=prompt, model="command-r", temperature=0.3)
+        response = co.chat(message=prompt, model="command-a-03-2025", temperature=0.3)
 
         raw = response.text.strip()
         print("🧾 Cohere raw output:\n", raw)
@@ -86,7 +86,7 @@ def ask_chatbot(question: str):
         response = co.chat(
             message=question,
             documents=documents,
-            model="command-r"
+            model="command-a-03-2025"
         )
         return response.text
     except Exception as e:
@@ -113,7 +113,7 @@ def generate_exam_questions(text: str):
     try:
         # ✅ Correct Cohere API call
         response = co.chat(
-            model="command-r-plus",
+            model="command-a-03-2025",
             message=prompt,     # not "messages"
             temperature=0.3
         )

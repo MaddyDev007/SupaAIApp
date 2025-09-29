@@ -61,7 +61,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
 
     try {
       final res = await http.post(
-        Uri.parse('http://127.0.0.1:8000/chatbot/'),
+        Uri.parse('https://supaaiapp.onrender.com/chatbot/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'question': question}),
       );
@@ -120,7 +120,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
           maxWidth: MediaQuery.of(context).size.width * 0.75,
         ),
         decoration: BoxDecoration(
-          color: isUser ? Colors.blue.shade100 : Colors.grey.shade200,
+          color: isUser ? Colors.blue.shade100 : Colors.white,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),

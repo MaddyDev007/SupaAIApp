@@ -68,7 +68,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -103,6 +103,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: Colors.white,
+                        border: Border.all(color: Colors.grey.shade400, width: 2),
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
@@ -250,6 +251,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: Colors.white,
+                        border: Border.all(color: Colors.grey.shade400, width: 2),
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(

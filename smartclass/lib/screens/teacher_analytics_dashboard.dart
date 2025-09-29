@@ -63,7 +63,7 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(14),
               child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,

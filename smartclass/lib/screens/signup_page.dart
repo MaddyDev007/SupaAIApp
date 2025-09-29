@@ -82,7 +82,7 @@ class _SignupPageState extends State<SignupPage> {
           ? '/teacher-dashboard'
           : '/student-dashboard';
 
-      Navigator.pushReplacementNamed(context, route);
+      Navigator.pushNamedAndRemoveUntil(context, route, (route) => false);
     } on AuthException catch (e) {
       setState(() => _errorMsg = e.message);
     } catch (e) {

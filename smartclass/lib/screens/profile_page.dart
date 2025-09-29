@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smartclass/screens/login_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -68,7 +69,7 @@ class ProfilePage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.blue.withOpacity(0.15),
+                      color: Colors.blue.withValues(alpha: 0.15),
                       blurRadius: 15,
                       offset: const Offset(0, 8),
                     ),
@@ -141,12 +142,19 @@ class ProfilePage extends StatelessWidget {
                             borderRadius: BorderRadius.circular(14),
                           ),
                           elevation: 5,
-                          shadowColor: Colors.redAccent.withOpacity(0.4),
+                          shadowColor: Colors.redAccent.withValues(alpha: 0.4),
                         ),
                         onPressed: () async {
                           await Supabase.instance.client.auth.signOut();
                           if (!context.mounted) return;
-                          Navigator.pushReplacementNamed(context, '/login');
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LoginPage(),
+                            ),
+                            (Route<dynamic> route) =>
+                                false, // removes all previous routes
+                          );
                         },
                       ),
                     ],

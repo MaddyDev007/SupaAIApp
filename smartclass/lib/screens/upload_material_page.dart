@@ -106,6 +106,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         const SnackBar(content: Text('✅ Material uploaded successfully')),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('❌ Upload Error: $e')));
@@ -136,7 +137,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       };
 
       final res = await http.post(
-        Uri.parse('http://127.0.0.1:8000/question/generate-exam'),
+        Uri.parse('https://supaaiapp.onrender.com/question/generate-exam'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(payload),
       );
@@ -182,7 +183,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       };
 
       final uploadRes = await http.post(
-        Uri.parse('http://127.0.0.1:8000/upload/'),
+        Uri.parse('https://supaaiapp.onrender.com/upload/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(payload),
       );
@@ -205,7 +206,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       };
 
       final storeRes = await http.post(
-        Uri.parse('http://127.0.0.1:8000/quiz/store'),
+        Uri.parse('https://supaaiapp.onrender.com/quiz/store'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(storePayload),
       );

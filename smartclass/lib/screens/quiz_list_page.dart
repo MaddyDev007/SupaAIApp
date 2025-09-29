@@ -91,7 +91,7 @@ class _QuizListPageState extends State<QuizListPage>
             borderRadius: BorderRadius.circular(16),
           ),
           elevation: 3,
-          color: attempted ? Colors.white : Colors.white,
+          color: attempted ? Colors.grey[100] : Colors.white,
           child: ListTile(
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,
@@ -156,11 +156,7 @@ class _QuizListPageState extends State<QuizListPage>
       ),
       body: Container(
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [blue.shade50, Colors.white],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
+          color: Colors.blue.shade50
         ),
         child: FutureBuilder<List<Map<String, dynamic>>>(
           future: _quizzesFuture,

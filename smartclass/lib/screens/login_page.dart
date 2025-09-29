@@ -16,7 +16,7 @@ class _LoginPageState extends State<LoginPage> {
 
   bool _isLoading = false;
   String _errorMsg = '';
-  bool _obscurePassword = true; 
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -53,13 +53,16 @@ class _LoginPageState extends State<LoginPage> {
             .eq('id', userId)
             .single();
 
-
         final role = user['role'] as String;
         final route = role == 'teacher'
             ? '/teacher-dashboard'
             : '/student-dashboard';
-
-        Navigator.pushReplacementNamed(context, route);
+        if (!mounted) return;
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          route,
+          (Route<dynamic> route) => false, // clear stack
+        );
       } else {
         setState(() => _errorMsg = 'Invalid email or password.');
       }
@@ -81,6 +84,9 @@ class _LoginPageState extends State<LoginPage> {
       obscureText: obscure,
       decoration: InputDecoration(
         labelText: label,
+        floatingLabelStyle: TextStyle(
+          color: Colors.blueAccent, // 👈 Change label text color here
+        ),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
