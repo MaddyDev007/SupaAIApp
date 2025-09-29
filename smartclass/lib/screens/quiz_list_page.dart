@@ -141,6 +141,7 @@ class _QuizListPageState extends State<QuizListPage>
     final blue = Colors.blue;
 
     return Scaffold(
+      backgroundColor: blue.shade50,
       appBar: AppBar(
         title: const Text(
           "Available Quizzes",

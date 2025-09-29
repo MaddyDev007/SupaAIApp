@@ -3,7 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:open_file/open_file.dart';
+import 'package:open_filex/open_filex.dart';
 
 class ViewQNBankTeacherPage extends StatefulWidget {
   const ViewQNBankTeacherPage({super.key});
@@ -96,7 +96,7 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
         SnackBar(content: Text('Downloaded to $savePath')),
       );
 
-      await OpenFile.open(savePath);
+      await OpenFilex.open(savePath);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -201,6 +201,7 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
     final blue = Colors.blue;
 
     return Scaffold(
+      backgroundColor: blue.shade50,
       appBar: AppBar(
         title: const Text('My Uploaded QN Banks',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),

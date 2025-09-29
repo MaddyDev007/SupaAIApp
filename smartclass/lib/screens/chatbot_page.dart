@@ -181,7 +181,8 @@ class _ChatbotPageState extends State<ChatbotPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xfff5f7fb),
+      // backgroundColor: const Color(0xfff5f7fb),
+      backgroundColor: Colors.blue.shade50,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.blue.shade600,

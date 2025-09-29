@@ -119,6 +119,7 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
     final blue = Colors.blue;
 
     return Scaffold(
+      backgroundColor: blue.shade50,
       appBar: AppBar(
         title: const Text("Quiz Results", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
         centerTitle: true,

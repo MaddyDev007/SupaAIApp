@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:open_file/open_file.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ViewMaterialsTeacherPage extends StatefulWidget {
@@ -94,7 +94,7 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
         SnackBar(content: Text('Downloaded to $savePath')),
       );
 
-      await OpenFile.open(savePath);
+      await OpenFilex.open(savePath);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -197,6 +197,7 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
     final blue = Colors.blue;
 
     return Scaffold(
+      backgroundColor: blue.shade50,
       appBar: AppBar(
         title: const Text('My Uploaded Materials', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
         centerTitle: true,

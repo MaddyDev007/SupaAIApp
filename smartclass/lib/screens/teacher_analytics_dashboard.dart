@@ -49,7 +49,7 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.blue.shade50,
       appBar: AppBar(
         title: const Text(
           "Teacher Analytics Dashboard",

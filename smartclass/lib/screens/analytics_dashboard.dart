@@ -54,7 +54,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.blue.shade50,
       appBar: AppBar(
         title: const Text(
           "Performance Analytics",

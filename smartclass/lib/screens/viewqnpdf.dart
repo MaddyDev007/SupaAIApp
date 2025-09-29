@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:open_filex/open_filex.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:open_file/open_file.dart';
+
 
 class ViewMaterialsQNPage extends StatefulWidget {
   final String department;
@@ -98,7 +99,7 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
         SnackBar(content: Text('Downloaded to $savePath')),
       );
 
-      await OpenFile.open(savePath);
+      await OpenFilex.open(savePath);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -205,6 +206,7 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
     final blue = Colors.blue;
 
     return Scaffold(
+      backgroundColor: blue.shade50,
       appBar: AppBar(
         title: const Text('Question bank', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
         centerTitle: true,

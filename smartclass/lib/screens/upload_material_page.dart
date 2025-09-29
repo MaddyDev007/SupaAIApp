@@ -1,5 +1,6 @@
 import 'dart:convert';
-import 'package:file_picker/file_picker.dart';
+import 'package:file_selector/file_selector.dart';
+// import 'package:open_filex/open_filex.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -14,7 +15,7 @@ class UploadMaterialPage extends StatefulWidget {
 class _UploadMaterialPageState extends State<UploadMaterialPage> {
   final supabase = Supabase.instance.client;
 
-  PlatformFile? selectedFile;
+  XFile? selectedFile;
   bool uploading = false;
   bool generatingQuiz = false;
   bool generatingExam = false;
@@ -37,15 +38,23 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
   }
 
   Future<void> pickPDF() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['pdf'],
-      withData: true,
-    );
-    if (result != null && result.files.isNotEmpty) {
-      setState(() => selectedFile = result.files.first);
-    }
+  // Allow only PDF files
+  final typeGroup = XTypeGroup(
+    label: 'pdf',
+    extensions: ['pdf'],
+  );
+
+  // Pick a single file
+  final XFile? file = await openFile(acceptedTypeGroups: [typeGroup]);
+
+  if (file != null) {
+    setState(() {
+      selectedFile = file; // selectedFile is now XFile
+    });
+    // print('Picked file: ${file.name}');
   }
+}
+
 
   Future<void> uploadMaterialOnly() async {
     if (selectedFile == null ||
@@ -62,13 +71,13 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
     final filePath =
         '${DateTime.now().millisecondsSinceEpoch}_${selectedFile!.name}';
     final fileTitle = selectedFile!.name.replaceAll('.pdf', '');
-
+    final bytes = await selectedFile!.readAsBytes();
     try {
       await supabase.storage
           .from('lessons')
           .uploadBinary(
             filePath,
-            selectedFile!.bytes!,
+            bytes,
             fileOptions: const FileOptions(contentType: 'application/pdf'),
           );
 
