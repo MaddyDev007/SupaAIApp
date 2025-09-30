@@ -98,7 +98,6 @@ async def ask_chatbot(question: str):
                 model="command-a-03-2025",
                 message=question,
                 documents=documents,
-                search_mode="hybrid"
             ).text
 
         answer = await asyncio.get_event_loop().run_in_executor(None, run_cohere)
