@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:smartclass/screens/login_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'chatbot_page.dart'; // Importing to clear chat history on logout
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -146,6 +147,7 @@ class ProfilePage extends StatelessWidget {
                         ),
                         onPressed: () async {
                           await Supabase.instance.client.auth.signOut();
+                          chatHistory.clear();
                           if (!context.mounted) return;
                           Navigator.pushAndRemoveUntil(
                             context,

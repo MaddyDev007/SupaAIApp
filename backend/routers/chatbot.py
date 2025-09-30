@@ -9,5 +9,5 @@ async def chat(data: dict = Body(...)):
     if not question:
         return {"error": "Missing question"}
     
-    answer = ask_chatbot(question)
+    answer = await ask_chatbot(question)
     return {"answer": answer}

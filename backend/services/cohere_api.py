@@ -5,7 +5,8 @@ from cohere import Client
 from pathlib import Path
 from fastapi import HTTPException
 import re
-import requests
+import asyncio
+import httpx
 import pdfplumber
 import io
 from supabase import create_client
@@ -57,20 +58,27 @@ Content:
         raise HTTPException(status_code=500, detail="Failed to generate structured questions")
 
 
-def fetch_material_documents():
+async def fetch_material_documents():
+    """Fetch PDFs from Supabase and extract text (async)."""
     try:
         res = supabase.table("quizzes").select("pdf_url").execute()
         urls = [item["pdf_url"] for item in res.data if item.get("pdf_url")]
 
         docs = []
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            for url in urls:
+                r = await client.get(url)
+                content = r.content
 
-        for url in urls:
-            response = requests.get(url)
-            with pdfplumber.open(io.BytesIO(response.content)) as pdf:
-                text = "\n".join([page.extract_text() or "" for page in pdf.pages])
+                # pdfplumber is blocking → run in thread
+                def extract_text(data: bytes):
+                    with pdfplumber.open(io.BytesIO(data)) as pdf:
+                        return "\n".join([page.extract_text() or "" for page in pdf.pages])
+
+                text = await asyncio.get_event_loop().run_in_executor(None, extract_text, content)
                 docs.append({
                     "title": url.split("/")[-1],
-                    "text": text[:2000]  # Trim to avoid overloading the model
+                    "text": text[:2000]
                 })
 
         return docs
@@ -79,16 +87,23 @@ def fetch_material_documents():
         return []
 
 
-def ask_chatbot(question: str):
+async def ask_chatbot(question: str):
+    """Ask chatbot with optional documents (async)."""
     try:
-        documents = fetch_material_documents()
+        documents = await fetch_material_documents()
 
-        response = co.chat(
-            message=question,
-            documents=documents,
-            model="command-a-03-2025"
-        )
-        return response.text
+        # cohere client is sync, so run it in executor
+        def run_cohere():
+            return co.chat(
+                model="command-a-03-2025",
+                message=question,
+                documents=documents,
+                search_mode="hybrid"
+            ).text
+
+        answer = await asyncio.get_event_loop().run_in_executor(None, run_cohere)
+        return answer
+
     except Exception as e:
         print(f"[Chatbot Error] {e}")
         raise HTTPException(status_code=500, detail="Chatbot failed to respond.")
