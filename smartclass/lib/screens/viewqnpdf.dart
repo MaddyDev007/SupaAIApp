@@ -5,7 +5,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 
-
 class ViewMaterialsQNPage extends StatefulWidget {
   final String department;
   final String year;
@@ -27,6 +26,9 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
   bool _loading = true;
   String? _errorMessage;
   List<Map<String, dynamic>> _materials = [];
+  List<Map<String, dynamic>> _filteredMaterials = [];
+
+  final TextEditingController _searchController = TextEditingController();
 
   late final AnimationController _listController;
   late final Animation<double> _listAnimation;
@@ -38,15 +40,28 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    _listAnimation =
-        CurvedAnimation(parent: _listController, curve: Curves.easeOut);
+    _listAnimation = CurvedAnimation(parent: _listController, curve: Curves.easeOut);
+
+    _searchController.addListener(_onSearchChanged);
+
     _fetchMaterials();
   }
 
   @override
   void dispose() {
     _listController.dispose();
+    _searchController.dispose();
     super.dispose();
+  }
+
+  void _onSearchChanged() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _filteredMaterials = _materials
+          .where((mat) =>
+              (mat['subject'] ?? '').toString().toLowerCase().contains(query))
+          .toList();
+    });
   }
 
   Future<void> _fetchMaterials() async {
@@ -67,6 +82,8 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
       _materials = (data as List)
           .map((item) => Map<String, dynamic>.from(item))
           .toList();
+
+      _filteredMaterials = _materials; // initialize filtered list
 
       _listController.forward(from: 0); // start animation
     } catch (e) {
@@ -123,21 +140,14 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
         position: _listAnimation.drive(slideTween),
         child: Card(
           elevation: 3,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.symmetric(vertical: 8),
           child: ListTile(
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            title: Text(
-              subject,
-              style:
-                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            subtitle: Text(
-              '${material['department']} • ${material['year']}',
-              style: const TextStyle(color: Colors.grey),
-            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            title: Text(subject,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            subtitle: Text('${material['department']} • ${material['year']}',
+                style: const TextStyle(color: Colors.grey)),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -167,37 +177,32 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
   }
 
   Widget _buildContent() {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+    if (_loading) return const Center(child: CircularProgressIndicator());
 
     if (_errorMessage != null) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(
-            _errorMessage!,
-            style: const TextStyle(color: Colors.red),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text(_errorMessage!,
+            style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
+      ),
+    );
     }
 
-    if (_materials.isEmpty) {
+    if (_filteredMaterials.isEmpty) {
       return const Center(
-        child: Text(
-          'No materials found for your department and year.',
-          style: TextStyle(fontSize: 16, color: Colors.grey),
-        ),
-      );
+      child: Text(
+        'No materials found for your department and year.',
+        style: TextStyle(fontSize: 16, color: Colors.grey),
+      ),
+    );
     }
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: _materials.length,
+      itemCount: _filteredMaterials.length,
       itemBuilder: (context, index) =>
-          _buildMaterialCard(_materials[index], index),
+          _buildMaterialCard(_filteredMaterials[index], index),
     );
   }
 
@@ -208,27 +213,45 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
     return Scaffold(
       backgroundColor: blue.shade50,
       appBar: AppBar(
-        title: const Text('Question bank', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
+        title: const Text('Question Bank',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
         centerTitle: true,
-        iconTheme: IconThemeData(
-          color: Colors.white, // <-- change back arrow color here
-        ),
+        iconTheme: const IconThemeData(color: Colors.white),
         backgroundColor: blue,
         elevation: 0,
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [blue.shade50, Colors.white],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search by subject name...',
+                prefixIcon: const Icon(Icons.search, color: Colors.grey,),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.blue.shade100),
+                ),
+                focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.blue.shade300, width: 1.5),
+                      ),
+              ),
+            ),
           ),
-        ),
-        child: RefreshIndicator(
-          onRefresh: _fetchMaterials,
-          color: blue,
-          child: _buildContent(),
-        ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _fetchMaterials,
+              color: blue,
+              child: _buildContent(),
+            ),
+          ),
+        ],
       ),
     );
   }

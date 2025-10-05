@@ -9,7 +9,8 @@ class ViewMaterialsTeacherPage extends StatefulWidget {
   const ViewMaterialsTeacherPage({super.key});
 
   @override
-  State<ViewMaterialsTeacherPage> createState() => _ViewMaterialsTeacherPageState();
+  State<ViewMaterialsTeacherPage> createState() =>
+      _ViewMaterialsTeacherPageState();
 }
 
 class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
@@ -19,6 +20,15 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
   bool _loading = true;
   String? _errorMessage;
   List<Map<String, dynamic>> _materials = [];
+  List<Map<String, dynamic>> _filteredMaterials = [];
+
+  final TextEditingController _searchController = TextEditingController();
+
+  String? _selectedDepartment;
+  String? _selectedYear;
+
+  final List<String> _departments = ["CSE", "ECE", "EEE", "MECH", "CIVIL"];
+  final List<String> _years = ["1st year", "2nd year", "3rd year", "4th year"];
 
   late final AnimationController _listController;
   late final Animation<double> _listAnimation;
@@ -30,14 +40,46 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    _listAnimation = CurvedAnimation(parent: _listController, curve: Curves.easeOut);
+    _listAnimation = CurvedAnimation(
+      parent: _listController,
+      curve: Curves.easeOut,
+    );
     _fetchMaterials();
+    _searchController.addListener(_applyFilters);
   }
 
   @override
   void dispose() {
     _listController.dispose();
+    _searchController.dispose();
     super.dispose();
+  }
+
+  void _applyFilters() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _filteredMaterials = _materials.where((mat) {
+        final subject = (mat['subject'] ?? '').toString().toLowerCase();
+        final dept = mat['department'];
+        final year = mat['year'];
+
+        final matchesSearch = subject.contains(query);
+        final matchesDept =
+            _selectedDepartment == null || _selectedDepartment == dept;
+        final matchesYear = _selectedYear == null || _selectedYear == year;
+
+        return matchesSearch && matchesDept && matchesYear;
+      }).toList();
+    });
+  }
+
+  void _clearFilters() {
+    _searchController.clear();
+    setState(() {
+      _selectedDepartment = null;
+      _selectedYear = null;
+    });
+    _applyFilters();
   }
 
   Future<void> _fetchMaterials() async {
@@ -49,20 +91,16 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
 
     try {
       final user = supabase.auth.currentUser;
-      if (user == null) {
-        throw Exception("Not logged in");
-      }
+      if (user == null) throw Exception("Not logged in");
 
-      // fetch only materials uploaded by this teacher
       final data = await supabase
           .from('materials')
           .select('id, subject, file_url, department, year, created_at')
-          .eq('teacher_id', user.id) // 👈 assumes you store teacher's user id in `uploaded_by`
+          .eq('teacher_id', user.id)
           .order('created_at', ascending: false);
 
-      _materials = (data as List)
-          .map((item) => Map<String, dynamic>.from(item))
-          .toList();
+      _materials = List<Map<String, dynamic>>.from(data);
+      _filteredMaterials = _materials;
 
       _listController.forward(from: 0);
     } catch (e) {
@@ -74,7 +112,8 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
 
   Future<void> _openMaterial(String url) async {
     final uri = Uri.tryParse(url);
-    if (uri == null || !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+    if (uri == null ||
+        !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Could not open the material.')),
@@ -86,20 +125,19 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
     try {
       final dir = await getApplicationDocumentsDirectory();
       final savePath = "${dir.path}/$filename";
-
       await Dio().download(url, savePath);
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Downloaded to $savePath')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Downloaded to $savePath')));
 
       await OpenFilex.open(savePath);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Download failed: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Download failed: $e')));
     }
   }
 
@@ -108,9 +146,10 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
     final subject = material['subject'] ?? 'Untitled';
     final url = material['file_url'] as String;
 
-    final slideTween =
-        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
-            .chain(CurveTween(curve: Curves.easeOut));
+    final slideTween = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).chain(CurveTween(curve: Curves.easeOut));
 
     return FadeTransition(
       opacity: _listAnimation,
@@ -118,10 +157,15 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
         position: _listAnimation.drive(slideTween),
         child: Card(
           elevation: 3,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           margin: const EdgeInsets.symmetric(vertical: 8),
           child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
             title: Text(
               subject,
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -159,9 +203,7 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
   }
 
   Widget _buildContent() {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+    if (_loading) return const Center(child: CircularProgressIndicator());
 
     if (_errorMessage != null) {
       return Center(
@@ -176,10 +218,10 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
       );
     }
 
-    if (_materials.isEmpty) {
+    if (_filteredMaterials.isEmpty) {
       return const Center(
         child: Text(
-          'You have not uploaded any materials yet.',
+          'No materials found.',
           style: TextStyle(fontSize: 16, color: Colors.grey),
         ),
       );
@@ -187,8 +229,9 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: _materials.length,
-      itemBuilder: (context, index) => _buildMaterialCard(_materials[index], index),
+      itemCount: _filteredMaterials.length,
+      itemBuilder: (context, index) =>
+          _buildMaterialCard(_filteredMaterials[index], index),
     );
   }
 
@@ -199,12 +242,13 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
     return Scaffold(
       backgroundColor: blue.shade50,
       appBar: AppBar(
-        title: const Text('My Uploaded Materials', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
+        title: const Text(
+          'My Uploaded Materials',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+        ),
         centerTitle: true,
         backgroundColor: blue,
-        iconTheme: IconThemeData(
-          color: Colors.white, // <-- change back arrow color here
-        ),
+        iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
       ),
       body: Container(
@@ -218,7 +262,128 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
         child: RefreshIndicator(
           onRefresh: _fetchMaterials,
           color: blue,
-          child: _buildContent(),
+          child: Column(
+            children: [
+              // Search bar + clear
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Search materials by name...',
+                          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.blue.shade100),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.blue.shade300, width: 1.5),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.clear, color: Colors.redAccent),
+                      tooltip: "Clear filters",
+                      onPressed: _clearFilters,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Dropdown filters
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    // Department dropdown
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedDepartment,
+                        hint: const Text("Department"),
+                        items: _departments
+                            .map(
+                              (dept) => DropdownMenuItem(
+                                value: dept,
+                                child: Text(dept),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() => _selectedDepartment = value);
+                          _applyFilters();
+                        },
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.blue.shade100),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.blue.shade300, width: 1.5),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    // Year dropdown
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedYear,
+                        hint: const Text("Year"),
+                        items: _years
+                            .map(
+                              (year) => DropdownMenuItem(
+                                value: year,
+                                child: Text(year),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() => _selectedYear = value);
+                          _applyFilters();
+                        },
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.blue.shade100),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.blue.shade300, width: 1.5),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              Expanded(child: _buildContent()),
+            ],
+          ),
         ),
       ),
     );

@@ -213,8 +213,8 @@ class _QuizPageState extends State<QuizPage>
                       CircularProgressIndicator(
                         value: progress,
                         strokeWidth: 8,
-                        valueColor: const AlwaysStoppedAnimation(Colors.black),
-                        backgroundColor: Colors.white24,
+                        valueColor: const AlwaysStoppedAnimation(Colors.grey),
+                        backgroundColor: const Color.fromARGB(117, 253, 253, 253),
                       ),
                       Center(
                         child: Text(
@@ -222,7 +222,7 @@ class _QuizPageState extends State<QuizPage>
                           style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black,
+                            color: Colors.grey,
                           ),
                         ),
                       ),

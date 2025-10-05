@@ -81,23 +81,29 @@ class _LoginPageState extends State<LoginPage> {
   }) {
     return TextField(
       controller: controller,
+      cursorColor: Colors.blue,
       obscureText: obscure,
       decoration: InputDecoration(
+        filled: true,
+        fillColor: Colors.white,
         labelText: label,
         floatingLabelStyle: TextStyle(
           color: Colors.blueAccent, // 👈 Change label text color here
         ),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.blue.shade100, width: 1.5),
+        ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Colors.blueAccent, // Color when focused
+          borderSide: BorderSide(
+            color: Colors.blue.shade300, // Color when focused
             width: 2,
           ),
         ),
         prefixIcon: label == "Email"
-            ? const Icon(Icons.email_outlined)
-            : const Icon(Icons.lock_outline),
+            ? const Icon(Icons.email_outlined, color: Colors.grey)
+            : const Icon(Icons.lock_outline, color: Colors.grey),
         suffixIcon: suffixIcon,
       ),
     );
@@ -139,6 +145,7 @@ class _LoginPageState extends State<LoginPage> {
                 suffixIcon: IconButton(
                   icon: Icon(
                     _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.grey,
                   ),
                   onPressed: () {
                     setState(() {

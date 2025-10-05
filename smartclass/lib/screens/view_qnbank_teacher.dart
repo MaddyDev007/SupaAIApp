@@ -19,9 +19,17 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
   bool _loading = true;
   String? _errorMessage;
   List<Map<String, dynamic>> _materials = [];
+  List<Map<String, dynamic>> _filteredMaterials = [];
+
+  String _searchQuery = "";
+  String? _selectedDepartment;
+  String? _selectedYear;
 
   late final AnimationController _listController;
   late final Animation<double> _listAnimation;
+
+  final List<String> _departments = ["CSE", "ECE", "EEE", "MECH", "CIVIL"];
+  final List<String> _years = ["1st year", "2nd year", "3rd year", "4th year"];
 
   @override
   void initState() {
@@ -30,8 +38,10 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    _listAnimation =
-        CurvedAnimation(parent: _listController, curve: Curves.easeOut);
+    _listAnimation = CurvedAnimation(
+      parent: _listController,
+      curve: Curves.easeOut,
+    );
     _fetchMaterials();
   }
 
@@ -50,20 +60,19 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
 
     try {
       final user = supabase.auth.currentUser;
-      if (user == null) {
-        throw Exception("Not logged in");
-      }
+      if (user == null) throw Exception("Not logged in");
 
-      // 👇 Fetch only the question banks uploaded by this teacher
       final data = await supabase
           .from('questions')
           .select('id, subject, file_url, department, year, created_at')
-          .eq('teacher_id', user.id) // must have this column in "questions" table
+          .eq('teacher_id', user.id)
           .order('created_at', ascending: false);
 
       _materials = (data as List)
           .map((item) => Map<String, dynamic>.from(item))
           .toList();
+
+      _applyFilters();
 
       _listController.forward(from: 0);
     } catch (e) {
@@ -73,14 +82,40 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
     }
   }
 
+  void _applyFilters() {
+    setState(() {
+      _filteredMaterials = _materials.where((material) {
+        final subject = (material['subject'] ?? '').toLowerCase();
+        final department = material['department'];
+        final year = material['year'];
+
+        final matchesSearch = subject.contains(_searchQuery.toLowerCase());
+        final matchesDept =
+            _selectedDepartment == null || _selectedDepartment == department;
+        final matchesYear = _selectedYear == null || _selectedYear == year;
+
+        return matchesSearch && matchesDept && matchesYear;
+      }).toList();
+    });
+  }
+
+  void _clearFilters() {
+    setState(() {
+      _searchQuery = "";
+      _selectedDepartment = null;
+      _selectedYear = null;
+    });
+    _applyFilters();
+  }
+
   Future<void> _openMaterial(String url) async {
     final uri = Uri.tryParse(url);
     if (uri == null ||
         !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not open the file.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Could not open the file.')));
     }
   }
 
@@ -88,20 +123,19 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
     try {
       final dir = await getApplicationDocumentsDirectory();
       final savePath = "${dir.path}/$filename";
-
       await Dio().download(url, savePath);
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Downloaded to $savePath')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Downloaded to $savePath')));
 
       await OpenFilex.open(savePath);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Download failed: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Download failed: $e')));
     }
   }
 
@@ -110,9 +144,10 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
     final subject = material['subject'] ?? 'Untitled';
     final url = material['file_url'] as String;
 
-    final slideTween =
-        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
-            .chain(CurveTween(curve: Curves.easeOut));
+    final slideTween = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).chain(CurveTween(curve: Curves.easeOut));
 
     return FadeTransition(
       opacity: _listAnimation,
@@ -120,11 +155,15 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
         position: _listAnimation.drive(slideTween),
         child: Card(
           elevation: 3,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           margin: const EdgeInsets.symmetric(vertical: 8),
           child: ListTile(
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
             title: Text(
               subject,
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -179,10 +218,10 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
       );
     }
 
-    if (_materials.isEmpty) {
+    if (_filteredMaterials.isEmpty) {
       return const Center(
         child: Text(
-          'You have not uploaded any question banks yet.',
+          'No question banks found.',
           style: TextStyle(fontSize: 16, color: Colors.grey),
         ),
       );
@@ -190,9 +229,9 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: _materials.length,
+      itemCount: _filteredMaterials.length,
       itemBuilder: (context, index) =>
-          _buildMaterialCard(_materials[index], index),
+          _buildMaterialCard(_filteredMaterials[index], index),
     );
   }
 
@@ -203,11 +242,11 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
     return Scaffold(
       backgroundColor: blue.shade50,
       appBar: AppBar(
-        title: const Text('My Uploaded QN Banks',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
-        iconTheme: IconThemeData(
-          color: Colors.white, // <-- change back arrow color here
+        title: const Text(
+          'My Uploaded QN Banks',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
         ),
+        iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,
         backgroundColor: blue,
         elevation: 0,
@@ -223,7 +262,140 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
         child: RefreshIndicator(
           onRefresh: _fetchMaterials,
           color: blue,
-          child: _buildContent(),
+          child: Column(
+            children: [
+              // 🔍 Search + Filters
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                child: Row(
+                  children: [
+                    // Search Bar
+                    Expanded(
+                      child: TextField(
+                        onChanged: (value) {
+                          _searchQuery = value;
+                          _applyFilters();
+                        },
+                        decoration: InputDecoration(
+                          hintText: "Search by subject...",
+                          prefixIcon: const Icon(
+                            Icons.search,
+                            color: Colors.grey,
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.blue.shade100),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.blue.shade300, width: 1.5),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Clear Button
+                    IconButton(
+                      onPressed: _clearFilters,
+                      icon: const Icon(Icons.clear, color: Colors.redAccent),
+                      tooltip: "Clear filters",
+                    ),
+                  ],
+                ),
+              ),
+
+              // Dropdown Filters
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    // Department Dropdown
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedDepartment,
+                        hint: const Text("Department"),
+                        items: _departments
+                            .map(
+                              (dept) => DropdownMenuItem(
+                                value: dept,
+                                child: Text(dept),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() => _selectedDepartment = value);
+                          _applyFilters();
+                        },
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.blue.shade100),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.blue.shade300, width: 1.5),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    // Year Dropdown
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedYear,
+                        hint: const Text("Year"),
+                        items: _years
+                            .map(
+                              (year) => DropdownMenuItem(
+                                value: year,
+                                child: Text(year),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() => _selectedYear = value);
+                          _applyFilters();
+                        },
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.blue.shade100),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.blue.shade300, width: 1.5),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              // List
+              Expanded(child: _buildContent()),
+            ],
+          ),
         ),
       ),
     );

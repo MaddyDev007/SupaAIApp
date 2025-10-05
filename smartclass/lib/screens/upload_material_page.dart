@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:file_selector/file_selector.dart';
-// import 'package:open_filex/open_filex.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -51,7 +50,6 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
     setState(() {
       selectedFile = file; // selectedFile is now XFile
     });
-    // print('Picked file: ${file.name}');
   }
 }
 

@@ -103,7 +103,7 @@ class _NotesPageState extends State<NotesPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.remove_red_eye),
+                            icon: const Icon(Icons.remove_red_eye, color: Colors.grey,),
                             onPressed: () {
                               Navigator.push(
                                 context,

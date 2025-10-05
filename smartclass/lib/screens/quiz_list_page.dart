@@ -20,6 +20,9 @@ class _QuizListPageState extends State<QuizListPage>
   late final AnimationController _listController;
   late final Animation<double> _listAnimation;
 
+  String _filterOption = 'All'; // New filter option
+  final List<String> _filterOptions = ['All', 'Finished', 'Unfinished'];
+
   @override
   void initState() {
     super.initState();
@@ -68,6 +71,15 @@ class _QuizListPageState extends State<QuizListPage>
 
     _listController.forward(from: 0);
     return quizList;
+  }
+
+  List<Map<String, dynamic>> _applyFilter(List<Map<String, dynamic>> quizzes) {
+    if (_filterOption == 'Finished') {
+      return quizzes.where((q) => q['attempted'] == true).toList();
+    } else if (_filterOption == 'Unfinished') {
+      return quizzes.where((q) => q['attempted'] == false).toList();
+    }
+    return quizzes; // All
   }
 
   Widget _buildQuizCard(Map<String, dynamic> quiz, int index) {
@@ -149,46 +161,80 @@ class _QuizListPageState extends State<QuizListPage>
         ),
         centerTitle: true,
         backgroundColor: blue,
-        iconTheme: IconThemeData(
-          color: Colors.white, // <-- change back arrow color here
-        ),
+        iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          color: Colors.blue.shade50
-        ),
-        child: FutureBuilder<List<Map<String, dynamic>>>(
-          future: _quizzesFuture,
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            final quizzes = snapshot.data!;
-            if (quizzes.isEmpty) {
-              return const Center(
-                child: Text(
-                  "No quizzes available.",
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
+      body: Column(
+        children: [
+          // Filter dropdown always visible
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                const Text(
+                  "Filter: ",
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
-              );
-            }
+                const SizedBox(width: 12),
+                DropdownButton<String>(
+                  borderRadius: BorderRadius.circular(12),
+                  dropdownColor: Colors.white,
+                  focusColor: Colors.blue.shade50,
+                  value: _filterOption,
+                  items: _filterOptions
+                      .map(
+                        (opt) => DropdownMenuItem(value: opt, child: Text(opt)),
+                      )
+                      .toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() {
+                        _filterOption = val;
+                      });
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: FutureBuilder<List<Map<String, dynamic>>>(
+              future: _quizzesFuture,
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-            return RefreshIndicator(
-              onRefresh: () async {
-                final refreshed = await _fetchQuizzes();
-                setState(() => _quizzesFuture = Future.value(refreshed));
+                // Apply filter
+                List<Map<String, dynamic>> quizzes = _applyFilter(
+                  snapshot.data!,
+                );
+
+                if (quizzes.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      "No quizzes available for this filter.",
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  );
+                }
+
+                return RefreshIndicator(
+                  onRefresh: () async {
+                    final refreshed = await _fetchQuizzes();
+                    setState(() => _quizzesFuture = Future.value(refreshed));
+                  },
+                  color: blue,
+                  child: ListView.builder(
+                    itemCount: quizzes.length,
+                    itemBuilder: (context, index) =>
+                        _buildQuizCard(quizzes[index], index),
+                  ),
+                );
               },
-              color: blue,
-              child: ListView.builder(
-                itemCount: quizzes.length,
-                itemBuilder: (context, index) =>
-                    _buildQuizCard(quizzes[index], index),
-              ),
-            );
-          },
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }

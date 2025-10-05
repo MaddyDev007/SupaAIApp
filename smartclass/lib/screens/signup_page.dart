@@ -103,18 +103,28 @@ class _SignupPageState extends State<SignupPage> {
     return TextFormField(
       controller: controller,
       obscureText: obscure,
+      cursorColor: Colors.blue,
       decoration: InputDecoration(
+        filled: true,
+        fillColor: Colors.white,
         labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        floatingLabelStyle: TextStyle(
+          color: Colors.blueAccent, // 👈 Change label text color here
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.blue.shade100, width: 1.5,),
+        ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Colors.blueAccent, // Color when focused
+          borderSide: BorderSide(
+            color: Colors.blue.shade300, // Color when focused
             width: 2,
           ),
         ),
-        prefixIcon: Icon(icon),
+        prefixIcon: Icon(icon, color: Colors.grey),
         suffixIcon: suffixIcon,
+        suffixIconColor: Colors.grey
       ),
       validator: validator,
     );
@@ -129,11 +139,16 @@ class _SignupPageState extends State<SignupPage> {
     return DropdownButtonFormField<String>(
       decoration: InputDecoration(
         labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        filled: true,
+        fillColor: Colors.white,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.blue.shade100),
+        ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: Colors.blueAccent, // Color when focused
+          borderSide: BorderSide(
+            color: Colors.blue.shade300, // Color when focused
             width: 2,
           ),
         ),

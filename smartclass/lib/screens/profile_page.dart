@@ -12,7 +12,7 @@ class ProfilePage extends StatelessWidget {
 
     final response = await Supabase.instance.client
         .from('profiles')
-        .select('id, email, department, year, name')
+        .select('id, email, department, year, name, role')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -120,6 +120,12 @@ class ProfilePage extends StatelessWidget {
                         Icons.calendar_today,
                         "Year",
                         student['year'],
+                      ),
+                      const SizedBox(height: 14),
+                      _buildInfoTile(
+                        Icons.badge,
+                        "Role",
+                        student['role'],
                       ),
 
                       const SizedBox(height: 28),
