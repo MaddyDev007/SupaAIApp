@@ -154,6 +154,7 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
       child: SlideTransition(
         position: _listAnimation.drive(slideTween),
         child: Card(
+          color: Colors.white,
           elevation: 3,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),

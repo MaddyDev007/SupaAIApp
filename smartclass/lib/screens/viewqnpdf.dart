@@ -139,6 +139,7 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
       child: SlideTransition(
         position: _listAnimation.drive(slideTween),
         child: Card(
+          color: Colors.white,
           elevation: 3,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.symmetric(vertical: 8),

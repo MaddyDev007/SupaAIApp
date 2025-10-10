@@ -200,7 +200,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
         actions: [
           IconButton(
             tooltip: "Clear Chat",
-            icon: const Icon(Icons.delete, color: Colors.red),
+            icon: const Icon(Icons.delete, color: Colors.white),
             onPressed: _clearChat,
           ),
         ],

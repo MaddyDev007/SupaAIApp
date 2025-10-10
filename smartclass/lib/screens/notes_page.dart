@@ -75,6 +75,7 @@ class _NotesPageState extends State<NotesPage> {
             itemBuilder: (context, index) {
               final note = notes[index];
               return Card(
+                color: Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),

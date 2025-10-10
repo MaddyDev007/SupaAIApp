@@ -77,16 +77,16 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                     Row(
                       children: [
                         _buildStatCard(
-                          "Avg Score",
-                          averageScore.toStringAsFixed(1),
-                          Colors.blue,
-                          Icons.bar_chart,
-                        ),
-                        _buildStatCard(
                           "High Score",
                           "$highestScore",
                           Colors.green,
                           Icons.trending_up,
+                        ),
+                        _buildStatCard(
+                          "Avg Score",
+                          averageScore.toStringAsFixed(1),
+                          Colors.blue,
+                          Icons.bar_chart,
                         ),
                         _buildStatCard(
                           "Low Score",
@@ -103,7 +103,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        border: Border.all(color: Colors.grey.shade400, width: 2),
+                        // border: Border.all(color: Colors.grey.shade400, width: 2),
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
@@ -251,7 +251,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        border: Border.all(color: Colors.grey.shade400, width: 2),
+                        // border: Border.all(color: Colors.grey.shade400, width: 2),
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(

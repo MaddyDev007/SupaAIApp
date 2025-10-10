@@ -32,7 +32,10 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
   void _onNavTapped(int index) {
     if (index == 4) {
-      Navigator.pushNamed(context, '/profile');
+      Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => NotesPage()),
+              );
       return;
     }
     setState(() => _selectedIndex = index);
@@ -340,14 +343,14 @@ class _StudentDashboardState extends State<StudentDashboard> {
                 selectedIcon: Icon(Icons.quiz, color: Colors.blue),
               ),
               NavigationDestination(
-                icon: Icon(Icons.chat_bubble_outline),
+                icon: Icon(Icons.chat_outlined),
                 label: "Chat",
-                selectedIcon: Icon(Icons.chat_bubble, color: Colors.blue),
+                selectedIcon: Icon(Icons.chat, color: Colors.blue),
               ),
               NavigationDestination(
-                icon: Icon(Icons.person_outline),
-                label: "Profile",
-                selectedIcon: Icon(Icons.person, color: Colors.blue),
+                icon: Icon(Icons.edit_note_outlined),
+                label: "Notes",
+                selectedIcon: Icon(Icons.edit_note, color: Colors.blue),
               ),
             ],
           ),

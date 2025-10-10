@@ -78,153 +78,169 @@ class MyApp extends StatelessWidget {
 class _SplashRedirectorState extends State<SplashRedirector>
     with TickerProviderStateMixin {
   final supabase = Supabase.instance.client;
-
-  late AnimationController _bookController;
-  late AnimationController _capController;
-  late Animation<double> _capAnimation;
   final Random _random = Random();
 
-  final List<Offset> _particles = List.generate(20, (index) => Offset(0, 0));
+  late AnimationController _fadeController;
+  late AnimationController _glowController;
+  late List<Offset> _particles;
 
   @override
   void initState() {
     super.initState();
 
-    // Flying books animation
-    _bookController = AnimationController(
-      duration: const Duration(seconds: 4),
-      vsync: this,
-    )..repeat();
-
-    // Bouncing graduation cap
-    _capController = AnimationController(
-      duration: const Duration(seconds: 1),
-      vsync: this,
-    )..repeat(reverse: true);
-
-    _capAnimation = CurvedAnimation(
-      parent: _capController,
-      curve: Curves.easeInOut,
+    _particles = List.generate(
+      25,
+      (_) => Offset(_random.nextDouble(), _random.nextDouble()),
     );
 
-    // Start auth check after splash animation
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..forward();
+
+    _glowController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+
+    // Start authentication check
     checkAuth();
   }
 
   @override
   void dispose() {
-    _bookController.dispose();
-    _capController.dispose();
+    _fadeController.dispose();
+    _glowController.dispose();
     super.dispose();
   }
 
-  void checkAuth() async {
-    await Future.delayed(const Duration(seconds: 4)); // splash effect duration
-
+  Future<void> checkAuth() async {
+    await Future.delayed(const Duration(seconds: 4));
     final session = supabase.auth.currentSession;
 
+    if (!mounted) return;
+
     if (session == null) {
-      if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/login');
+      return;
+    }
+
+    final user = session.user;
+    final profile = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+
+    if (!mounted) return;
+    final role = profile?['role'];
+    if (role == 'teacher') {
+      Navigator.pushReplacementNamed(context, '/teacher-dashboard');
     } else {
-      final user = session.user;
-      final profile = await supabase
-          .from('profiles')
-          .select()
-          .eq('id', user.id)
-          .single();
-
-      final role = profile['role'];
-
-      if (!mounted) return;
-      if (role == 'teacher') {
-        Navigator.pushReplacementNamed(context, '/teacher-dashboard');
-      } else {
-        Navigator.pushReplacementNamed(context, '/student-dashboard');
-      }
+      Navigator.pushReplacementNamed(context, '/student-dashboard');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
-      backgroundColor: Colors.blue.shade700,
-      body: Stack(
-        children: [
-          // Particle background
-          ..._particles.map((particle) {
-            final dx = _random.nextDouble() * MediaQuery.of(context).size.width;
-            final dy = _random.nextDouble() * MediaQuery.of(context).size.height;
-            return Positioned(
-              left: dx,
-              top: dy,
-              child: Container(
-                width: 4,
-                height: 4,
-                decoration: const BoxDecoration(
-                  color: Colors.amberAccent,
-                  shape: BoxShape.circle,
-                ),
-              ),
-            );
-          }),
+      backgroundColor: const Color(0xFF001B3A),
+      body: AnimatedBuilder(
+        animation: _fadeController,
+        builder: (context, child) {
+          return Stack(
+            children: [
+              // Floating neon particles
+              ..._particles.map((p) {
+                final dx = (p.dx * size.width +
+                        sin(DateTime.now().millisecondsSinceEpoch / 800 + p.dx) *
+                            10)
+                    .clamp(0, size.width);
+                final dy = (p.dy * size.height +
+                        cos(DateTime.now().millisecondsSinceEpoch / 1000 + p.dy) *
+                            10)
+                    .clamp(0, size.height);
+                return Positioned(
+                  left: dx.toDouble(),
+                  top: dy.toDouble(),
+                  child: Container(
+                    width: 3,
+                    height: 3,
+                    decoration: BoxDecoration(
+                      color: Colors.blueAccent.withAlpha((0.6 * 255).toInt()),
+                      borderRadius: BorderRadius.circular(50),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.blueAccent.withAlpha((0.8 * 255).toInt()),
+                          blurRadius: 6,
+                        )
+                      ],
+                    ),
+                  ),
+                );
+              }),
 
-          Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Animated flying books
-                AnimatedBuilder(
-                  animation: _bookController,
-                  builder: (context, child) {
-                    double t = _bookController.value;
-                    double x = 100 * sin(2 * pi * t);
-                    double y = 50 * cos(2 * pi * t);
-                    return Transform.translate(
-                      offset: Offset(x, y),
-                      child: const Icon(
-                        Icons.book,
-                        size: 60,
-                        color: Colors.orangeAccent,
-                      ),
-                    );
-                  },
-                ),
-
-                const SizedBox(height: 20),
-
-                // App name
-                const Text(
-                  'Student Smart Class',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 1.2,
+              // Center logo + glow animation
+              Center(
+                child: FadeTransition(
+                    opacity: _fadeController,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 110,
+                          height: 110,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: const RadialGradient(
+                              colors: [Color(0xFF00B4FF), Color(0xFF003C8F)],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.blueAccent.withAlpha((0.5 * 255).toInt()),
+                                blurRadius: 20,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              Icons.lightbulb_outline,
+                              size: 64,
+                              color: Colors.white,
+                            ),
+                            // child: Image(
+                            //   image: AssetImage('./assets/images/icon1.png'),
+                            //   fit: BoxFit.cover,
+                            // ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        const Text(
+                          "TechClass",
+                          style: TextStyle(
+                            fontSize: 28,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        const CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.lightBlueAccent,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-
-                const SizedBox(height: 20),
-
-                // Bouncing graduation cap
-                ScaleTransition(
-                  scale: _capAnimation,
-                  child: const Icon(
-                    Icons.school_outlined,
-                    color: Colors.amberAccent,
-                    size: 60,
-                  ),
-                ),
-
-                const SizedBox(height: 30),
-
-                const CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.amberAccent),
-                ),
-              ],
-            ),
-          ),
-        ],
+              
+            ],
+          );
+        },
       ),
     );
   }

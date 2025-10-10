@@ -32,10 +32,6 @@ class _TeacherDashboardState extends State<TeacherDashboard>
   }
 
   void _onNavTapped(int index) {
-    if (index == 4) {
-      Navigator.pushNamed(context, '/profile');
-      return;
-    }
     setState(() => _selectedIndex = index);
   }
 
@@ -169,6 +165,8 @@ class _TeacherDashboardState extends State<TeacherDashboard>
       visibleCards = [allCards[2]];
     } else if (_selectedIndex == 3) {
       visibleCards = [allCards[1]];
+    } else if (_selectedIndex == 4) {
+      visibleCards = [allCards[5]];
     } else {
       visibleCards = allCards;
     }
@@ -327,14 +325,14 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                 selectedIcon: Icon(Icons.quiz, color: Colors.blue),
               ),
               NavigationDestination(
-                icon: Icon(Icons.chat_bubble_outline),
+                icon: Icon(Icons.chat_outlined),
                 label: "Chat",
-                selectedIcon: Icon(Icons.chat_bubble, color: Colors.blue),
+                selectedIcon: Icon(Icons.chat, color: Colors.blue),
               ),
               NavigationDestination(
-                icon: Icon(Icons.person_outline),
-                label: "Profile",
-                selectedIcon: Icon(Icons.person, color: Colors.blue),
+                icon: Icon(Icons.bar_chart_rounded),
+                label: "Analytics",
+                selectedIcon: Icon(Icons.stacked_bar_chart_rounded, color: Colors.blue),
               ),
             ],
           ),

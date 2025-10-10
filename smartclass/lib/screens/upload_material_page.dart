@@ -37,22 +37,18 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
   }
 
   Future<void> pickPDF() async {
-  // Allow only PDF files
-  final typeGroup = XTypeGroup(
-    label: 'pdf',
-    extensions: ['pdf'],
-  );
+    // Allow only PDF files
+    final typeGroup = XTypeGroup(label: 'pdf', extensions: ['pdf']);
 
-  // Pick a single file
-  final XFile? file = await openFile(acceptedTypeGroups: [typeGroup]);
+    // Pick a single file
+    final XFile? file = await openFile(acceptedTypeGroups: [typeGroup]);
 
-  if (file != null) {
-    setState(() {
-      selectedFile = file; // selectedFile is now XFile
-    });
+    if (file != null) {
+      setState(() {
+        selectedFile = file; // selectedFile is now XFile
+      });
+    }
   }
-}
-
 
   Future<void> uploadMaterialOnly() async {
     if (selectedFile == null ||
@@ -234,7 +230,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       appBar: AppBar(
         title: const Text(
           'Upload & Generate',
-          style: TextStyle(color: Colors.white , fontWeight: FontWeight.w500),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
         ),
         iconTheme: IconThemeData(
           color: Colors.white, // <-- change back arrow color here
@@ -246,7 +242,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [blue.shade50, Colors.white],
+            colors: [blue.shade50, blue.shade50],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -254,6 +250,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
           child: Card(
+            color: Colors.white,
             elevation: 6,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
@@ -270,10 +267,22 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
+                      floatingLabelStyle: TextStyle(
+                        color: Colors
+                            .blueAccent, // 👈 Change label text color here
+                      ),
+                      suffixIconColor: Colors.grey,
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: Colors.blue.shade100,
+                          width: 1.5,
+                        ),
+                      ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                          color: Colors.blueAccent, // Color when focused
+                        borderSide: BorderSide(
+                          color: Colors.blue.shade300, // Color when focused
                           width: 2,
                         ),
                       ),
@@ -291,10 +300,22 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
+                      floatingLabelStyle: TextStyle(
+                        color: Colors
+                            .blueAccent, // 👈 Change label text color here
+                      ),
+                      suffixIconColor: Colors.grey,
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: Colors.blue.shade100,
+                          width: 1.5,
+                        ),
+                      ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                          color: Colors.blueAccent, // Color when focused
+                        borderSide: BorderSide(
+                          color: Colors.blue.shade300, // Color when focused
                           width: 2,
                         ),
                       ),
@@ -312,10 +333,21 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
+                      floatingLabelStyle: TextStyle(
+                        color: Colors
+                            .blueAccent, // 👈 Change label text color here
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: Colors.blue.shade100,
+                          width: 1.5,
+                        ),
+                      ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                          color: Colors.blueAccent, // Color when focused
+                        borderSide: BorderSide(
+                          color: Colors.blue.shade300, // Color when focused
                           width: 2,
                         ),
                       ),
@@ -325,7 +357,10 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
                   ElevatedButton.icon(
                     onPressed: pickPDF,
                     icon: const Icon(Icons.attach_file, color: Colors.white),
-                    label: const Text('Pick PDF', style: TextStyle(color: Colors.white)),
+                    label: const Text(
+                      'Pick PDF',
+                      style: TextStyle(color: Colors.white),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: blue,
                       padding: const EdgeInsets.symmetric(vertical: 14),
@@ -345,8 +380,10 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
                   ElevatedButton.icon(
                     onPressed: uploading ? null : uploadMaterialOnly,
                     icon: const Icon(Icons.upload_file, color: Colors.white),
-                    label: Text(uploading ? 'Uploading...' : 'Upload Material',
-                        style: const TextStyle(color: Colors.white)),
+                    label: Text(
+                      uploading ? 'Uploading...' : 'Upload Material',
+                      style: const TextStyle(color: Colors.white),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: blue,
                       padding: const EdgeInsets.symmetric(vertical: 14),

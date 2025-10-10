@@ -137,6 +137,7 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
       child: SlideTransition(
         position: _listAnimation.drive(slideTween),
         child: Card(
+          color: Colors.white,
           elevation: 3,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

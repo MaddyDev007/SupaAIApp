@@ -128,7 +128,6 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
   Widget _buildResultCard(Map<String, dynamic> result, int index) {
     final profile = result['profiles'] ?? {};
     final studentName = profile['name'] ?? "Unknown";
-    final studentEmail = profile['email'] ?? "No email";
     final studentDepartment = profile['department'] ?? "N/A";
     final studentYear = profile['year'] ?? "N/A";
 
@@ -142,6 +141,7 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
       child: SlideTransition(
         position: _listAnimation.drive(slideTween),
         child: Card(
+          color: Colors.white,
           margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -161,7 +161,7 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             subtitle: Text(
-              "Email: $studentEmail\nSubject: ${result['subject']}\nDepartment: $studentDepartment \nYear: $studentYear",
+              "Subject: ${result['subject']}\nDepartment: $studentDepartment \nYear: $studentYear",
               style: const TextStyle(color: Colors.grey),
             ),
             trailing: Container(

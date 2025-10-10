@@ -85,12 +85,18 @@ class ViewNotePage extends StatelessWidget {
                     TextButton.icon(
                       icon: const Icon(Icons.edit, color: Colors.blue),
                       label: const Text("Edit"),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.blue,
+                      ),
                       onPressed: onEdit,
                     ),
                     const SizedBox(width: 8),
                     TextButton.icon(
                       icon: const Icon(Icons.delete, color: Colors.red),
                       label: const Text("Delete"),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.red,
+                      ),
                       onPressed: onDelete,
                     ),
                   ],

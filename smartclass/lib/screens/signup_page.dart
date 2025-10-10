@@ -138,6 +138,10 @@ class _SignupPageState extends State<SignupPage> {
   }) {
     return DropdownButtonFormField<String>(
       decoration: InputDecoration(
+        floatingLabelStyle: TextStyle(
+          color: Colors.blueAccent, // 👈 Change label text color here
+        ),
+        suffixIconColor: Colors.grey,
         labelText: label,
         filled: true,
         fillColor: Colors.white,
