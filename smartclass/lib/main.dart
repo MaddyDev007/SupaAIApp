@@ -205,16 +205,13 @@ class _SplashRedirectorState extends State<SplashRedirector>
                               ),
                             ],
                           ),
-                          child: const Center(
-                            child: Icon(
-                              Icons.lightbulb_outline,
-                              size: 64,
-                              color: Colors.white,
+                          child: Center(
+                            child: Image.asset(
+                              "assets/images/icon1.png",
+                              width: 184,
+                              height: 184,
+                              colorBlendMode: BlendMode.overlay,
                             ),
-                            // child: Image(
-                            //   image: AssetImage('./assets/images/icon1.png'),
-                            //   fit: BoxFit.cover,
-                            // ),
                           ),
                         ),
                         const SizedBox(height: 24),

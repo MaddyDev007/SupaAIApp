@@ -332,7 +332,7 @@ class _TeacherDashboardState extends State<TeacherDashboard>
               NavigationDestination(
                 icon: Icon(Icons.bar_chart_rounded),
                 label: "Analytics",
-                selectedIcon: Icon(Icons.stacked_bar_chart_rounded, color: Colors.blue),
+                selectedIcon: Icon(Icons.bar_chart_rounded, color: Colors.blue),
               ),
             ],
           ),

@@ -125,7 +125,9 @@ class ProfilePage extends StatelessWidget {
                       _buildInfoTile(
                         Icons.badge,
                         "Role",
-                        student['role'],
+                        student['role'].toString().contains("teacher")
+                            ? "Teacher"
+                            : "Student",
                       ),
 
                       const SizedBox(height: 28),

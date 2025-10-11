@@ -188,6 +188,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
 
       final body = jsonDecode(uploadRes.body) as Map<String, dynamic>;
       final questions = body['questions'];
+      final text_preview = body['text_preview'];
 
       final storePayload = {
         'material_id': uploadedMaterialId,
@@ -197,6 +198,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         'subject': body['metadata']['subject'],
         'questions': questions,
         'pdf_url': uploadedFileUrl,
+        'text_preview': text_preview,
       };
 
       final storeRes = await http.post(

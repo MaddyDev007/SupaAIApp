@@ -1,25 +1,36 @@
 import json
 import os
-from dotenv import load_dotenv
-from cohere import Client
-from pathlib import Path
-from fastapi import HTTPException
 import re
+import io
 import asyncio
 import httpx
 import pdfplumber
-import io
+from dotenv import load_dotenv
+from pathlib import Path
+from cohere import Client
+from fastapi import HTTPException
 from supabase import create_client
 
-# Load environment variables
+# -------------------------------------------------------------------
+# 🔧 Load environment variables
+# -------------------------------------------------------------------
 load_dotenv(dotenv_path=Path(__file__).resolve().parents[1] / ".env")
-co = Client(os.getenv("COHERE_API_KEY"))
-
+COHERE_KEY = os.getenv("COHERE_API_KEY")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+
+co = Client(COHERE_KEY)
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# -------------------------------------------------------------------
+# 🧩 Utility: Split long text into chunks (default 2000 chars)
+# -------------------------------------------------------------------
+def chunk_text(text: str, size: int = 2000):
+    return [text[i:i + size] for i in range(0, len(text), size)]
 
+# -------------------------------------------------------------------
+# 🧠 Generate MCQs from text (for each chunk)
+# -------------------------------------------------------------------
 def generate_questions(text: str):
     prompt = f"""
 You are a question generator. Return exactly 10 multiple choice questions in JSON.
@@ -34,20 +45,17 @@ Each item must be:
 Only return a valid JSON array — no text, no formatting, no explanations.
 
 Content:
-{text[:2000]}
+{text}
 """
 
     try:
         response = co.chat(message=prompt, model="command-a-03-2025", temperature=0.3)
-
         raw = response.text.strip()
-        print("🧾 Cohere raw output:\n", raw)
+        # print("🧾 Cohere raw output:\n", raw)
 
-        # Try strict JSON
         try:
             return json.loads(raw)
         except:
-            # Try extracting array from text
             match = re.search(r'\[\s*{.*}\s*]', raw, re.DOTALL)
             if match:
                 return json.loads(match.group())
@@ -57,42 +65,83 @@ Content:
         print(f"[Cohere Error] {e}")
         raise HTTPException(status_code=500, detail="Failed to generate structured questions")
 
+# -------------------------------------------------------------------
+# 🧩 Generate questions for the ENTIRE document (merged)
+# -------------------------------------------------------------------
+def generate_all_questions(full_text: str):
+    chunks = chunk_text(full_text)
+    all_questions = []
 
-async def fetch_material_documents():
-    """Fetch PDFs from Supabase and extract text (async)."""
+    for i, chunk in enumerate(chunks, start=1):
+        print(f"⚙️ Processing chunk {i}/{len(chunks)}...")
+        questions = generate_questions(chunk)
+        all_questions.extend(questions)
+
+    return all_questions
+
+# -------------------------------------------------------------------
+# 📄 Fetch and extract text from all Supabase PDFs
+# -------------------------------------------------------------------
+def extract_text(file_bytes: bytes):
     try:
-        res = supabase.table("quizzes").select("pdf_url").execute()
-        urls = [item["pdf_url"] for item in res.data if item.get("pdf_url")]
+        with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
+            full_text = "\n".join(page.extract_text() or "" for page in pdf.pages)
+        return full_text
+    except Exception as e:
+        print(f"[PDF Extraction Error] {e}")
+        return ""
 
+# -------------------------------------------------------------------
+# 💬 Ask chatbot (contextual QA using all documents)
+# -------------------------------------------------------------------
+# ---------------------------------------
+# Fetch only relevant PDFs using keyword matching
+# ---------------------------------------
+async def fetch_relevant_documents(question: str, top_k: int = 2):
+    try:
+        # Get all previews from Supabase
+        res = supabase.table("quizzes").select("id, pdf_url, text_preview").execute()
+        data = res.data
+        if not data:
+            return []
+
+        question_words = set(question.lower().split())
+        scores = []
+
+        # Score each PDF based on keyword overlap
+        for d in data:
+            preview = d.get("text_preview") or ""  # fallback to empty string
+            preview_words = set(preview.lower().split())
+            score = len(question_words & preview_words)
+            scores.append((d, score))
+
+
+        # Pick top matching PDFs
+        scores.sort(key=lambda x: x[1], reverse=True)
+        top_docs = [s[0] for s in scores[:top_k] if s[1] > 0]  # ignore zero matches
+
+        # Download & extract full text
         docs = []
         async with httpx.AsyncClient(timeout=60.0) as client:
-            for url in urls:
-                r = await client.get(url)
+            for d in top_docs:
+                r = await client.get(d["pdf_url"])
                 content = r.content
-
-                # pdfplumber is blocking → run in thread
-                def extract_text(data: bytes):
-                    with pdfplumber.open(io.BytesIO(data)) as pdf:
-                        return "\n".join([page.extract_text() or "" for page in pdf.pages])
-
-                text = await asyncio.get_event_loop().run_in_executor(None, extract_text, content)
-                docs.append({
-                    "title": url.split("/")[-1],
-                    "text": text[:2000]
-                })
+                text = await asyncio.to_thread(lambda: extract_text(content))
+                docs.append({"title": d["pdf_url"].split("/")[-1], "text": text})
 
         return docs
+
     except Exception as e:
         print(f"[Material Fetch Error] {e}")
         return []
 
-
+# ---------------------------------------
+# Ask chatbot using only relevant PDFs
+# ---------------------------------------
 async def ask_chatbot(question: str):
-    """Ask chatbot with optional documents (async)."""
     try:
-        documents = await fetch_material_documents()
+        documents = await fetch_relevant_documents(question, top_k=2)
 
-        # cohere client is sync, so run it in executor
         def run_cohere():
             return co.chat(
                 model="command-a-03-2025",
@@ -100,54 +149,54 @@ async def ask_chatbot(question: str):
                 documents=documents,
             ).text
 
-        answer = await asyncio.get_event_loop().run_in_executor(None, run_cohere)
+        answer = await asyncio.to_thread(run_cohere)
         return answer
 
     except Exception as e:
         print(f"[Chatbot Error] {e}")
         raise HTTPException(status_code=500, detail="Chatbot failed to respond.")
 
+# -------------------------------------------------------------------
+# 🧾 Generate Exam Questions (covers full text)
+# -------------------------------------------------------------------
 def generate_exam_questions(text: str):
+    # Merge entire text into one prompt
     prompt = f"""
-    You are an exam question generator.
-    Based on the following study material, generate:
-    - 5 short 2-mark questions (one or two sentences, direct answers).
-    - 2 long 13-mark questions (essay type, analytical, detailed).
+You are an exam question generator.
+Based on the following study material, generate:
+- 5 short 2-mark questions (one or two sentences, direct answers).
+- 2 long 13-mark questions (essay type, analytical, detailed).
 
-    Study Material:
-    {text[:2000]}
+Study Material:
+{text}
 
-    Output format (valid JSON only, no text outside JSON):
-    {{
-      "2_mark": ["Q1", "Q2", ...],
-      "13_mark": ["Q1", "Q2"]
-    }}
-    """
-
+Output format (valid JSON only, no text outside JSON):
+{{
+  "2_mark": ["Q1", "Q2", "Q3", "Q4", "Q5"],
+  "13_mark": ["Q1", "Q2"]
+}}
+"""
     try:
-        # ✅ Correct Cohere API call
-        response = co.chat(
-            model="command-a-03-2025",
-            message=prompt,     # not "messages"
-            temperature=0.3
-        )
-
+        response = co.chat(model="command-a-03-2025", message=prompt, temperature=0.3)
         raw = response.text.strip()
-        print("🧾 Raw Cohere Output:\n", raw)
+        # print("🧾 Raw Cohere Output:\n", raw)
 
-        # ✅ Try direct JSON parsing
         try:
-            return json.loads(raw)
+            data = json.loads(raw)
         except json.JSONDecodeError:
-            # Extract JSON object safely
-            start = raw.find("{")
-            end = raw.rfind("}")
+            start, end = raw.find("{"), raw.rfind("}")
             if start != -1 and end != -1:
-                cleaned = raw[start:end+1]
-                return json.loads(cleaned)
+                cleaned = raw[start:end + 1]
+                data = json.loads(cleaned)
+            else:
+                raise HTTPException(status_code=500, detail="Malformed JSON from Cohere")
 
-            raise HTTPException(status_code=500, detail="Malformed JSON from Cohere")
+        return {
+            "2_mark": data.get("2_mark", []),
+            "13_mark": data.get("13_mark", [])
+        }
 
     except Exception as e:
         print(f"[Exam Generation Error] {e}")
         raise HTTPException(status_code=500, detail="Failed to generate exam questions")
+
