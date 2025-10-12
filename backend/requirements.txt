@@ -8,4 +8,6 @@ supabase
 pdfplumber
 pydantic
 reportlab
+pytesseract
 httpx
+pillow
