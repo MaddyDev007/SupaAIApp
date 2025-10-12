@@ -131,7 +131,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       };
 
       final res = await http.post(
-        Uri.parse('https://supaaiapp.onrender.com/question/generate-exam'),
+        Uri.parse('https://supaaiapp-1.onrender.com/question/generate-exam'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(payload),
       );
@@ -177,7 +177,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       };
 
       final uploadRes = await http.post(
-        Uri.parse('https://supaaiapp.onrender.com/upload/'),
+        Uri.parse('https://supaaiapp-1.onrender.com/upload/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(payload),
       );
@@ -202,7 +202,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       };
 
       final storeRes = await http.post(
-        Uri.parse('https://supaaiapp.onrender.com/quiz/store'),
+        Uri.parse('https://supaaiapp-1.onrender.com/quiz/store'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(storePayload),
       );
