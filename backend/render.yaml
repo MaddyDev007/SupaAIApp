@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: smartclass-backend
+    env: docker
+    branch: main
+    plan: free
+    dockerfilePath: Dockerfile
+    autoDeploy: true
+    envVars:
+      - key: COHERE_API_KEY
+        value: ${COHERE_API_KEY}
+      - key: SUPABASE_URL
+        value: ${SUPABASE_URL}
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        value: ${SUPABASE_SERVICE_ROLE_KEY}
