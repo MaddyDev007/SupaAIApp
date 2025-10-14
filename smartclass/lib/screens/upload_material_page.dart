@@ -131,6 +131,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       };
 
       final res = await http.post(
+        // Uri.parse('http://127.0.0.1:8000/question/generate-exam'),
         Uri.parse('https://supaaiapp-1.onrender.com/question/generate-exam'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(payload),
@@ -178,6 +179,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
 
       final uploadRes = await http.post(
         Uri.parse('https://supaaiapp-1.onrender.com/upload/'),
+        // Uri.parse('http://127.0.0.1:8000/upload/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(payload),
       );
@@ -188,7 +190,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
 
       final body = jsonDecode(uploadRes.body) as Map<String, dynamic>;
       final questions = body['questions'];
-      final text_preview = body['text_preview'];
+      final textPreview = body['text_preview'];
 
       final storePayload = {
         'material_id': uploadedMaterialId,
@@ -198,11 +200,12 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         'subject': body['metadata']['subject'],
         'questions': questions,
         'pdf_url': uploadedFileUrl,
-        'text_preview': text_preview,
+        'text_preview': textPreview,
       };
 
       final storeRes = await http.post(
-        Uri.parse('https://supaaiapp-1.onrender.com/quiz/store'),
+        Uri.parse('http://127.0.0.1:8000/quiz/store'),
+        // Uri.parse('http://127.0.0.1:8000/quiz/store'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(storePayload),
       );
