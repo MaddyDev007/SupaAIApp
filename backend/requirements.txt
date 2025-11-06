@@ -11,3 +11,4 @@ reportlab
 pytesseract
 httpx
 pillow
+beautifulsoup4

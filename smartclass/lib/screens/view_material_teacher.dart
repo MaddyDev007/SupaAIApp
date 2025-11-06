@@ -4,8 +4,8 @@ import 'package:smartclass/screens/pdf_view_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dio/dio.dart';
 import 'package:open_filex/open_filex.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:url_launcher/url_launcher.dart';
+// import 'package:path_provider/path_provider.dart';
+// import 'package:url_launcher/url_launcher.dart';
 
 class ViewMaterialsTeacherPage extends StatefulWidget {
   const ViewMaterialsTeacherPage({super.key});

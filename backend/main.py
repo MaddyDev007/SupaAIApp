@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import upload, quiz, chatbot, question
+from routers import upload, quiz, chatbot, question,results
 
 app = FastAPI()
 
@@ -21,6 +21,8 @@ app.include_router(quiz.router, prefix="/quiz")
 app.include_router(chatbot.router, prefix="/chatbot")
 
 app.include_router(question.router, prefix="/question") 
+
+app.include_router(results.router, prefix="/results")
 
 @app.get("/")
 async def root():

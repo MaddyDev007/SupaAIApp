@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smartclass/screens/sem_result.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'quiz_list_page.dart';
 import 'chatbot_page.dart';
@@ -34,7 +35,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
     if (index == 4) {
       Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => NotesPage()),
+                // MaterialPageRoute(builder: (_) => NotesPage()),
+                MaterialPageRoute(builder: (_) => SemResultPage()),
               );
       return;
     }
