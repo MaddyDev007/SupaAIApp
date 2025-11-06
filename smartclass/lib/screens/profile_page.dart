@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:smartclass/screens/login_page.dart';
+import 'package:smartclass/screens/update.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'chatbot_page.dart'; // Importing to clear chat history on logout
 
@@ -131,41 +132,139 @@ class ProfilePage extends StatelessWidget {
                       ),
 
                       const SizedBox(height: 28),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.logout, color: Colors.white),
-                        label: const Text(
-                          "Logout",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.redAccent,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 32,
-                            vertical: 14,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          elevation: 5,
-                          shadowColor: Colors.redAccent.withValues(alpha: 0.4),
-                        ),
-                        onPressed: () async {
-                          await Supabase.instance.client.auth.signOut();
-                          chatHistory.clear();
-                          if (!context.mounted) return;
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const LoginPage(),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.update, color: Colors.white),
+                            label: const Text(
+                              "Update Profile",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
                             ),
-                            (Route<dynamic> route) =>
-                                false, // removes all previous routes
-                          );
-                        },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 14,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              elevation: 5,
+                              shadowColor: Colors.blue.withValues(alpha: 0.4),
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const UpdatePage(),
+                                ),
+                              );
+                            },
+                          ),
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.logout, color: Colors.white),
+                            label: const Text(
+                              "Logout",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.redAccent,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                                vertical: 14,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              elevation: 5,
+                              shadowColor: Colors.redAccent.withValues(
+                                alpha: 0.4,
+                              ),
+                            ),
+                            onPressed: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  title: Row(
+                                    children: const [
+                                      Icon(
+                                        Icons.logout_rounded,
+                                        color: Colors.redAccent,
+                                      ),
+                                      SizedBox(width: 10),
+                                      Text(
+                                        'Confirm Logout',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  content: const Text(
+                                    'Are you sure you want to logout from your account?',
+                                    style: TextStyle(fontSize: 15),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      child: const Text(
+                                        'Cancel',
+                                        style: TextStyle(color: Colors.grey),
+                                      ),
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(false),
+                                    ),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.redAccent,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                      ),
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(true),
+                                      child: const Text(
+                                        'Yes, Logout',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+
+                              // User pressed cancel or closed dialog
+                              if (confirm != true) return;
+
+                              // ✅ Proceed with logout
+                              await Supabase.instance.client.auth.signOut();
+                              chatHistory.clear();
+
+                              if (!context.mounted) return;
+                              Navigator.pushAndRemoveUntil(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const LoginPage(),
+                                ),
+                                (Route<dynamic> route) => false,
+                              );
+                            },
+                          ),
+
+                          //
+                        ],
                       ),
                     ],
                   ),

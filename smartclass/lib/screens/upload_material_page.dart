@@ -204,7 +204,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       };
 
       final storeRes = await http.post(
-        Uri.parse('http://127.0.0.1:8000/quiz/store'),
+        Uri.parse('https://supaaiapp-1.onrender.com/quiz/store'),
         // Uri.parse('http://127.0.0.1:8000/quiz/store'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(storePayload),

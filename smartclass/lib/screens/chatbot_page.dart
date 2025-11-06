@@ -61,8 +61,8 @@ class _ChatbotPageState extends State<ChatbotPage> {
 
     try {
       final res = await http.post(
-        Uri.parse('http://127.0.0.1:8000/chatbot/'),
-        // Uri.parse('https://supaaiapp-1.onrender.com/chatbot/'),
+        // Uri.parse('http://127.0.0.1:8000/chatbot/'),
+        Uri.parse('https://supaaiapp-1.onrender.com/chatbot/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'question': question}),
       );

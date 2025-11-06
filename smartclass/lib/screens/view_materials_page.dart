@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:smartclass/screens/pdf_view_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:dio/dio.dart';
@@ -91,37 +94,137 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
     }
   }
 
-  Future<void> _openMaterial(String url) async {
+  /* Future<void> _openMaterial(String url) async {
     final uri = Uri.tryParse(url);
     if (uri == null ||
-        !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        !await launchUrl(uri, mode: LaunchMode.inAppWebView)) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Could not open the material.')),
       );
     }
+  } */
+
+ Future<void> _openMaterial(String url, String title) async {
+  final uri = Uri.tryParse(url);
+
+  if (uri == null) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Invalid material link')),
+    );
+    return;
+  }
+
+  // 👇 Open in-app PDF viewer
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => PDFViewerPage(
+        pdfUrl: url,
+        title: title,
+      ),
+    ),
+  );
+}
+
+  Future<bool> _showModernConfirmDialog({
+    required String title,
+    required String message,
+    required String confirmText,
+    Color confirmColor = Colors.blue,
+  }) async {
+    final theme = Theme.of(context);
+    return (await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Text(title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold, color: Colors.black87)),
+            content: Text(
+              message,
+              style:
+                  theme.textTheme.bodyMedium?.copyWith(color: Colors.black54),
+            ),
+            actionsPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            actions: [
+              OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  side: BorderSide(color: Colors.grey.shade300),
+                ),
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text("Cancel"),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: confirmColor,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(confirmText,
+                    style: const TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        )) ??
+        false;
+  }
+
+  Future<void> _confirmAndDownload(String url, String filename) async {
+    final confirm = await _showModernConfirmDialog(
+      title: "Download Question Bank",
+      message: "Do you want to download this file to your Downloads folder?",
+      confirmText: "Download",
+    );
+
+    if (confirm) await _downloadMaterial(url, filename);
   }
 
   Future<void> _downloadMaterial(String url, String filename) async {
-    try {
-      final dir = await getApplicationDocumentsDirectory();
-      final savePath = "${dir.path}/$filename";
+  try {
+    // 📂 Get the user's Downloads folder
+    final downloadsDir = Directory('/storage/emulated/0/Download');
 
-      await Dio().download(url, savePath);
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Downloaded to $savePath')),
-      );
-
-      await OpenFilex.open(savePath);
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Download failed: $e')),
-      );
+    // Ensure the directory exists
+    if (!await downloadsDir.exists()) {
+      await downloadsDir.create(recursive: true);
     }
+
+    String savePath = "${downloadsDir.path}/$filename";
+
+    // 🧠 Auto-rename if file already exists
+    int counter = 1;
+    while (await File(savePath).exists()) {
+      final nameWithoutExt = filename.split('.').first;
+      final ext = filename.contains('.') ? '.${filename.split('.').last}' : '';
+      savePath = "${downloadsDir.path}/$nameWithoutExt ($counter)$ext";
+      counter++;
+    }
+
+    // 📥 Download the file
+    await Dio().download(url, savePath);
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Downloaded to: $savePath')),
+    );
+
+    // 📂 Open after download
+    await OpenFilex.open(savePath);
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Download failed: $e')),
+    );
   }
+}
 
   Widget _buildMaterialCard(Map<String, dynamic> material, int index) {
     final blue = Colors.blue;
@@ -136,45 +239,50 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
       opacity: _listAnimation,
       child: SlideTransition(
         position: _listAnimation.drive(slideTween),
-        child: Card(
-          color: Colors.white,
-          elevation: 3,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          margin: const EdgeInsets.symmetric(vertical: 8),
-          child: ListTile(
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            title: Text(
-              subject,
-              style:
-                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            subtitle: Text(
-              '${material['department']} • ${material['year']}',
-              style: const TextStyle(color: Colors.grey),
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                InkWell(
-                  onTap: () => _openMaterial(url),
-                  borderRadius: BorderRadius.circular(50),
-                  child: Padding(
-                    padding: const EdgeInsets.all(6),
-                    child: Icon(Icons.open_in_new, color: blue),
+          child: Card(
+            color: Colors.white,
+            elevation: 3,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            child: InkWell(         // Added InkWell for card tap
+              onTap: () => _openMaterial(url, subject),
+              splashColor: Color.fromARGB(255, 196, 221, 254),
+              borderRadius: BorderRadius.circular(12),
+            child: ListTile(
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              title: Text(
+                subject,
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              subtitle: Text(
+                '${material['department']} • ${material['year']}',
+                style: const TextStyle(color: Colors.grey),
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  InkWell(
+                    onTap: () => _openMaterial(url, subject),
+                    borderRadius: BorderRadius.circular(50),
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Icon(Icons.open_in_new, color: blue),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                InkWell(
-                  onTap: () => _downloadMaterial(url, "$subject.pdf"),
-                  borderRadius: BorderRadius.circular(50),
-                  child: Padding(
-                    padding: const EdgeInsets.all(6),
-                    child: Icon(Icons.download, color: blue),
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: () => _confirmAndDownload(url, "$subject.pdf"),
+                    borderRadius: BorderRadius.circular(50),
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Icon(Icons.download, color: blue),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -230,44 +338,46 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [blue.shade50, Colors.white],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+      body: SafeArea(
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [blue.shade50, Colors.white],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
           ),
-        ),
-        child: RefreshIndicator(
-          onRefresh: _fetchMaterials,
-          color: blue,
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: TextField(
-                  controller: _searchController,
-                  cursorColor: Colors.blueAccent,
-                  decoration: InputDecoration(
-                    hintText: 'Search by subject name...',
-                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                    filled: true,
-                    fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(color: Colors.blue.shade100),
-                    ),
-                    focusedBorder: OutlineInputBorder(
+          child: RefreshIndicator(
+            onRefresh: _fetchMaterials,
+            color: blue,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  child: TextField(
+                    controller: _searchController,
+                    cursorColor: Colors.blueAccent,
+                    decoration: InputDecoration(
+                      hintText: 'Search by subject name...',
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                      enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.blue.shade300, width: 1.5),
+                        borderSide: BorderSide(color: Colors.blue.shade100),
                       ),
+                      focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.blue.shade300, width: 1.5),
+                        ),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Expanded(child: _buildContent()),
-            ],
+                const SizedBox(height: 8),
+                Expanded(child: _buildContent()),
+              ],
+            ),
           ),
         ),
       ),
