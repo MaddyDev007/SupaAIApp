@@ -13,10 +13,10 @@ class _UpdatePageState extends State<UpdatePage> {
   final SupabaseClient _supabase = Supabase.instance.client;
 
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _regController = TextEditingController();
 
   String? _selectedDept;
   String? _selectedYear;
-
   bool _isLoading = true;
   bool _updating = false;
   String? _errorMsg;
@@ -49,6 +49,7 @@ class _UpdatePageState extends State<UpdatePage> {
           _nameController.text = response['name'] ?? '';
           _selectedDept = response['department'];
           _selectedYear = response['year'];
+          _regController.text = response['reg_no'];
         });
       }
     } catch (e) {
@@ -74,11 +75,15 @@ class _UpdatePageState extends State<UpdatePage> {
       }
 
       // ✅ Update profile in Supabase
-      await _supabase.from('profiles').update({
-        'name': _nameController.text.trim(),
-        'department': _selectedDept,
-        'year': _selectedYear,
-      }).eq('id', user.id);
+      await _supabase
+          .from('profiles')
+          .update({
+            'name': _nameController.text.trim(),
+            'department': _selectedDept,
+            'year': _selectedYear,
+            'reg_no': _regController.text.trim(),
+          })
+          .eq('id', user.id);
 
       // ✅ Fetch updated role for correct redirection
       final profile = await _supabase
@@ -169,12 +174,19 @@ class _UpdatePageState extends State<UpdatePage> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _nameController,
+                      cursorColor: Colors.blue,
                       decoration: InputDecoration(
                         labelText: 'Full Name',
+                        floatingLabelStyle: TextStyle(
+                          color: Colors
+                              .blueAccent, // 👈 Change label text color here
+                        ),
                         filled: true,
                         fillColor: Colors.white,
-                        prefixIcon:
-                            const Icon(Icons.person_outline, color: Colors.grey),
+                        prefixIcon: const Icon(
+                          Icons.person_outline,
+                          color: Colors.grey,
+                        ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(
@@ -192,6 +204,40 @@ class _UpdatePageState extends State<UpdatePage> {
                       ),
                       validator: (value) =>
                           value == null || value.isEmpty ? 'Enter name' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _regController,
+                      cursorColor: Colors.blue,
+                      decoration: InputDecoration(
+                        labelText: 'Register Number',
+                        floatingLabelStyle: TextStyle(
+                          color: Colors
+                              .blueAccent, // 👈 Change label text color here
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                        prefixIcon: const Icon(
+                          Icons.confirmation_number_outlined,
+                          color: Colors.grey,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: Colors.blue.shade100,
+                            width: 1.5,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: Colors.blue.shade300,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                      validator: (value) =>
+                          value == null ? 'Enter name' : null,
                     ),
                     const SizedBox(height: 16),
                     _buildDropdownField(

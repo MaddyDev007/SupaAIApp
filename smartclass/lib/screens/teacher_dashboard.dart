@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smartclass/screens/profile_page.dart';
 import 'upload_material_page.dart';
 import 'result_page.dart';
 import 'teacher_analytics_dashboard.dart';
@@ -33,6 +34,30 @@ class _TeacherDashboardState extends State<TeacherDashboard>
 
   void _onNavTapped(int index) {
     setState(() => _selectedIndex = index);
+  }
+
+  void pushWithAnimation(BuildContext context, Widget page) {
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 350),
+        pageBuilder: (_, __, ___) => page,
+        transitionsBuilder: (_, animation, __, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: const Cubic(0.22, 0.61, 0.36, 1.0), // smooth custom curve
+          );
+
+          return SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(1, 0),
+              end: Offset.zero,
+            ).animate(curved),
+            child: child,
+          );
+        },
+      ),
+    );
   }
 
   Widget _dashboardCard({
@@ -100,60 +125,42 @@ class _TeacherDashboardState extends State<TeacherDashboard>
         subtitle: 'Share resources with students',
         icon: Icons.upload_file,
         color: Colors.orange,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const UploadMaterialPage()),
-        ),
+        onTap: () => pushWithAnimation(context, UploadMaterialPage()),
       ),
       _dashboardCard(
         title: 'Chatbot Assistant',
         subtitle: 'Get instant help and support',
         icon: Icons.smart_toy_outlined,
         color: Colors.green,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const ChatbotPage()),
-        ),
+        onTap: () => pushWithAnimation(context, ChatbotPage()),
       ),
       _dashboardCard(
         title: 'Quiz Results',
         subtitle: 'View and manage student results',
         icon: Icons.assignment_turned_in,
         color: Colors.pink,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const ResultPage()),
-        ),
+        onTap: () => pushWithAnimation(context, ResultPage()),
       ),
       _dashboardCard(
         title: 'View Materials',
         subtitle: 'Manage uploaded resources',
         icon: Icons.picture_as_pdf,
         color: Colors.blue,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => ViewMaterialsTeacherPage()),
-        ),
+        onTap: () => pushWithAnimation(context, ViewMaterialsTeacherPage()),
       ),
       _dashboardCard(
         title: 'Question Banks',
         subtitle: 'Manage question banks',
         icon: Icons.folder_copy_rounded,
         color: Colors.purple,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => ViewQNBankTeacherPage()),
-        ),
+        onTap: () => pushWithAnimation(context, ViewQNBankTeacherPage()),
       ),
       _dashboardCard(
         title: 'Analytics Dashboard',
         subtitle: 'View teaching analytics',
         icon: Icons.bar_chart_rounded,
         color: Colors.red,
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const TeacherAnalyticsPage()),
-        ),
+        onTap: () => pushWithAnimation(context,const TeacherAnalyticsPage()),
       ),
     ];
 
@@ -202,7 +209,7 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                   color: Colors.white,
                   size: 28,
                 ),
-                onPressed: () => Navigator.pushNamed(context, '/profile'),
+                onPressed: () => pushWithAnimation(context, ProfilePage()),
               ),
             ],
           ),

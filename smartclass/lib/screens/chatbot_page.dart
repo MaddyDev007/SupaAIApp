@@ -202,7 +202,64 @@ class _ChatbotPageState extends State<ChatbotPage> {
           IconButton(
             tooltip: "Clear Chat",
             icon: const Icon(Icons.delete, color: Colors.white),
-            onPressed: _clearChat,
+            // onPressed: _clearChat,
+            onPressed: () async {
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  title: Row(
+                                    children: const [
+                                      Icon(
+                                        Icons.delete_outline_rounded,
+                                        color: Colors.redAccent,
+                                      ),
+                                      SizedBox(width: 10),
+                                      Text(
+                                        'Clear Chat',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  content: const Text(
+                                     'Are you sure you want to clear the chat history?\nThis action cannot be undone.',
+                                    style: TextStyle(fontSize: 15),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      child: const Text(
+                                        'Cancel',
+                                        style: TextStyle(color: Colors.grey),
+                                      ),
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(false),
+                                    ),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.redAccent,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                      ),
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(true),
+                                      child: const Text(
+                                        'Yes, Clear',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (confirm != true) return;
+                              _clearChat();
+                              }
           ),
         ],
       ),

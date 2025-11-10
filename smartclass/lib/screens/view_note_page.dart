@@ -6,12 +6,15 @@ class ViewNotePage extends StatelessWidget {
   final int noteId;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  
+  final dynamic color;
 
   const ViewNotePage({
     super.key,
     required this.title,
     required this.content,
     required this.noteId,
+    required this.color,
     required this.onEdit,
     required this.onDelete,
   });
@@ -33,7 +36,7 @@ class ViewNotePage extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: color,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(

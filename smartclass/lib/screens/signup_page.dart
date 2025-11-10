@@ -10,7 +10,7 @@ class SignupPage extends StatefulWidget {
 
 class _SignupPageState extends State<SignupPage> {
   final _formKey = GlobalKey<FormState>();
-
+  final TextEditingController _regController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -31,6 +31,7 @@ class _SignupPageState extends State<SignupPage> {
 
   @override
   void dispose() {
+    _regController.dispose();
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -53,6 +54,7 @@ class _SignupPageState extends State<SignupPage> {
     });
 
     final name = _nameController.text.trim();
+    final regNo = _regController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
@@ -74,6 +76,7 @@ class _SignupPageState extends State<SignupPage> {
         'role': role,
         'department': _selectedDept,
         'year': _selectedYear,
+        'reg_no': regNo,
       });
 
       if (!context.mounted) return;
@@ -201,6 +204,15 @@ class _SignupPageState extends State<SignupPage> {
                   controller: _nameController,
                   validator: (value) => value == null || value.isEmpty
                       ? 'Name is required'
+                      : null,
+                ),
+                const SizedBox(height: 20),
+                _buildTextFormField(
+                  label: 'Register Number',
+                  icon: Icons.confirmation_number,
+                  controller: _regController,
+                  validator: (value) => value == null
+                      ? 'Register Number is required'
                       : null,
                 ),
                 const SizedBox(height: 16),

@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
+import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SemResultPage extends StatefulWidget {
   const SemResultPage({super.key});
@@ -16,6 +17,39 @@ class _SemResultPageState extends State<SemResultPage> {
   final _regController = TextEditingController();
   final _dobController = TextEditingController();
 
+  @override
+  void initState() {
+    super.initState();
+    _fetchStudentDetails();
+  }
+
+  Future<void> _fetchStudentDetails() async {
+  try {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    final profile = await Supabase.instance.client
+        .from('profiles')
+        .select("reg_no")
+        .eq('id', user.id)
+        .single();
+
+    // ✅ Auto-fill register number
+    if (profile['reg_no'] != null) {
+      setState(() {
+        _regController.text = profile['reg_no'];
+      });
+    }
+
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Unable to load student details")),
+    );
+  }
+}
+
+
   // Search & sort state
   final TextEditingController _searchCtrl = TextEditingController();
   String _searchQuery = "";
@@ -27,12 +61,12 @@ class _SemResultPageState extends State<SemResultPage> {
   bool _loading = false;
   Map<String, dynamic>? resultData;
 
-  final String apiUrl = "http://127.0.0.1:8000/results/getResult";
+  final String apiUrl = "https://supaaiapp-1.onrender.com/results/getResult";
 
   // ---------------- API ----------------
   Future<void> fetchResult() async {
     if (_regController.text.isEmpty || _dobController.text.isEmpty) {
-      showErrorDialog("Please fill all fields.");
+      showErrorDialog("Fill inputs", "Please fill all fields.");
       return;
     }
 
@@ -54,7 +88,7 @@ class _SemResultPageState extends State<SemResultPage> {
         final data = jsonDecode(res.body);
 
         if (data["subjects"] == null || (data["subjects"] as List).isEmpty) {
-          showErrorDialog("No results found for this user.");
+          showErrorDialog("No Result Found", "No results found for this user.");
           setState(() => _loading = false);
           return;
         }
@@ -65,29 +99,62 @@ class _SemResultPageState extends State<SemResultPage> {
           _searchCtrl.clear();
         });
       } else {
-        showErrorDialog("Result not found. Check Register No / DOB.");
+        showErrorDialog(
+          "No Result Found",
+          "Result not found. Check Register No / DOB.",
+        );
       }
     } catch (e) {
-      showErrorDialog("Network Error: $e");
+      showErrorDialog("Error", "Network Error: $e");
     }
 
     setState(() => _loading = false);
   }
 
-  void showErrorDialog(String message) {
+  void showErrorDialog(String head, String message) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text("No Result Found",
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(head, style: const TextStyle(fontWeight: FontWeight.bold)),
         content: Text(message),
         actions: [
           TextButton(
             child: const Text("OK"),
             onPressed: () => Navigator.pop(context),
-          )
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required String label,
+    required TextEditingController controller,
+    bool obscure = false,
+  }) {
+    return TextField(
+      controller: controller,
+      cursorColor: Colors.blue,
+      obscureText: obscure,
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: Colors.white,
+        labelText: label,
+        floatingLabelStyle: TextStyle(
+          color: Colors.blueAccent, // 👈 Change label text color here
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.blue.shade100, width: 1.5),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+            color: Colors.blue.shade300, // Color when focused
+            width: 2,
+          ),
+        ),
       ),
     );
   }
@@ -96,34 +163,77 @@ class _SemResultPageState extends State<SemResultPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Semester Results")),
+      backgroundColor: Colors.blue.shade50,
+      appBar: AppBar(
+        title: const Text(
+          "Semester Results",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+        ),
+        iconTheme: IconThemeData(
+          color: Colors.white, // <-- change back arrow color here
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.blue,
+        elevation: 0,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            TextField(
+            _buildTextField(
+              label: 'Register Number',
               controller: _regController,
-              decoration: const InputDecoration(
-                labelText: "Register Number",
-                border: OutlineInputBorder(),
-              ),
             ),
             const SizedBox(height: 15),
-            TextField(
+
+            _buildTextField(
+              label: 'Date of Birth (DD-MM-YYYY)',
               controller: _dobController,
-              decoration: const InputDecoration(
-                labelText: "Date of Birth (DD-MM-YYYY)",
-                border: OutlineInputBorder(),
-              ),
             ),
             const SizedBox(height: 20),
+
             SizedBox(
               width: double.infinity,
-              child: FilledButton(
+              child: ElevatedButton(
                 onPressed: _loading ? null : fetchResult,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 17),
+                  backgroundColor: Colors.blue,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
                 child: _loading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text("Fetch Result"),
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          ),
+                          SizedBox(width: 10),
+                          Text(
+                            'Fetching...',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      )
+                    : const Text(
+                        'Fetch Result',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
               ),
             ),
             const SizedBox(height: 24),
@@ -213,7 +323,9 @@ class _SemResultPageState extends State<SemResultPage> {
         Card(
           elevation: 3,
           color: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -226,12 +338,19 @@ class _SemResultPageState extends State<SemResultPage> {
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    const Text("GPA:",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    const Text(
+                      "GPA:",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: sgpaBg,
                         borderRadius: BorderRadius.circular(20),
@@ -250,11 +369,17 @@ class _SemResultPageState extends State<SemResultPage> {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    _badge("Total: ${subjects.length}",
-                        Colors.blue.shade100, Colors.blue),
+                    _badge(
+                      "Total: ${subjects.length}",
+                      Colors.blue.shade100,
+                      Colors.blue,
+                    ),
                     const SizedBox(width: 10),
-                    _badge("Pass: $passCount",
-                        Colors.green.shade100, Colors.green),
+                    _badge(
+                      "Pass: $passCount",
+                      Colors.green.shade100,
+                      Colors.green,
+                    ),
                     const SizedBox(width: 10),
                     _badge("Fail: $failCount", Colors.red.shade100, Colors.red),
                   ],
@@ -262,9 +387,23 @@ class _SemResultPageState extends State<SemResultPage> {
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
-                  child: FilledButton(
+                  child: ElevatedButton(
                     onPressed: () => generatePdf(data),
-                    child: const Text("Download as PDF"),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      backgroundColor: Colors.blue,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: const Text(
+                      'Download as PDF',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -278,8 +417,10 @@ class _SemResultPageState extends State<SemResultPage> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text("Subject-wise Grades",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text(
+              "Subjects",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
 
             Row(
               children: [
@@ -343,12 +484,34 @@ class _SemResultPageState extends State<SemResultPage> {
                   child: TextField(
                     controller: _searchCtrl,
                     autofocus: true,
-                    decoration: const InputDecoration(
-                      hintText: "Search by subject name / code",
-                      border: OutlineInputBorder(),
+                    cursorColor: Colors.blue,
+                    decoration: InputDecoration(
                       prefixIcon: Icon(Icons.search),
+                      filled: true,
+                      fillColor: Colors.white,
+                      hintText: "Search by subject name / code",
+                      floatingLabelStyle: TextStyle(
+                        color: Colors
+                            .blueAccent, // 👈 Change label text color here
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: Colors.blue.shade100,
+                          width: 1.5,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: Colors.blue.shade300, // Color when focused
+                          width: 2,
+                        ),
+                      ),
                     ),
-                    onChanged: (v) => setState(() => _searchQuery = v.toLowerCase()),
+
+                    onChanged: (v) =>
+                        setState(() => _searchQuery = v.toLowerCase()),
                   ),
                 ),
         ),
@@ -360,8 +523,9 @@ class _SemResultPageState extends State<SemResultPage> {
           itemCount: filtered.length,
           itemBuilder: (context, index) {
             final sub = filtered[index];
-            final isPass =
-                sub["result"].toString().toUpperCase().contains("PASS");
+            final isPass = sub["result"].toString().toUpperCase().contains(
+              "PASS",
+            );
 
             return Card(
               margin: const EdgeInsets.symmetric(vertical: 6),
@@ -382,7 +546,9 @@ class _SemResultPageState extends State<SemResultPage> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: isPass ? Colors.green.shade700 : Colors.red.shade700,
+                        color: isPass
+                            ? Colors.green.shade700
+                            : Colors.red.shade700,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -395,8 +561,10 @@ class _SemResultPageState extends State<SemResultPage> {
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Container(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: isPass
                               ? Colors.green.shade100
@@ -430,7 +598,9 @@ class _SemResultPageState extends State<SemResultPage> {
         children: [
           Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(width: 6),
-          Expanded(child: Text(value, style: const TextStyle(color: Colors.black87))),
+          Expanded(
+            child: Text(value, style: const TextStyle(color: Colors.black87)),
+          ),
         ],
       ),
     );
@@ -443,7 +613,10 @@ class _SemResultPageState extends State<SemResultPage> {
         color: bg,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Text(text, style: TextStyle(color: fg, fontWeight: FontWeight.bold)),
+      child: Text(
+        text,
+        style: TextStyle(color: fg, fontWeight: FontWeight.bold),
+      ),
     );
   }
 
@@ -454,39 +627,91 @@ class _SemResultPageState extends State<SemResultPage> {
     final filtered = _applyFiltersAndSorting(subjects);
 
     pdf.addPage(
-      pw.Page(
-        build: (pw.Context ctx) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text("TEC Semester Result",
-                  style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 14),
-              pw.Text("Register Number: ${data["register_number"]}"),
-              pw.Text("Name: ${data["name"]}"),
-              pw.Text("Degree: ${data["degree"]}"),
-              pw.Text("Exam Month: ${data["exam_month"]}"),
-              pw.Text("GPA: ${data["sgpa"]}"),
-              pw.SizedBox(height: 16),
-              pw.Text("Subjects",
-                  style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 8),
-              pw.Table.fromTextArray(
-                headers: const ["Sem", "Course Name", "Code", "Credits", "Grade", "GP", "Result"],
-                data: filtered.map((s) {
-                  return [
-                    s["semester"].toString(),
-                    s["course_name"].toString(),
-                    s["code"].toString(),
-                    s["credits"].toString(),
-                    s["grade"].toString(),
-                    s["grade_point"].toString(),
-                    s["result"].toString(),
-                  ];
-                }).toList(),
-              ),
-            ],
-          );
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(24),
+        build: (context) {
+          return [
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  "TEC Semester Result",
+                  style: pw.TextStyle(
+                    fontSize: 24,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 16),
+
+                pw.Text("Register Number: ${data["register_number"]}"),
+                pw.Text("Name: ${data["name"]}"),
+                pw.Text("Degree: ${data["degree"]}"),
+                pw.Text("Exam Month: ${data["exam_month"]}"),
+                pw.Text(
+                  "GPA: ${data["sgpa"]}",
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                ),
+                pw.SizedBox(height: 20),
+
+                pw.Text(
+                  "Subjects",
+                  style: pw.TextStyle(
+                    fontSize: 18,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 12),
+
+                // ✅ Auto-paginating table
+                pw.TableHelper.fromTextArray(
+                  headers: const [
+                    "Sem",
+                    "Course Name",
+                    "Code",
+                    "Credits",
+                    "Grade",
+                    "GP",
+                    "Result",
+                  ],
+                  data: filtered.map((s) {
+                    return [
+                      s["semester"].toString(),
+                      s["course_name"].toString(),
+                      s["code"].toString(),
+                      s["credits"].toString(),
+                      s["grade"].toString(),
+                      s["grade_point"].toString(),
+                      s["result"].toString(),
+                    ];
+                  }).toList(),
+                  headerDecoration: const pw.BoxDecoration(
+                    color: PdfColor.fromInt(0xFFE0E0E0),
+                  ),
+                  headerStyle: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.black,
+                  ),
+                  cellStyle: const pw.TextStyle(fontSize: 10),
+                  cellAlignment: pw.Alignment.centerLeft,
+                  columnWidths: {
+                    0: const pw.FixedColumnWidth(30),
+                    1: const pw.FlexColumnWidth(),
+                    2: const pw.FixedColumnWidth(60),
+                    3: const pw.FixedColumnWidth(40),
+                    4: const pw.FixedColumnWidth(40),
+                    5: const pw.FixedColumnWidth(40),
+                    6: const pw.FixedColumnWidth(40),
+                  },
+                  rowDecoration: const pw.BoxDecoration(
+                    border: pw.Border(
+                      bottom: pw.BorderSide(width: .5, color: PdfColors.grey),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ];
         },
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:smartclass/screens/profile_page.dart';
 import 'package:smartclass/screens/sem_result.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'quiz_list_page.dart';
@@ -33,11 +34,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
   void _onNavTapped(int index) {
     if (index == 4) {
-      Navigator.push(
-                context,
-                // MaterialPageRoute(builder: (_) => NotesPage()),
-                MaterialPageRoute(builder: (_) => SemResultPage()),
-              );
+      pushWithAnimation(context, SemResultPage());
       return;
     }
     setState(() => _selectedIndex = index);
@@ -100,6 +97,30 @@ class _StudentDashboardState extends State<StudentDashboard> {
     );
   }
 
+  void pushWithAnimation(BuildContext context, Widget page) {
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 350),
+        pageBuilder: (_, __, ___) => page,
+        transitionsBuilder: (_, animation, __, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: const Cubic(0.22, 0.61, 0.36, 1.0), // smooth custom curve
+          );
+
+          return SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(1, 0),
+              end: Offset.zero,
+            ).animate(curved),
+            child: child,
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -133,7 +154,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                   color: Colors.white,
                   size: 28,
                 ),
-                onPressed: () => Navigator.pushNamed(context, '/profile'),
+                onPressed: () => pushWithAnimation(context, ProfilePage()),
               ),
             ],
           ),
@@ -161,12 +182,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
               subtitle: 'Test your knowledge',
               icon: Icons.menu_book_rounded,
               color: Colors.orange,
-              onTap: () => Navigator.push(
+              onTap: () => pushWithAnimation(
                 context,
-                MaterialPageRoute(
-                  builder: (_) =>
-                      QuizListPage(department: department, year: year),
-                ),
+                QuizListPage(department: department, year: year),
               ),
             ),
             _dashboardCard(
@@ -174,22 +192,16 @@ class _StudentDashboardState extends State<StudentDashboard> {
               subtitle: 'Instant smart help',
               icon: Icons.smart_toy_outlined,
               color: Colors.green,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ChatbotPage()),
-              ),
+              onTap: () => pushWithAnimation(context, ChatbotPage()),
             ),
             _dashboardCard(
               title: 'View Materials',
               subtitle: 'Access study resources',
               icon: Icons.picture_as_pdf,
               color: Colors.blue,
-              onTap: () => Navigator.push(
+              onTap: () => pushWithAnimation(
                 context,
-                MaterialPageRoute(
-                  builder: (_) =>
-                      ViewMaterialsPage(department: department, year: year),
-                ),
+                ViewMaterialsPage(department: department, year: year),
               ),
             ),
             _dashboardCard(
@@ -197,12 +209,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
               subtitle: 'Practice with QNs',
               icon: Icons.folder_copy_rounded,
               color: Colors.purple,
-              onTap: () => Navigator.push(
+              onTap: () => pushWithAnimation(
                 context,
-                MaterialPageRoute(
-                  builder: (_) =>
-                      ViewMaterialsQNPage(department: department, year: year),
-                ),
+                ViewMaterialsQNPage(department: department, year: year),
               ),
             ),
             _dashboardCard(
@@ -210,20 +219,14 @@ class _StudentDashboardState extends State<StudentDashboard> {
               subtitle: 'Personal study notes',
               icon: Icons.edit_note_rounded,
               color: const Color(0xFF3559C7),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => NotesPage()),
-              ),
+              onTap: () => pushWithAnimation(context, NotesPage()),
             ),
             _dashboardCard(
               title: 'Analytics',
               subtitle: 'Track your progress',
               icon: Icons.bar_chart_rounded,
               color: Colors.red,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AnalyticsDashboard()),
-              ),
+              onTap: () => pushWithAnimation(context, AnalyticsDashboard()),
             ),
           ];
 
@@ -350,9 +353,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
                 selectedIcon: Icon(Icons.chat, color: Colors.blue),
               ),
               NavigationDestination(
-                icon: Icon(Icons.edit_note_outlined),
-                label: "Notes",
-                selectedIcon: Icon(Icons.edit_note, color: Colors.blue),
+                icon: Icon(Icons.web_outlined),
+                label: "Sem Result",
+                selectedIcon: Icon(Icons.web_asset, color: Colors.blue),
               ),
             ],
           ),

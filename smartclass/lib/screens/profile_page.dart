@@ -13,7 +13,7 @@ class ProfilePage extends StatelessWidget {
 
     final response = await Supabase.instance.client
         .from('profiles')
-        .select('id, email, department, year, name, role')
+        .select('id, email, department, year, name, role, reg_no')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -27,9 +27,7 @@ class ProfilePage extends StatelessWidget {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.blue.shade600,
-        iconTheme: IconThemeData(
-          color: Colors.white, // <-- change back arrow color here
-        ),
+        iconTheme: IconThemeData(color: Colors.white),
         title: const Text(
           "My Profile",
           style: TextStyle(
@@ -52,11 +50,102 @@ class ProfilePage extends StatelessWidget {
 
           final student = snapshot.data;
           if (student == null) {
-            return const Center(
-              child: Text(
-                'No profile found.',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-              ),
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Center(
+                  child: Text(
+                    'No profile found.',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                ),
+                SizedBox(height: 20),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.logout, color: Colors.white),
+                  label: const Text(
+                    "Logout",
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 14,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 5,
+                    shadowColor: Colors.redAccent.withValues(alpha: 0.4),
+                  ),
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        title: Row(
+                          children: const [
+                            Icon(Icons.logout_rounded, color: Colors.redAccent),
+                            SizedBox(width: 10),
+                            Text(
+                              'Confirm Logout',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        content: const Text(
+                          'Are you sure you want to logout from your account?',
+                          style: TextStyle(fontSize: 15),
+                        ),
+                        actions: [
+                          TextButton(
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                            onPressed: () => Navigator.of(ctx).pop(false),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.redAccent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            onPressed: () => Navigator.of(ctx).pop(true),
+                            child: const Text(
+                              'Yes, Logout',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    // User pressed cancel or closed dialog
+                    if (confirm != true) return;
+
+                    // ✅ Proceed with logout
+                    await Supabase.instance.client.auth.signOut();
+                    chatHistory.clear();
+
+                    if (!context.mounted) return;
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LoginPage(),
+                      ),
+                      (Route<dynamic> route) => false,
+                    );
+                  },
+                ),
+              ],
             );
           }
 
@@ -110,7 +199,15 @@ class ProfilePage extends StatelessWidget {
                         ),
                       ),
                       const Divider(height: 30, thickness: 1.2),
+                      
+                      if (student['reg_no'] != null)
+                        _buildInfoTile(
+                          Icons.confirmation_number,
+                          "Register Number",
+                          student['reg_no'],
+                        ),
 
+                      const SizedBox(height: 14),
                       _buildInfoTile(
                         Icons.school,
                         "Department",
@@ -158,12 +255,7 @@ class ProfilePage extends StatelessWidget {
                               shadowColor: Colors.blue.withValues(alpha: 0.4),
                             ),
                             onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const UpdatePage(),
-                                ),
-                              );
+                              pushWithAnimation(context, UpdatePage());
                             },
                           ),
                           ElevatedButton.icon(
@@ -271,6 +363,30 @@ class ProfilePage extends StatelessWidget {
                 ),
               ),
             ),
+          );
+        },
+      ),
+    );
+  }
+
+  void pushWithAnimation(BuildContext context, Widget page) {
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 350),
+        pageBuilder: (_, __, ___) => page,
+        transitionsBuilder: (_, animation, __, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: const Cubic(0.22, 0.61, 0.36, 1.0), // smooth custom curve
+          );
+
+          return SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(1, 0),
+              end: Offset.zero,
+            ).animate(curved),
+            child: child,
           );
         },
       ),
