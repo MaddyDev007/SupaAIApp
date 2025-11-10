@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:smartclass/screens/profile_page.dart';
+import 'package:smartclass/screens/common_screen/profile_page.dart';
 import 'upload_material_page.dart';
 import 'result_page.dart';
 import 'teacher_analytics_dashboard.dart';
-import 'chatbot_page.dart';
+import '../common_screen/chatbot_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'view_material_teacher.dart';
 import 'view_qnbank_teacher.dart';

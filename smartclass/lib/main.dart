@@ -3,13 +3,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'secrets.dart';
 import 'screens/login_page.dart';
 import 'screens/signup_page.dart';
-import 'screens/teacher_dashboard.dart';
-import 'screens/student_dashboard.dart';
-import 'screens/upload_material_page.dart';
-import 'screens/quiz_page.dart';
-import 'screens/result_page.dart';
-import 'screens/chatbot_page.dart';
-import 'screens/profile_page.dart';
+import 'screens/teacher_screen/teacher_dashboard.dart';
+import 'screens/student_screen/student_dashboard.dart';
+import 'screens/teacher_screen/upload_material_page.dart';
+import 'screens/student_screen/quiz_page.dart';
+import 'screens/teacher_screen/result_page.dart';
+import 'screens/common_screen/chatbot_page.dart';
 import 'dart:math';
 
 void main() async {
@@ -42,9 +41,6 @@ class MyApp extends StatelessWidget {
       // Dynamic route handling to pass arguments to QuizPage
       onGenerateRoute: (settings) {
         switch (settings.name) {
-          case '/profile':
-            return MaterialPageRoute(builder: (_) => const ProfilePage());
-
           case '/login':
             return MaterialPageRoute(builder: (_) => const LoginPage());
           case '/signup':

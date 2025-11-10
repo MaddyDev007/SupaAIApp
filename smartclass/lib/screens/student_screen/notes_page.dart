@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:smartclass/screens/editnote.dart';
+import 'package:smartclass/screens/student_screen/editnote.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'view_note_page.dart';
 
@@ -27,66 +27,65 @@ class _NotesPageState extends State<NotesPage> {
   }
 
   Future<void> _deleteNote(int id) async {
-  final confirm = await showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Row(
-        children: const [
-          Icon(Icons.warning_rounded, color: Colors.redAccent),
-          SizedBox(width: 10),
-          Text(
-            'Confirm Delete',
-            style: TextStyle(fontWeight: FontWeight.bold),
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: const [
+            Icon(Icons.warning_rounded, color: Colors.redAccent),
+            SizedBox(width: 10),
+            Text(
+              'Confirm Delete',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to delete this note?',
+          style: TextStyle(fontSize: 15),
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            onPressed: () => Navigator.of(ctx).pop(false),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              'Yes, Delete',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
-      content: const Text(
-        'Are you sure you want to delete this note?',
-        style: TextStyle(fontSize: 15),
-      ),
-      actions: [
-        TextButton(
-          child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          onPressed: () => Navigator.of(ctx).pop(false),
-        ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.redAccent,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-          onPressed: () => Navigator.of(ctx).pop(true),
-          child: const Text(
-            'Yes, Delete',
-            style: TextStyle(color: Colors.white),
-          ),
-        ),
-      ],
-    ),
-  );
-
-  // ✅ User pressed cancel
-  if (confirm != true) return;
-
-  // ✅ Delete only if confirmed
-  try {
-    await supabase.from('notes').delete().eq('id', id);
-
-    if (mounted) {
-      setState(() {}); // Refresh UI
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Note deleted")),
-      );
-    }
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Error deleting note: $e")),
     );
-  }
-}
 
+    // ✅ User pressed cancel
+    if (confirm != true) return;
+
+    // ✅ Delete only if confirmed
+    try {
+      await supabase.from('notes').delete().eq('id', id);
+
+      if (mounted) {
+        setState(() {}); // Refresh UI
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Note deleted")));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error deleting note: $e")));
+    }
+  }
 
   Future<T?> pushWithAnimation<T>(BuildContext context, Widget page) {
     return Navigator.push<T?>(
@@ -167,82 +166,113 @@ class _NotesPageState extends State<NotesPage> {
                   borderRadius: BorderRadius.circular(16),
                 ),
                 margin: const EdgeInsets.symmetric(vertical: 8),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        note['title'] ?? '',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ViewNotePage(
+                          title: note['title'],
+                          content: note['content'],
+                          noteId: note['id'],
+                          color: note['color'] != null
+                              ? Color(int.parse(note['color']))
+                              : Colors.white,
+                          onEdit: () {
+                            Navigator.pop(context); // close detail page
+                            _openEditNotePage(note: note);
+                          },
+                          onDelete: () async {
+                            await _deleteNote(note['id']);
+                            Navigator.pop(context); // close after delete
+                          },
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        note['content'] ?? '',
-                        style: TextStyle(color: Colors.grey[700]),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const Divider(),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          IconButton(
-                            icon: const Icon(
-                              Icons.remove_red_eye,
-                              color: Color.fromARGB(255, 102, 224, 224),
-                            ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => ViewNotePage(
-                                    title: note['title'],
-                                    content: note['content'],
-                                    noteId: note['id'],
-                                    color: note['color'] != null
-                                        ? Color(int.parse(note['color']))
-                                        : Colors.white,
-                                    onEdit: () {
-                                      Navigator.pop(
-                                        context,
-                                      ); // close detail page
-                                      _openEditNotePage(note: note);
-                                    },
-                                    onDelete: () async {
-                                      await _deleteNote(note['id']);
-                                      Navigator.pop(
-                                        context,
-                                      ); // close after delete
-                                    },
+                    );
+                  },
+                  splashColor: note['color'] != null
+                    ? Color(int.parse(note['color'])).withAlpha(128)
+                    : Colors.white.withAlpha(128),
+                   
+                  borderRadius: BorderRadius.circular(16),
+                
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          note['title'] ?? '',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          note['content'] ?? '',
+                          style: TextStyle(color: Colors.grey[700]),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const Divider(),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            IconButton(
+                              icon: const Icon(
+                                Icons.remove_red_eye,
+                                color: Color.fromARGB(255, 102, 224, 224),
+                              ),
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ViewNotePage(
+                                      title: note['title'],
+                                      content: note['content'],
+                                      noteId: note['id'],
+                                      color: note['color'] != null
+                                          ? Color(int.parse(note['color']))
+                                          : Colors.white,
+                                      onEdit: () {
+                                        Navigator.pop(
+                                          context,
+                                        ); // close detail page
+                                        _openEditNotePage(note: note);
+                                      },
+                                      onDelete: () async {
+                                        await _deleteNote(note['id']);
+                                        Navigator.pop(
+                                          context,
+                                        ); // close after delete
+                                      },
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
-                          ),
+                                );
+                              },
+                            ),
 
-                          IconButton(
-                            icon: const Icon(
-                              Icons.edit,
-                              color: Colors.blueAccent,
+                            IconButton(
+                              icon: const Icon(
+                                Icons.edit,
+                                color: Colors.blueAccent,
+                              ),
+                              onPressed: () {
+                                _openEditNotePage(note: note);
+                              },
                             ),
-                            onPressed: () {
-                              _openEditNotePage(note: note);
-                            },
-                          ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.delete,
-                              color: Colors.redAccent,
+                            IconButton(
+                              icon: const Icon(
+                                Icons.delete,
+                                color: Colors.redAccent,
+                              ),
+                              onPressed: () => _deleteNote(note['id']),
                             ),
-                            onPressed: () => _deleteNote(note['id']),
-                          ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );

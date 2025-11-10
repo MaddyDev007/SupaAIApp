@@ -1,25 +1,28 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:open_filex/open_filex.dart';
-import 'package:smartclass/screens/pdf_view_page.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:dio/dio.dart';
 
-class ViewMaterialsQNPage extends StatefulWidget {
+import 'package:flutter/material.dart';
+import 'package:smartclass/screens/student_screen/pdf_view_page.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+// import 'package:url_launcher/url_launcher.dart';
+import 'package:dio/dio.dart';
+// import 'package:path_provider/path_provider.dart';
+import 'package:open_filex/open_filex.dart';
+
+class ViewMaterialsPage extends StatefulWidget {
   final String department;
   final String year;
 
-  const ViewMaterialsQNPage({
+  const ViewMaterialsPage({
     super.key,
     required this.department,
     required this.year,
   });
 
   @override
-  State<ViewMaterialsQNPage> createState() => _ViewMaterialsQNPageState();
+  State<ViewMaterialsPage> createState() => _ViewMaterialsPageState();
 }
 
-class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
+class _ViewMaterialsPageState extends State<ViewMaterialsPage>
     with TickerProviderStateMixin {
   final supabase = Supabase.instance.client;
 
@@ -40,11 +43,11 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
-    _listAnimation = CurvedAnimation(parent: _listController, curve: Curves.easeOut);
+    _listAnimation =
+        CurvedAnimation(parent: _listController, curve: Curves.easeOut);
+    _fetchMaterials();
 
     _searchController.addListener(_onSearchChanged);
-
-    _fetchMaterials();
   }
 
   @override
@@ -73,19 +76,17 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
 
     try {
       final data = await supabase
-          .from('questions')
+          .from('materials')
           .select('id, subject, file_url, department, year, created_at')
           .eq('department', widget.department)
           .eq('year', widget.year)
           .order('created_at', ascending: false);
 
-      _materials = (data as List)
-          .map((item) => Map<String, dynamic>.from(item))
-          .toList();
+      _materials =
+          (data as List).map((item) => Map<String, dynamic>.from(item)).toList();
+      _filteredMaterials = _materials;
 
-      _filteredMaterials = _materials; // initialize filtered list
-
-      _listController.forward(from: 0); // start animation
+      _listController.forward(from: 0);
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
@@ -96,13 +97,14 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
   /* Future<void> _openMaterial(String url) async {
     final uri = Uri.tryParse(url);
     if (uri == null ||
-        !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        !await launchUrl(uri, mode: LaunchMode.inAppWebView)) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Could not open the material.')),
       );
     }
   } */
+
  Future<void> _openMaterial(String url, String title) async {
   final uri = Uri.tryParse(url);
 
@@ -240,18 +242,25 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
           child: Card(
             color: Colors.white,
             elevation: 3,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             margin: const EdgeInsets.symmetric(vertical: 8),
-            child: InkWell(      // Added InkWell for card tap
+            child: InkWell(         // Added InkWell for card tap
               onTap: () => _openMaterial(url, subject),
               splashColor: Color.fromARGB(255, 196, 221, 254),
               borderRadius: BorderRadius.circular(12),
             child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              title: Text(subject,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              subtitle: Text('${material['department']} • ${material['year']}',
-                  style: const TextStyle(color: Colors.grey)),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              title: Text(
+                subject,
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              subtitle: Text(
+                '${material['department']} • ${material['year']}',
+                style: const TextStyle(color: Colors.grey),
+              ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -282,25 +291,30 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
   }
 
   Widget _buildContent() {
-    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
     if (_errorMessage != null) {
       return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text(_errorMessage!,
-            style: const TextStyle(color: Colors.red), textAlign: TextAlign.center),
-      ),
-    );
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            _errorMessage!,
+            style: const TextStyle(color: Colors.red),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
     }
 
     if (_filteredMaterials.isEmpty) {
       return const Center(
-      child: Text(
-        'No materials found for your department and year.',
-        style: TextStyle(fontSize: 16, color: Colors.grey),
-      ),
-    );
+        child: Text(
+          'No materials found.',
+          style: TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+      );
     }
 
     return ListView.builder(
@@ -316,47 +330,56 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
     final blue = Colors.blue;
 
     return Scaffold(
-      backgroundColor: blue.shade50,
       appBar: AppBar(
-        title: const Text('Question Bank',
+        title: const Text('Materials',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
         backgroundColor: blue,
+        iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search by subject name...',
-                prefixIcon: const Icon(Icons.search, color: Colors.grey,),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.blue.shade100),
-                ),
-                focusedBorder: OutlineInputBorder(
+      body: SafeArea(
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [blue.shade50, Colors.white],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          child: RefreshIndicator(
+            onRefresh: _fetchMaterials,
+            color: blue,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  child: TextField(
+                    controller: _searchController,
+                    cursorColor: Colors.blueAccent,
+                    decoration: InputDecoration(
+                      hintText: 'Search by subject name...',
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      filled: true,
+                      fillColor: Colors.white,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                      enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.blue.shade300, width: 1.5),
+                        borderSide: BorderSide(color: Colors.blue.shade100),
                       ),
-              ),
+                      focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.blue.shade300, width: 1.5),
+                        ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(child: _buildContent()),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _fetchMaterials,
-              color: blue,
-              child: _buildContent(),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

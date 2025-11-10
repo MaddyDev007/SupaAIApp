@@ -1,6 +1,7 @@
+
 import 'package:flutter/material.dart';
 import 'package:smartclass/screens/login_page.dart';
-import 'package:smartclass/screens/update.dart';
+import 'package:smartclass/screens/common_screen/update.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'chatbot_page.dart'; // Importing to clear chat history on logout
 
@@ -200,7 +201,7 @@ class ProfilePage extends StatelessWidget {
                       ),
                       const Divider(height: 30, thickness: 1.2),
                       
-                      if (student['reg_no'] != null)
+                      if (student['reg_no'] != "" && student['reg_no'] != null)
                         _buildInfoTile(
                           Icons.confirmation_number,
                           "Register Number",

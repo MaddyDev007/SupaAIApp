@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:smartclass/screens/pdf_view_page.dart';
+import 'package:smartclass/screens/student_screen/pdf_view_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dio/dio.dart';
 import 'package:open_filex/open_filex.dart';
