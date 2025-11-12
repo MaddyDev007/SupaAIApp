@@ -1,34 +1,26 @@
-
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:smartclass/models/user_model.dart';
 import 'package:smartclass/screens/login_page.dart';
 import 'package:smartclass/screens/common_screen/update.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'chatbot_page.dart'; // Importing to clear chat history on logout
+import 'chatbot_page.dart';
 
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
+  final Map<String, dynamic>? profile;
 
-  Future<Map<String, dynamic>?> _fetchStudentDetails() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return null;
-
-    final response = await Supabase.instance.client
-        .from('profiles')
-        .select('id, email, department, year, name, role, reg_no')
-        .eq('id', user.id)
-        .maybeSingle();
-
-    return response;
-  }
+  const ProfilePage({required this.profile, super.key});
 
   @override
   Widget build(BuildContext context) {
+    final student = profile;
+
     return Scaffold(
       backgroundColor: const Color(0xfff5f7fb),
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.blue.shade600,
-        iconTheme: IconThemeData(color: Colors.white),
+        iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
           "My Profile",
           style: TextStyle(
@@ -40,337 +32,191 @@ class ProfilePage extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: FutureBuilder<Map<String, dynamic>?>(
-        future: _fetchStudentDetails(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.blue),
-            );
-          }
 
-          final student = snapshot.data;
-          if (student == null) {
-            return Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Center(
-                  child: Text(
-                    'No profile found.',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                  ),
-                ),
-                SizedBox(height: 20),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.logout, color: Colors.white),
-                  label: const Text(
-                    "Logout",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.redAccent,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 14,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    elevation: 5,
-                    shadowColor: Colors.redAccent.withValues(alpha: 0.4),
-                  ),
-                  onPressed: () async {
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        title: Row(
-                          children: const [
-                            Icon(Icons.logout_rounded, color: Colors.redAccent),
-                            SizedBox(width: 10),
-                            Text(
-                              'Confirm Logout',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                        content: const Text(
-                          'Are you sure you want to logout from your account?',
-                          style: TextStyle(fontSize: 15),
-                        ),
-                        actions: [
-                          TextButton(
-                            child: const Text(
-                              'Cancel',
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                            onPressed: () => Navigator.of(ctx).pop(false),
-                          ),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.redAccent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            onPressed: () => Navigator.of(ctx).pop(true),
-                            child: const Text(
-                              'Yes, Logout',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
+      body: student == null
+          ? _buildNoProfile(context)
+          : _buildProfile(context, student),
+    );
+  }
 
-                    // User pressed cancel or closed dialog
-                    if (confirm != true) return;
+  Widget _buildNoProfile(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text(
+            'No profile found.',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 20),
 
-                    // ✅ Proceed with logout
-                    await Supabase.instance.client.auth.signOut();
-                    chatHistory.clear();
-
-                    if (!context.mounted) return;
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const LoginPage(),
-                      ),
-                      (Route<dynamic> route) => false,
-                    );
-                  },
-                ),
-              ],
-            );
-          }
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Center(
-              child: Container(
-                width: double.infinity,
-                constraints: const BoxConstraints(maxWidth: 450),
-                decoration: BoxDecoration(
-                  color: Colors.white.withAlpha(230),
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.blue.withValues(alpha: 0.15),
-                      blurRadius: 15,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircleAvatar(
-                        radius: 48,
-                        backgroundColor: Colors.blue.shade100,
-                        child: const Icon(
-                          Icons.person,
-                          size: 55,
-                          color: Colors.blue,
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      Text(
-                        student['name'] ?? "Unknown",
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.8,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        student['email'] ?? "No Email",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade700,
-                        ),
-                      ),
-                      const Divider(height: 30, thickness: 1.2),
-                      
-                      if (student['reg_no'] != "" && student['reg_no'] != null)
-                        _buildInfoTile(
-                          Icons.confirmation_number,
-                          "Register Number",
-                          student['reg_no'],
-                        ),
-
-                      const SizedBox(height: 14),
-                      _buildInfoTile(
-                        Icons.school,
-                        "Department",
-                        student['department'],
-                      ),
-                      const SizedBox(height: 14),
-                      _buildInfoTile(
-                        Icons.calendar_today,
-                        "Year",
-                        student['year'],
-                      ),
-                      const SizedBox(height: 14),
-                      _buildInfoTile(
-                        Icons.badge,
-                        "Role",
-                        student['role'].toString().contains("teacher")
-                            ? "Teacher"
-                            : "Student",
-                      ),
-
-                      const SizedBox(height: 28),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.update, color: Colors.white),
-                            label: const Text(
-                              "Update Profile",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 14,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              elevation: 5,
-                              shadowColor: Colors.blue.withValues(alpha: 0.4),
-                            ),
-                            onPressed: () {
-                              pushWithAnimation(context, UpdatePage());
-                            },
-                          ),
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.logout, color: Colors.white),
-                            label: const Text(
-                              "Logout",
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.redAccent,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 32,
-                                vertical: 14,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              elevation: 5,
-                              shadowColor: Colors.redAccent.withValues(
-                                alpha: 0.4,
-                              ),
-                            ),
-                            onPressed: () async {
-                              final confirm = await showDialog<bool>(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  title: Row(
-                                    children: const [
-                                      Icon(
-                                        Icons.logout_rounded,
-                                        color: Colors.redAccent,
-                                      ),
-                                      SizedBox(width: 10),
-                                      Text(
-                                        'Confirm Logout',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  content: const Text(
-                                    'Are you sure you want to logout from your account?',
-                                    style: TextStyle(fontSize: 15),
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      child: const Text(
-                                        'Cancel',
-                                        style: TextStyle(color: Colors.grey),
-                                      ),
-                                      onPressed: () =>
-                                          Navigator.of(ctx).pop(false),
-                                    ),
-                                    ElevatedButton(
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.redAccent,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                      ),
-                                      onPressed: () =>
-                                          Navigator.of(ctx).pop(true),
-                                      child: const Text(
-                                        'Yes, Logout',
-                                        style: TextStyle(color: Colors.white),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-
-                              // User pressed cancel or closed dialog
-                              if (confirm != true) return;
-
-                              // ✅ Proceed with logout
-                              await Supabase.instance.client.auth.signOut();
-                              chatHistory.clear();
-
-                              if (!context.mounted) return;
-                              Navigator.pushAndRemoveUntil(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const LoginPage(),
-                                ),
-                                (Route<dynamic> route) => false,
-                              );
-                            },
-                          ),
-
-                          //
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            label: const Text(
+              "Logout",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
-          );
-        },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+            ),
+            onPressed: () => _logout(context),
+          ),
+        ],
       ),
     );
   }
 
-  void pushWithAnimation(BuildContext context, Widget page) {
+  Widget _buildProfile(BuildContext context, Map<String, dynamic> student) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Center(
+        child: Container(
+          width: double.infinity,
+          constraints: const BoxConstraints(maxWidth: 450),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.95),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.blue.withOpacity(0.15),
+                blurRadius: 15,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                CircleAvatar(
+                  radius: 48,
+                  backgroundColor: Colors.blue.shade100,
+                  child: const Icon(Icons.person, size: 55, color: Colors.blue),
+                ),
+
+                const SizedBox(height: 18),
+                Text(
+                  student['name'] ?? "Unknown",
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 6),
+                Text(
+                  student['email'] ?? "No Email",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+
+                const Divider(height: 30),
+
+                if (student['reg_no'] != null && student['reg_no'] != "")
+                  _infoTile(Icons.confirmation_number, "Register Number",
+                      student['reg_no']),
+
+                const SizedBox(height: 14),
+                _infoTile(Icons.school, "Department", student['department']),
+
+                const SizedBox(height: 14),
+                _infoTile(Icons.calendar_today, "Year", student['year']),
+
+                const SizedBox(height: 14),
+                _infoTile(
+                  Icons.badge,
+                  "Role",
+                  student['role'].toString().contains("teacher")
+                      ? "Teacher"
+                      : "Student",
+                ),
+
+                const SizedBox(height: 28),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.update, color: Colors.white),
+                      label: const Text("Update Profile", style: TextStyle(color: Colors.white),),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                      ),
+                      onPressed: () => _pushAnimation(context, UpdatePage(
+                        profile: student,
+                      )),
+                    ),
+
+                    ElevatedButton.icon(
+                      icon: const Icon(Icons.logout, color: Colors.white),
+                      label: const Text("Logout", style: TextStyle(color: Colors.white),),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent,
+                      ),
+                      onPressed: () => _logout(context),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _logout(BuildContext context) async {
+    // ✅ Show confirmation
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: const [
+            Icon(Icons.logout_rounded, color: Colors.redAccent),
+            SizedBox(width: 10),
+            Text('Confirm Logout'),
+          ],
+        ),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey),),
+            onPressed: () => Navigator.pop(ctx, false),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            child: const Text('Yes, Logout', style: TextStyle(color: Colors.white),),
+            onPressed: () => Navigator.pop(ctx, true),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    // ✅ 1. Clear Supabase session
+    await Supabase.instance.client.auth.signOut();
+
+    // ✅ 2. Clear Hive offline profile
+    final userBox = Hive.box<UserModel>('userBox');
+    await userBox.clear();
+
+    // ✅ 3. Clear chatbot history
+    chatHistory.clear();
+
+    // ✅ 4. Navigate to login
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+      (_) => false,
+    );
+  }
+
+  void _pushAnimation(BuildContext context, Widget page) {
     Navigator.push(
       context,
       PageRouteBuilder(
@@ -379,14 +225,12 @@ class ProfilePage extends StatelessWidget {
         transitionsBuilder: (_, animation, __, child) {
           final curved = CurvedAnimation(
             parent: animation,
-            curve: const Cubic(0.22, 0.61, 0.36, 1.0), // smooth custom curve
+            curve: const Cubic(0.22, 0.61, 0.36, 1.0),
           );
 
           return SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(1, 0),
-              end: Offset.zero,
-            ).animate(curved),
+            position: Tween(begin: const Offset(1, 0), end: Offset.zero)
+                .animate(curved),
             child: child,
           );
         },
@@ -394,7 +238,7 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoTile(IconData icon, String label, dynamic value) {
+  Widget _infoTile(IconData icon, String label, dynamic value) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
@@ -408,11 +252,7 @@ class ProfilePage extends StatelessWidget {
           Expanded(
             child: Text(
               "$label: ${value ?? "-"}",
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-                color: Colors.black87,
-              ),
+              style: const TextStyle(fontSize: 15),
             ),
           ),
         ],

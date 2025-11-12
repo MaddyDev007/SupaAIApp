@@ -68,7 +68,7 @@ class _QuizPageState extends State<QuizPage>
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Failed to load quiz: $e")));
+      ).showSnackBar(SnackBar(content: Text("Failed to load quiz")));
       Navigator.pop(context);
     }
   }

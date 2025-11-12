@@ -96,38 +96,45 @@ class _EditNotePageState extends State<EditNotePage> {
   } */
 
   Future<void> _saveNote() async {
-    final user = supabase.auth.currentUser;
-    if (user == null) return;
+    try {
+      final user = supabase.auth.currentUser;
+      if (user == null) return;
 
-    final title = titleController.text.trim();
-    final content = noteController.text.trim();
+      final title = titleController.text.trim();
+      final content = noteController.text.trim();
 
-    if (title.isEmpty || content.isEmpty) return;
+      if (title.isEmpty || content.isEmpty) return;
 
-    final colorValue = selectedColor.value.toString();
+      final colorValue = selectedColor.value.toString();
+     
+      if (widget.note == null) {
+        await supabase.from('notes').insert({
+          'user_id': user.id,
+          'title': title,
+          'content': content,
+          'color': colorValue,
+          // 'image_url': imageUrl,
+        });
+      } else {
+        await supabase
+            .from('notes')
+            .update({
+              'title': title,
+              'content': content,
+              'color': colorValue,
+              // 'image_url': imageUrl,
+            })
+            .eq('id', widget.note!['id']);
+      }
 
-    if (widget.note == null) {
-      await supabase.from('notes').insert({
-        'user_id': user.id,
-        'title': title,
-        'content': content,
-        'color': colorValue,
-        // 'image_url': imageUrl,
-      });
-    } else {
-      await supabase
-          .from('notes')
-          .update({
-            'title': title,
-            'content': content,
-            'color': colorValue,
-            // 'image_url': imageUrl,
-          })
-          .eq('id', widget.note!['id']);
+      if (!mounted) return;
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to save note: Check your Internet.")),
+      );
     }
-
-    if (!mounted) return;
-    Navigator.pop(context, true);
   }
 
   @override
@@ -174,7 +181,9 @@ class _EditNotePageState extends State<EditNotePage> {
                         color: color,
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: isSelected ? const Color.fromARGB(148, 0, 0, 0) : Colors.transparent,
+                          color: isSelected
+                              ? const Color.fromARGB(148, 0, 0, 0)
+                              : Colors.transparent,
                           width: 2,
                         ),
                       ),
@@ -192,7 +201,6 @@ class _EditNotePageState extends State<EditNotePage> {
                 borderRadius: BorderRadius.circular(12),
                 child: Image.network(imageUrl!, height: 180, fit: BoxFit.cover),
               ), */
-
             const SizedBox(height: 20),
 
             // ✅ White container with shadow
@@ -284,7 +292,14 @@ class _EditNotePageState extends State<EditNotePage> {
               child: ElevatedButton.icon(
                 onPressed: _saveNote,
                 icon: const Icon(Icons.check, color: Colors.white, size: 20),
-                label: const Text("Save", style: TextStyle(color: Colors.white,fontWeight: FontWeight.bold,fontSize: 16),),
+                label: const Text(
+                  "Save",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: themeColor,
                   padding: const EdgeInsets.symmetric(vertical: 14),

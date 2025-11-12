@@ -82,7 +82,7 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Failed to load results: $e")));
+      ).showSnackBar(SnackBar(content: Text("Failed to load results: Check your Internet.")));
     } finally {
       if (mounted) setState(() => isLoading = false);
     }

@@ -86,8 +86,8 @@ class _SignupPageState extends State<SignupPage> {
           : '/student-dashboard';
 
       Navigator.pushNamedAndRemoveUntil(context, route, (route) => false);
-    } on AuthException catch (e) {
-      setState(() => _errorMsg = e.message);
+    } on AuthException {
+      setState(() => _errorMsg = "Authentication failed: check your Internet.");
     } catch (e) {
       setState(() => _errorMsg = 'An error occurred: $e');
     } finally {

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:smartclass/models/user_model.dart';
 import 'package:smartclass/screens/common_screen/profile_page.dart';
 import 'package:smartclass/screens/student_screen/sem_result.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'quiz_list_page.dart';
 import '../common_screen/chatbot_page.dart';
 import 'view_materials_page.dart';
@@ -19,19 +20,16 @@ class StudentDashboard extends StatefulWidget {
 class _StudentDashboardState extends State<StudentDashboard> {
   int _selectedIndex = 0;
 
-  Future<Map<String, dynamic>?> _fetchStudentDetails() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return null;
+  late final Box<UserModel> userBox;
+  UserModel? userModel;
 
-    final response = await Supabase.instance.client
-        .from('profiles')
-        .select('name, department, year')
-        .eq('id', user.id)
-        .maybeSingle();
-
-    return response;
+  @override
+  void initState() {
+    super.initState();
+    userBox = Hive.box<UserModel>('userBox');
+    userModel = userBox.get('profile');
   }
-
+  
   void _onNavTapped(int index) {
     if (index == 4) {
       pushWithAnimation(context, SemResultPage());
@@ -154,27 +152,37 @@ class _StudentDashboardState extends State<StudentDashboard> {
                   color: Colors.white,
                   size: 28,
                 ),
-                onPressed: () => pushWithAnimation(context, ProfilePage()),
+                onPressed: () {
+                  pushWithAnimation(
+                    context,
+                    ProfilePage(
+                      profile: {
+                        "name": userModel?.name,
+                        "email": userModel?.email,
+                        "department": userModel?.department,
+                        "year": userModel?.year,
+                        "role": userModel?.role,
+                        "reg_no": userModel?.regNo,
+                      },
+                    ),
+                  );
+                },
               ),
             ],
           ),
         ),
       ),
-      body: FutureBuilder<Map<String, dynamic>?>(
-        future: _fetchStudentDetails(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: Builder(
+        builder: (context) {
+          final student = {
+            'name': userModel?.name ?? "Student",
+            'department': userModel?.department ?? "",
+            'year': userModel?.year ?? "",
+          };
 
-          final student = snapshot.data;
-          if (student == null) {
-            return const Center(child: Text('Student details not found.'));
-          }
-
-          final name = student['name'] as String? ?? 'Student';
-          final department = student['department'] as String;
-          final year = student['year'] as String;
+          final name = student['name']!;
+          final department = student['department']!;
+          final year = student['year']!;
 
           final allCards = [
             _dashboardCard(

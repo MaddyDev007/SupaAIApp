@@ -21,7 +21,8 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
   }
 
   Future<void> _fetchResults() async {
-    final supabase = Supabase.instance.client;
+    try{
+      final supabase = Supabase.instance.client;
     final user = supabase.auth.currentUser;
 
     if (user == null) return;
@@ -36,6 +37,12 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
       _results = List<Map<String, dynamic>>.from(response);
       _isLoading = false;
     });
+    }catch(e){
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Failed to load results: Check your Internet.")));
+    }
   }
 
   double get averageScore => _results.isEmpty

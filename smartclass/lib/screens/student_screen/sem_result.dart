@@ -105,7 +105,7 @@ class _SemResultPageState extends State<SemResultPage> {
         );
       }
     } catch (e) {
-      showErrorDialog("Error", "Network Error: $e");
+      showErrorDialog("Error", "Network Error: check your Internet.");
     }
 
     setState(() => _loading = false);

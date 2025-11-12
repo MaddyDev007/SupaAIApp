@@ -45,7 +45,8 @@ class _QuizListPageState extends State<QuizListPage>
   }
 
   Future<List<Map<String, dynamic>>> _fetchQuizzes() async {
-    final user = supabase.auth.currentUser;
+    try{
+      final user = supabase.auth.currentUser;
     if (user == null) return [];
 
     final quizzes = await supabase
@@ -71,6 +72,13 @@ class _QuizListPageState extends State<QuizListPage>
 
     _listController.forward(from: 0);
     return quizList;
+    } catch (e) {
+      if (!mounted) return [];
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Failed to load quizzes: Check your Internet.")));
+      return [];
+    }
   }
 
   List<Map<String, dynamic>> _applyFilter(List<Map<String, dynamic>> quizzes) {

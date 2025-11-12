@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:smartclass/models/user_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class UpdatePage extends StatefulWidget {
-  const UpdatePage({super.key});
+  final Map<String, dynamic> profile;
+
+  const UpdatePage({required this.profile, super.key});
 
   @override
   State<UpdatePage> createState() => _UpdatePageState();
@@ -17,132 +21,128 @@ class _UpdatePageState extends State<UpdatePage> {
 
   String? _selectedDept;
   String? _selectedYear;
-  bool _isLoading = true;
-  bool _updating = false;
+
+  bool _loading = true;
+  bool _saving = false;
   String? _errorMsg;
 
   final List<String> _departments = ['CSE', 'EEE', 'ECE', 'Mech'];
-  final List<String> _years = ['1st year', '2nd year', '3rd year', '4th year'];
+  final List<String> _years = [
+    '1st year',
+    '2nd year',
+    '3rd year',
+    '4th year',
+  ];
 
   @override
   void initState() {
     super.initState();
-    _loadProfile();
-  }
 
-  Future<void> _loadProfile() async {
-    try {
-      final user = _supabase.auth.currentUser;
-      if (user == null) {
-        setState(() => _errorMsg = 'User not logged in');
-        return;
-      }
+    // ✅ Pre-fill form using passed profile map
+    final data = widget.profile;
 
-      final response = await _supabase
-          .from('profiles')
-          .select()
-          .eq('id', user.id)
-          .maybeSingle();
+    _nameController.text = data['name'] ?? "";
+    _regController.text = data['reg_no'] ?? "";
+    _selectedDept = data['department'];
+    _selectedYear = data['year'];
 
-      if (response != null) {
-        setState(() {
-          _nameController.text = response['name'] ?? '';
-          _selectedDept = response['department'];
-          _selectedYear = response['year'];
-          _regController.text = response['reg_no'];
-        });
-      }
-    } catch (e) {
-      setState(() => _errorMsg = 'Error loading profile: $e');
-    } finally {
-      setState(() => _isLoading = false);
-    }
+    setState(() => _loading = false);
   }
 
   Future<void> _updateProfile() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
-      _updating = true;
+      _saving = true;
       _errorMsg = null;
     });
 
     try {
       final user = _supabase.auth.currentUser;
       if (user == null) {
-        setState(() => _errorMsg = 'No user session found');
+        setState(() => _errorMsg = 'User session expired.');
         return;
       }
 
-      // ✅ Update profile in Supabase
-      await _supabase
-          .from('profiles')
-          .update({
-            'name': _nameController.text.trim(),
-            'department': _selectedDept,
-            'year': _selectedYear,
-            'reg_no': _regController.text.trim(),
-          })
-          .eq('id', user.id);
+      // ✅ Update in Supabase
+      await _supabase.from('profiles').update({
+        'name': _nameController.text.trim(),
+        'department': _selectedDept,
+        'year': _selectedYear,
+        'reg_no': _regController.text.trim(),
+      }).eq('id', user.id);
 
-      // ✅ Fetch updated role for correct redirection
-      final profile = await _supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .maybeSingle();
+      // ✅ Update Hive offline storage
+      final userBox = Hive.box<UserModel>('userBox');
 
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile updated successfully 🎉'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
+      userBox.put(
+        'profile',
+        UserModel(
+          name: _nameController.text.trim(),
+          email: widget.profile["email"],
+          department: _selectedDept!,
+          year: _selectedYear!,
+          role: widget.profile["role"],
+          regNo: _regController.text.trim(),
         ),
       );
 
-      // ✅ Reload app with updated data by navigating to the correct dashboard
-      final role = profile?['role'];
-      final route = role == 'teacher'
+      // ✅ Show success toast
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Profile updated successfully 🎉"),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // ✅ Redirect based on role
+      final route = widget.profile["role"] == "teacher"
           ? '/teacher-dashboard'
           : '/student-dashboard';
 
       Navigator.pushNamedAndRemoveUntil(context, route, (route) => false);
     } catch (e) {
-      setState(() => _errorMsg = 'Error updating profile: $e');
+      setState(() => _errorMsg = "Failed to update profile. Please try again.");
     } finally {
-      setState(() => _updating = false);
+      setState(() => _saving = false);
     }
   }
 
-  Widget _buildDropdownField({
+  Widget _dropdown({
     required String label,
     required List<String> items,
     required String? value,
-    required void Function(String?) onChanged,
+    required Function(String?) onChanged,
   }) {
     return DropdownButtonFormField<String>(
-      decoration: InputDecoration(
-        labelText: label,
-        floatingLabelStyle: const TextStyle(color: Colors.blueAccent),
-        filled: true,
-        fillColor: Colors.white,
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.blue.shade100),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.blue.shade300, width: 2),
-        ),
-      ),
       value: value,
-      onChanged: onChanged,
-      validator: (val) => val == null ? 'Please select $label' : null,
       items: items
-          .map((item) => DropdownMenuItem(value: item, child: Text(item)))
+          .map((item) => DropdownMenuItem(
+                value: item,
+                child: Text(item),
+              ))
           .toList(),
+      onChanged: onChanged,
+      decoration: _inputDecoration(label),
+      validator: (val) => val == null ? "Select $label" : null,
+    );
+  }
+
+  InputDecoration _inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      filled: true,
+      fillColor: Colors.white,
+      floatingLabelStyle: const TextStyle(color: Colors.blueAccent),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.blue.shade100, width: 1.5),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.blue.shade400, width: 2),
+      ),
     );
   }
 
@@ -152,18 +152,22 @@ class _UpdatePageState extends State<UpdatePage> {
       backgroundColor: Colors.blue.shade50,
       appBar: AppBar(
         title: const Text(
-          'Update Profile',
+          "Update Profile",
           style: TextStyle(
             color: Colors.white,
-            fontWeight: FontWeight.w500,
-            fontSize: 26,
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
           ),
         ),
         backgroundColor: Colors.blue,
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
+        iconTheme: const IconThemeData(
+          color: Colors.white, // <-- change back arrow color here
+        ),
       ),
-      body: _isLoading
+
+      // ✅ Loading Screen
+      body: _loading
           ? const Center(child: CircularProgressIndicator())
           : Padding(
               padding: const EdgeInsets.all(20),
@@ -171,92 +175,43 @@ class _UpdatePageState extends State<UpdatePage> {
                 key: _formKey,
                 child: ListView(
                   children: [
-                    const SizedBox(height: 16),
                     TextFormField(
                       controller: _nameController,
-                      cursorColor: Colors.blue,
-                      decoration: InputDecoration(
-                        labelText: 'Full Name',
-                        floatingLabelStyle: TextStyle(
-                          color: Colors
-                              .blueAccent, // 👈 Change label text color here
-                        ),
-                        filled: true,
-                        fillColor: Colors.white,
-                        prefixIcon: const Icon(
-                          Icons.person_outline,
-                          color: Colors.grey,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: Colors.blue.shade100,
-                            width: 1.5,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: Colors.blue.shade300,
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                      validator: (value) =>
-                          value == null || value.isEmpty ? 'Enter name' : null,
+                      decoration: _inputDecoration("Full Name"),
+                      validator: (v) =>
+                          v == null || v.isEmpty ? "Enter name" : null,
                     ),
                     const SizedBox(height: 16),
+
                     TextFormField(
                       controller: _regController,
-                      cursorColor: Colors.blue,
-                      decoration: InputDecoration(
-                        labelText: 'Register Number',
-                        floatingLabelStyle: TextStyle(
-                          color: Colors
-                              .blueAccent, // 👈 Change label text color here
-                        ),
-                        filled: true,
-                        fillColor: Colors.white,
-                        prefixIcon: const Icon(
-                          Icons.confirmation_number_outlined,
-                          color: Colors.grey,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: Colors.blue.shade100,
-                            width: 1.5,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: Colors.blue.shade300,
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                      validator: (value) =>
-                          value == null ? 'Enter name' : null,
+                      decoration: _inputDecoration("Register Number"),
+                      validator: (v) =>
+                          v == null  ? "Enter register number" : null,
                     ),
+
                     const SizedBox(height: 16),
-                    _buildDropdownField(
-                      label: 'Department',
+                    _dropdown(
+                      label: "Department",
                       items: _departments,
                       value: _selectedDept,
-                      onChanged: (val) => setState(() => _selectedDept = val),
+                      onChanged: (v) => setState(() => _selectedDept = v),
                     ),
+
                     const SizedBox(height: 16),
-                    _buildDropdownField(
-                      label: 'Year',
+                    _dropdown(
+                      label: "Year",
                       items: _years,
                       value: _selectedYear,
-                      onChanged: (val) => setState(() => _selectedYear = val),
+                      onChanged: (v) => setState(() => _selectedYear = v),
                     ),
-                    const SizedBox(height: 24),
+
+                    const SizedBox(height: 30),
+
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
+                        onPressed: _saving ? null : _updateProfile,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue,
                           padding: const EdgeInsets.symmetric(vertical: 18),
@@ -264,34 +219,35 @@ class _UpdatePageState extends State<UpdatePage> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        onPressed: _updating ? null : _updateProfile,
-                        child: _updating
+                        child: _saving
                             ? const SizedBox(
-                                width: 22,
                                 height: 22,
+                                width: 22,
                                 child: CircularProgressIndicator(
                                   color: Colors.white,
-                                  strokeWidth: 1.5,
+                                  strokeWidth: 2,
                                 ),
                               )
                             : const Text(
-                                'Update Profile',
+                                "Update Profile",
                                 style: TextStyle(
                                   fontSize: 18,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w600,
                                   color: Colors.white,
                                 ),
                               ),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    if (_errorMsg != null)
+
+                    if (_errorMsg != null) ...[
+                      const SizedBox(height: 12),
                       Center(
                         child: Text(
                           _errorMsg!,
                           style: const TextStyle(color: Colors.red),
                         ),
                       ),
+                    ],
                   ],
                 ),
               ),

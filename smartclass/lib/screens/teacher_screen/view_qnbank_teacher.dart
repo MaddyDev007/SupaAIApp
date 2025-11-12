@@ -84,7 +84,11 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
       _applyFilters();
       _listController.forward(from: 0);
     } catch (e) {
-      _errorMessage = e.toString();
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Failed to load results: Check your Internet.")));
+    
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -133,18 +137,14 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
             actions: [
               OutlinedButton(
                 style: OutlinedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                  side: BorderSide(color: Colors.grey.shade300),
+                  side: BorderSide(color: Colors.transparent),
                 ),
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text("Cancel"),
+                child: const Text("Cancel",style: TextStyle(color: Colors.grey)),
               ),
               FilledButton(
                 style: FilledButton.styleFrom(
                   backgroundColor: confirmColor,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
                 ),
                 onPressed: () => Navigator.pop(context, true),
                 child: Text(confirmText,

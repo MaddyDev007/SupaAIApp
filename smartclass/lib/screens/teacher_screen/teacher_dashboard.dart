@@ -4,9 +4,10 @@ import 'upload_material_page.dart';
 import 'result_page.dart';
 import 'teacher_analytics_dashboard.dart';
 import '../common_screen/chatbot_page.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'view_material_teacher.dart';
 import 'view_qnbank_teacher.dart';
+import 'package:hive/hive.dart';
+import 'package:smartclass/models/user_model.dart';
 
 class TeacherDashboard extends StatefulWidget {
   const TeacherDashboard({super.key});
@@ -19,17 +20,14 @@ class _TeacherDashboardState extends State<TeacherDashboard>
     with SingleTickerProviderStateMixin {
   int _selectedIndex = 0;
 
-  Future<Map<String, dynamic>?> _fetchTeacherDetails() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return null;
+  late final Box<UserModel> userBox;
+  UserModel? userModel;
 
-    final response = await Supabase.instance.client
-        .from('profiles')
-        .select('name, department, year')
-        .eq('id', user.id)
-        .maybeSingle();
-
-    return response;
+  @override
+  void initState() {
+    super.initState();
+    userBox = Hive.box<UserModel>('userBox');
+    userModel = userBox.get('profile');
   }
 
   void _onNavTapped(int index) {
@@ -209,20 +207,35 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                   color: Colors.white,
                   size: 28,
                 ),
-                onPressed: () => pushWithAnimation(context, ProfilePage()),
+                onPressed: () {
+                  pushWithAnimation(
+                    context,
+                    ProfilePage(
+                      profile: {
+                        "name": userModel?.name,
+                        "email": userModel?.email,
+                        "department": userModel?.department,
+                        "year": userModel?.year,
+                        "role": userModel?.role,
+                        "reg_no": userModel?.regNo,
+                      },
+                    ),
+                  );
+                },
               ),
             ],
           ),
         ),
       ),
-      body: FutureBuilder<Map<String, dynamic>?>(
-        future: _fetchTeacherDetails(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final teacher = snapshot.data;
-          final name = teacher?['name'] as String? ?? 'Teacher';
+      body:Builder(
+        builder: (context) {
+          final teacher = {
+            'name': userModel?.name ?? "Student",
+            'department': userModel?.department ?? "",
+            'year': userModel?.year ?? "",
+          };
+
+          final name = teacher['name'] as String;
 
           return SingleChildScrollView(
             physics: const BouncingScrollPhysics(),

@@ -14,6 +14,7 @@ class _NotesPageState extends State<NotesPage> {
   final supabase = Supabase.instance.client;
 
   Future<List<Map<String, dynamic>>> _fetchNotes() async {
+  try {
     final user = supabase.auth.currentUser;
     if (user == null) return [];
 
@@ -23,8 +24,23 @@ class _NotesPageState extends State<NotesPage> {
         .eq('user_id', user.id)
         .order('created_at', ascending: false);
 
+    // ✅ Make sure it's a valid list
     return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+    if (!mounted) return [];
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("⚠️ Failed to load notes: Check your internet connection."),
+        
+      ),
+    );
+
+    // ✅ Return empty list (not invalid data type)
+    return [];
   }
+}
+
 
   Future<void> _deleteNote(int id) async {
     final confirm = await showDialog<bool>(
@@ -54,7 +70,7 @@ class _NotesPageState extends State<NotesPage> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.redAccent,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(28),
               ),
             ),
             onPressed: () => Navigator.of(ctx).pop(true),
@@ -83,7 +99,7 @@ class _NotesPageState extends State<NotesPage> {
     } catch (e) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Error deleting note: $e")));
+      ).showSnackBar(SnackBar(content: Text("Error deleting note,Check your Internet.")));
     }
   }
 

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/adapters.dart';
+import 'package:smartclass/models/user_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'secrets.dart';
 import 'screens/login_page.dart';
@@ -11,9 +14,18 @@ import 'screens/teacher_screen/result_page.dart';
 import 'screens/common_screen/chatbot_page.dart';
 import 'dart:math';
 
+late Box<UserModel> userBox;
+UserModel? userModel;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // ✅ Initialize Hive
+  await Hive.initFlutter();
+  Hive.registerAdapter(UserModelAdapter());
+  userBox = await Hive.openBox<UserModel>('userBox');
+
+  // ✅ Initialize Supabase
   await Supabase.initialize(
     url: AppSecrets.supabaseUrl,
     anonKey: AppSecrets.supabaseAnonKey,
@@ -21,12 +33,14 @@ void main() async {
 
   runApp(const MyApp());
 }
+
 class SplashRedirector extends StatefulWidget {
   const SplashRedirector({super.key});
 
   @override
   State<SplashRedirector> createState() => _SplashRedirectorState();
 }
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -38,7 +52,6 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(primarySwatch: Colors.blue),
       home: const SplashRedirector(),
 
-      // Dynamic route handling to pass arguments to QuizPage
       onGenerateRoute: (settings) {
         switch (settings.name) {
           case '/login':
@@ -83,7 +96,10 @@ class _SplashRedirectorState extends State<SplashRedirector>
   @override
   void initState() {
     super.initState();
+    _initSplash();
+  }
 
+  Future<void> _initSplash() async {
     _particles = List.generate(
       25,
       (_) => Offset(_random.nextDouble(), _random.nextDouble()),
@@ -99,8 +115,26 @@ class _SplashRedirectorState extends State<SplashRedirector>
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
 
-    // Start authentication check
-    checkAuth();
+    // ✅ Delay for splash
+    await Future.delayed(const Duration(seconds: 3));
+
+    // ✅ Load Hive profile
+    userModel = userBox.get('profile');
+
+    if (!mounted) return;
+
+    // ✅ Check offline data first
+    if (userModel != null && userModel!.role.isNotEmpty) {
+      final role = userModel!.role.toLowerCase();
+      if (role == 'teacher') {
+        Navigator.pushReplacementNamed(context, '/teacher-dashboard');
+      } else {
+        Navigator.pushReplacementNamed(context, '/student-dashboard');
+      }
+    } else {
+      // ✅ Fallback to login if no local data
+      Navigator.pushReplacementNamed(context, '/login');
+    }
   }
 
   @override
@@ -108,33 +142,6 @@ class _SplashRedirectorState extends State<SplashRedirector>
     _fadeController.dispose();
     _glowController.dispose();
     super.dispose();
-  }
-
-  Future<void> checkAuth() async {
-    await Future.delayed(const Duration(seconds: 4));
-    final session = supabase.auth.currentSession;
-
-    if (!mounted) return;
-
-    if (session == null) {
-      Navigator.pushReplacementNamed(context, '/login');
-      return;
-    }
-
-    final user = session.user;
-    final profile = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .maybeSingle();
-
-    if (!mounted) return;
-    final role = profile?['role'];
-    if (role == 'teacher') {
-      Navigator.pushReplacementNamed(context, '/teacher-dashboard');
-    } else {
-      Navigator.pushReplacementNamed(context, '/student-dashboard');
-    }
   }
 
   @override
@@ -150,14 +157,22 @@ class _SplashRedirectorState extends State<SplashRedirector>
             children: [
               // Floating neon particles
               ..._particles.map((p) {
-                final dx = (p.dx * size.width +
-                        sin(DateTime.now().millisecondsSinceEpoch / 800 + p.dx) *
-                            10)
-                    .clamp(0, size.width);
-                final dy = (p.dy * size.height +
-                        cos(DateTime.now().millisecondsSinceEpoch / 1000 + p.dy) *
-                            10)
-                    .clamp(0, size.height);
+                final dx =
+                    (p.dx * size.width +
+                            sin(
+                                  DateTime.now().millisecondsSinceEpoch / 800 +
+                                      p.dx,
+                                ) *
+                                10)
+                        .clamp(0, size.width);
+                final dy =
+                    (p.dy * size.height +
+                            cos(
+                                  DateTime.now().millisecondsSinceEpoch / 1000 +
+                                      p.dy,
+                                ) *
+                                10)
+                        .clamp(0, size.height);
                 return Positioned(
                   left: dx.toDouble(),
                   top: dy.toDouble(),
@@ -165,72 +180,71 @@ class _SplashRedirectorState extends State<SplashRedirector>
                     width: 3,
                     height: 3,
                     decoration: BoxDecoration(
-                      color: Colors.blueAccent.withAlpha((0.6 * 255).toInt()),
+                      color: Colors.blueAccent.withAlpha(150),
                       borderRadius: BorderRadius.circular(50),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.blueAccent.withAlpha((0.8 * 255).toInt()),
+                          color: Colors.blueAccent.withAlpha(200),
                           blurRadius: 6,
-                        )
+                        ),
                       ],
                     ),
                   ),
                 );
               }),
 
-              // Center logo + glow animation
+              // Center logo + text
               Center(
                 child: FadeTransition(
-                    opacity: _fadeController,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 110,
-                          height: 110,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: const RadialGradient(
-                              colors: [Color(0xFF00B4FF), Color(0xFF003C8F)],
+                  opacity: _fadeController,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 110,
+                        height: 110,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const RadialGradient(
+                            colors: [Color(0xFF00B4FF), Color(0xFF003C8F)],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.blueAccent.withAlpha(120),
+                              blurRadius: 20,
+                              spreadRadius: 2,
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.blueAccent.withAlpha((0.5 * 255).toInt()),
-                                blurRadius: 20,
-                                spreadRadius: 2,
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Image.asset(
-                              "assets/images/icon1.png",
-                              width: 184,
-                              height: 184,
-                              colorBlendMode: BlendMode.overlay,
-                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Image.asset(
+                            "assets/images/icon1.png",
+                            width: 184,
+                            height: 184,
+                            colorBlendMode: BlendMode.overlay,
                           ),
                         ),
-                        const SizedBox(height: 24),
-                        const Text(
-                          "TechClass",
-                          style: TextStyle(
-                            fontSize: 28,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2,
-                          ),
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        "TechClass",
+                        style: TextStyle(
+                          fontSize: 28,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
                         ),
-                        const SizedBox(height: 24),
-                        const CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.lightBlueAccent,
-                          ),
+                      ),
+                      const SizedBox(height: 24),
+                      const CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Colors.lightBlueAccent,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-              
+              ),
             ],
           );
         },

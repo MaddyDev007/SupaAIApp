@@ -138,18 +138,33 @@ async def fetch_relevant_documents(question: str, top_k: int = 2):
 # ---------------------------------------
 # Ask chatbot using only relevant PDFs
 # ---------------------------------------
+chat_history = []   
+
+# Global or per-user session
+
 async def ask_chatbot(question: str):
+    global chat_history
     try:
         documents = await fetch_relevant_documents(question, top_k=2)
+        if len(chat_history) > 20:  
+            chat_history = chat_history[-20:]
+
+        # ✅ Add new user message to history
+        chat_history.append({"role": "USER", "message": question})
 
         def run_cohere():
             return co.chat(
                 model="command-a-03-2025",
                 message=question,
+                chat_history=chat_history,    # ✅ ← This gives full memory
                 documents=documents,
             ).text
 
         answer = await asyncio.to_thread(run_cohere)
+
+        # ✅ Add bot reply to history
+        chat_history.append({"role": "CHATBOT", "message": answer})
+
         return answer
 
     except Exception as e:

@@ -23,8 +23,8 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
 
   Future<void> _fetchAnalytics() async {
     final teacherId = supabase.auth.currentUser!.id;
-
-    final data = await supabase
+    try{
+      final data = await supabase
         .from('results')
         .select(
           'score, student_id, subject, quiz_id, created_at, quizzes!inner(created_by), profiles!inner(name)',
@@ -35,6 +35,14 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
       studentPerformance = List<Map<String, dynamic>>.from(data);
       _isLoading = false;
     });
+    }
+    catch(e){
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Failed to load analytics: Check your Internet.")));
+    }
+    
   }
 
   double _calculateAverageScore() {
