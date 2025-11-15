@@ -8,6 +8,8 @@ class ViewNotePage extends StatelessWidget {
   final VoidCallback onDelete;
   
   final dynamic color;
+  
+  final dynamic imageUrl;
 
   const ViewNotePage({
     super.key,
@@ -16,6 +18,7 @@ class ViewNotePage extends StatelessWidget {
     required this.noteId,
     required this.color,
     required this.onEdit,
+    required this.imageUrl,
     required this.onDelete,
   });
 
@@ -51,6 +54,13 @@ class ViewNotePage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+
+                if (imageUrl != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(imageUrl!, height: 180, fit: BoxFit.cover),
+              ),
+            const SizedBox(height: 20),
                 // Title
                 Text(
                   title,

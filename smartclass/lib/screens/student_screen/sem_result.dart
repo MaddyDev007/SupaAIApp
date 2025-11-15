@@ -44,7 +44,11 @@ class _SemResultPageState extends State<SemResultPage> {
   } catch (e) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Unable to load student details")),
+      SnackBar(content: Text("Unable to load student details"),
+      behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),),
     );
   }
 }

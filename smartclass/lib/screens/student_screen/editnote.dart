@@ -1,6 +1,7 @@
-// import 'dart:io';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-// import 'package:image_picker/image_picker.dart';
+import 'package:image_picker/image_picker.dart';
 // import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -20,11 +21,11 @@ class _EditNotePageState extends State<EditNotePage> {
 
   // ✅ Speech-to-text controller
   /* late stt.SpeechToText speech;
-  bool isListening = false;
+  bool isListening = false; */
 
   // ✅ Image picker
   final ImagePicker picker = ImagePicker();
-  String? imageUrl; */
+  String? imageUrl;
 
   // ✅ Color picker palette
   final List<Color> palette = [
@@ -52,13 +53,13 @@ class _EditNotePageState extends State<EditNotePage> {
         : Colors.white;
 
     // ✅ Initialize saved image
-    /* imageUrl = widget.note?['image_url'];
+    imageUrl = widget.note?['image_url'];
 
     // ✅ Init speech
-    speech = stt.SpeechToText(); */
+    /* speech = stt.SpeechToText(); */
   }
 
-  /* // ✅ Upload image to Supabase Storage
+  // ✅ Upload image to Supabase Storage
   Future<void> pickImage() async {
     final XFile? file = await picker.pickImage(source: ImageSource.gallery);
 
@@ -74,7 +75,20 @@ class _EditNotePageState extends State<EditNotePage> {
     setState(() => imageUrl = publicUrl);
   }
 
-  // ✅ Start listening
+  Future<void> deleteImage() async {
+    if (imageUrl == null || imageUrl!.isEmpty) return;
+
+    // Extract filename from URL
+    final fileName = imageUrl!.split('/').last;
+
+    await supabase.storage.from('notes').remove([fileName]);
+
+    setState(() {
+      imageUrl = null;
+    });
+  }
+
+  /*// ✅ Start listening
   Future<void> startListening() async {
     bool available = await speech.initialize();
     if (available) {
@@ -106,14 +120,14 @@ class _EditNotePageState extends State<EditNotePage> {
       if (title.isEmpty || content.isEmpty) return;
 
       final colorValue = selectedColor.value.toString();
-     
+
       if (widget.note == null) {
         await supabase.from('notes').insert({
           'user_id': user.id,
           'title': title,
           'content': content,
           'color': colorValue,
-          // 'image_url': imageUrl,
+          'image_url': imageUrl,
         });
       } else {
         await supabase
@@ -122,7 +136,7 @@ class _EditNotePageState extends State<EditNotePage> {
               'title': title,
               'content': content,
               'color': colorValue,
-              // 'image_url': imageUrl,
+              'image_url': imageUrl,
             })
             .eq('id', widget.note!['id']);
       }
@@ -132,7 +146,11 @@ class _EditNotePageState extends State<EditNotePage> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to save note: Check your Internet.")),
+        SnackBar(content: Text("Failed to save note: Check your Internet."),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),),
       );
     }
   }
@@ -148,12 +166,12 @@ class _EditNotePageState extends State<EditNotePage> {
         title: const Text("Edit Note", style: TextStyle(color: Colors.white)),
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.white),
-        /* actions: [
+        /*  actions: [
           IconButton(icon: const Icon(Icons.image), onPressed: pickImage),
-          IconButton(
+          /* IconButton(
             icon: Icon(isListening ? Icons.mic : Icons.mic_none),
             onPressed: isListening ? stopListening : startListening,
-          ),
+          ), */
         ], */
       ),
 
@@ -195,14 +213,6 @@ class _EditNotePageState extends State<EditNotePage> {
 
             const SizedBox(height: 20),
 
-            // ✅ Image preview
-            /* if (imageUrl != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(imageUrl!, height: 180, fit: BoxFit.cover),
-              ), */
-            const SizedBox(height: 20),
-
             // ✅ White container with shadow
             Container(
               padding: const EdgeInsets.all(20),
@@ -220,6 +230,60 @@ class _EditNotePageState extends State<EditNotePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        "Image",
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.black, size: 20),
+                        onPressed: deleteImage,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+
+                  if (imageUrl == null)
+                    Row(
+                      children: [
+                        ElevatedButton.icon(
+                          onPressed: pickImage,
+                          icon: const Icon(
+                            Icons.image,
+                            size: 18,
+                            color: Colors.black,
+                          ),
+                          label: const Text(
+                            "Pick Image",
+                            style: TextStyle(color: Colors.black),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue.shade100,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                  const SizedBox(height: 6),
+                  // ✅ Image preview
+                  if (imageUrl != null)
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        imageUrl!,
+                        height: 180,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  const SizedBox(height: 20),
                   const Text(
                     "Title",
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),

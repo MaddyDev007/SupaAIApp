@@ -76,7 +76,11 @@ class _QuizListPageState extends State<QuizListPage>
       if (!mounted) return [];
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Failed to load quizzes: Check your Internet.")));
+      ).showSnackBar(SnackBar(content: Text("Failed to load quizzes: Check your Internet."),
+      behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),));
       return [];
     }
   }

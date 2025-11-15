@@ -13,34 +13,41 @@ class NotesPage extends StatefulWidget {
 class _NotesPageState extends State<NotesPage> {
   final supabase = Supabase.instance.client;
 
+  String? imageUrl;
+
   Future<List<Map<String, dynamic>>> _fetchNotes() async {
-  try {
-    final user = supabase.auth.currentUser;
-    if (user == null) return [];
+    try {
+      final user = supabase.auth.currentUser;
+      if (user == null) return [];
 
-    final response = await supabase
-        .from('notes')
-        .select()
-        .eq('user_id', user.id)
-        .order('created_at', ascending: false);
+      final response = await supabase
+          .from('notes')
+          .select()
+          .eq('user_id', user.id)
+          .order('created_at', ascending: false);
 
-    // ✅ Make sure it's a valid list
-    return List<Map<String, dynamic>>.from(response);
+      // ✅ Make sure it's a valid list
+      return List<Map<String, dynamic>>.from(response);
     } catch (e) {
-    if (!mounted) return [];
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("⚠️ Failed to load notes: Check your internet connection."),
-        
-      ),
-    );
+      if (!mounted) return [];
 
-    // ✅ Return empty list (not invalid data type)
-    return [];
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "⚠️ Failed to load notes: Check your internet connection.",
+            
+          ),
+          behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        ),
+      );
+
+      // ✅ Return empty list (not invalid data type)
+      return [];
+    }
   }
-}
-
 
   Future<void> _deleteNote(int id) async {
     final confirm = await showDialog<bool>(
@@ -88,18 +95,40 @@ class _NotesPageState extends State<NotesPage> {
 
     // ✅ Delete only if confirmed
     try {
+      final fetched = await supabase
+          .from('notes')
+          .select('image_url')
+          .eq('id', id)
+          .maybeSingle();
+
+      // 2) Delete image if exists
+      if (fetched != null &&
+          fetched['image_url'] != null &&
+          fetched['image_url'].toString().isNotEmpty) {
+        final fileName = fetched['image_url'].split('/').last;
+        await supabase.storage.from('notes').remove([fileName]);
+      }
+
       await supabase.from('notes').delete().eq('id', id);
 
       if (mounted) {
         setState(() {}); // Refresh UI
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text("Note deleted")));
+        ).showSnackBar(SnackBar(content: const Text("Note deleted"),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),));
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error deleting note,Check your Internet.")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error deleting note,Check your Internet. $e"),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),),
+      );
     }
   }
 
@@ -191,6 +220,7 @@ class _NotesPageState extends State<NotesPage> {
                           title: note['title'],
                           content: note['content'],
                           noteId: note['id'],
+                          imageUrl: note['image_url'],
                           color: note['color'] != null
                               ? Color(int.parse(note['color']))
                               : Colors.white,
@@ -207,16 +237,17 @@ class _NotesPageState extends State<NotesPage> {
                     );
                   },
                   splashColor: note['color'] != null
-                    ? Color(int.parse(note['color'])).withAlpha(128)
-                    : Colors.white.withAlpha(128),
-                   
+                      ? Color(int.parse(note['color'])).withAlpha(128)
+                      : Colors.white.withAlpha(128),
+
                   borderRadius: BorderRadius.circular(16),
-                
+
                   child: Padding(
                     padding: const EdgeInsets.all(12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        const SizedBox(height: 6),
                         Text(
                           note['title'] ?? '',
                           style: const TextStyle(
@@ -247,6 +278,7 @@ class _NotesPageState extends State<NotesPage> {
                                     builder: (context) => ViewNotePage(
                                       title: note['title'],
                                       content: note['content'],
+                                      imageUrl: note['image_url'],
                                       noteId: note['id'],
                                       color: note['color'] != null
                                           ? Color(int.parse(note['color']))

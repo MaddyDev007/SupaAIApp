@@ -41,7 +41,11 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Failed to load results: Check your Internet.")));
+      ).showSnackBar(SnackBar(content: Text("Failed to load results: Check your Internet."),
+      behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),));
     }
   }
 

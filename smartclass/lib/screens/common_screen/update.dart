@@ -90,10 +90,15 @@ class _UpdatePageState extends State<UpdatePage> {
       // ✅ Show success toast
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text("Profile updated successfully 🎉"),
           backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
+        ),
+        
       );
 
       // ✅ Redirect based on role

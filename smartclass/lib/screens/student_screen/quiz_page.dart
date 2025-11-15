@@ -68,7 +68,11 @@ class _QuizPageState extends State<QuizPage>
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Failed to load quiz")));
+      ).showSnackBar(SnackBar(content: Text("Failed to load quiz"),
+      behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),));
       Navigator.pop(context);
     }
   }
@@ -143,7 +147,11 @@ class _QuizPageState extends State<QuizPage>
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Error saving result: $e")));
+      ).showSnackBar(SnackBar(content: Text("Error saving result: $e"),
+      behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),));
     }
 
     if (!mounted) return;
@@ -213,8 +221,8 @@ class _QuizPageState extends State<QuizPage>
                       CircularProgressIndicator(
                         value: progress,
                         strokeWidth: 8,
-                        valueColor: const AlwaysStoppedAnimation(Colors.grey),
-                        backgroundColor: const Color.fromARGB(117, 253, 253, 253),
+                        valueColor: const AlwaysStoppedAnimation(Colors.blue),
+                        backgroundColor: Colors.white,
                       ),
                       Center(
                         child: Text(
@@ -222,7 +230,7 @@ class _QuizPageState extends State<QuizPage>
                           style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
-                            color: Colors.grey,
+                            color: Colors.blue,
                           ),
                         ),
                       ),
@@ -257,7 +265,7 @@ class _QuizPageState extends State<QuizPage>
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                          color: Color.fromARGB(188, 0, 0, 0),
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -279,8 +287,8 @@ class _QuizPageState extends State<QuizPage>
                           gradient: isSelected
                               ? const LinearGradient(
                                   colors: [
-                                    Color.fromARGB(255, 48, 169, 88),
-                                    Color.fromARGB(255, 41, 185, 159),
+                                    Colors.blue,
+                                    Colors.blue,
                                   ],
                                 )
                               : const LinearGradient(
@@ -289,7 +297,7 @@ class _QuizPageState extends State<QuizPage>
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
                             color: isSelected
-                                ? Colors.greenAccent
+                                ? Colors.blueAccent
                                 : Colors.black26,
                             width: 2,
                           ),
@@ -320,12 +328,12 @@ class _QuizPageState extends State<QuizPage>
                   children: [
                     Text(
                       "Score: $score",
-                      style: const TextStyle(color: Colors.black, fontSize: 16),
+                      style: const TextStyle(color: Colors.blue, fontSize: 16),
                     ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         foregroundColor: Colors.white,
-                        backgroundColor: Colors.black,
+                        backgroundColor: Colors.blue,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),

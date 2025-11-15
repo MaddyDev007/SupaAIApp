@@ -56,7 +56,11 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         _selectedYear == null ||
         subjectCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('⚠️ Fill all fields and pick a PDF')),
+        SnackBar(content: Text('⚠️ Fill all fields and pick a PDF'),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),),
       );
       return;
     }
@@ -97,13 +101,21 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       });
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✅ Material uploaded successfully')),
+        SnackBar(content: Text('✅ Material uploaded successfully'),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('❌ Upload Error: $e')));
+      ).showSnackBar(SnackBar(content: Text('❌ Upload Error: $e'),
+      behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),));
     } finally {
       if (mounted) setState(() => uploading = false);
     }
@@ -113,7 +125,11 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
     if (uploadedFileUrl == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('⚠️ Upload material first')));
+      ).showSnackBar(SnackBar(content: const Text('⚠️ Upload material first'),
+      behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),));
       return;
     }
 
@@ -145,12 +161,20 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       final examPdfUrl = body['file_url'];
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('✅ Exam generated! PDF at $examPdfUrl')),
+        SnackBar(content: Text('✅ Exam generated! Successfully'),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),),
       );
     } catch (e) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('❌ Exam Generation Error: $e')));
+      ).showSnackBar(SnackBar(content: Text('❌ Exam Generation Error: $e'),
+      behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),));
     } finally {
       if (mounted) setState(() => generatingExam = false);
     }
@@ -160,7 +184,11 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
     if (uploadedMaterialId == null || uploadedFileUrl == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('⚠️ Upload material first')));
+      ).showSnackBar(SnackBar(content: const Text('⚠️ Upload material first'),
+      behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),));
       return;
     }
 
@@ -215,12 +243,20 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       }
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✅ Quiz generated successfully')),
+        SnackBar(content: const Text('✅ Quiz generated successfully'),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),),
       );
     } catch (e) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('❌ Quiz Generation Error: $e')));
+      ).showSnackBar(SnackBar(content: Text('❌ Quiz Generation Error: $e'),
+      behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),));
     } finally {
       if (mounted) setState(() => generatingQuiz = false);
     }

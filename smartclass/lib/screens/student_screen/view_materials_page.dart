@@ -91,7 +91,11 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Failed to load materials: Check your Internet.")));
+      ).showSnackBar(SnackBar(content: Text("Failed to load materials: Check your Internet."),
+      behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -114,7 +118,11 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
   if (uri == null) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Invalid material link')),
+      SnackBar(content: Text('Invalid material link'),
+      behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),),
     );
     return;
   }
@@ -214,7 +222,11 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Downloaded to: $savePath')),
+      SnackBar(content: Text('Downloaded to: $savePath'),
+      behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),),
     );
 
     // 📂 Open after download
@@ -222,7 +234,11 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
   } catch (e) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Download failed: $e')),
+      SnackBar(content: Text('Download failed: $e'),
+      behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),),
     );
   }
 }

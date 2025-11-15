@@ -85,10 +85,15 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
       _listController.forward(from: 0);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Failed to load results: Check your Internet.")));
-    
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed to load results: Check your Internet."),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -124,31 +129,41 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-            title: Text(title,
-                style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold, color: Colors.black87)),
+            title: Text(
+              title,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
             content: Text(
               message,
-              style:
-                  theme.textTheme.bodyMedium?.copyWith(color: Colors.black54),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.black54,
+              ),
             ),
-            actionsPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            actionsPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 8,
+            ),
             actions: [
               OutlinedButton(
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(color: Colors.transparent),
                 ),
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text("Cancel",style: TextStyle(color: Colors.grey)),
+                child: const Text(
+                  "Cancel",
+                  style: TextStyle(color: Colors.grey),
+                ),
               ),
               FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: confirmColor,
-                ),
+                style: FilledButton.styleFrom(backgroundColor: confirmColor),
                 onPressed: () => Navigator.pop(context, true),
-                child: Text(confirmText,
-                    style: const TextStyle(color: Colors.white)),
+                child: Text(
+                  confirmText,
+                  style: const TextStyle(color: Colors.white),
+                ),
               ),
             ],
           ),
@@ -158,61 +173,59 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
 
   /// 🗑️ Delete QN Bank file
   Future<void> _deleteMaterial(
-  BuildContext context,
-  String fileUrl,
-  String id,
-) async {
-  final confirm = await _showModernConfirmDialog(
-    // context: context,
-    title: "Delete Question Bank",
-    message:
-        "Are you sure you want to delete this file?\n\n⚠️ This action cannot be undone.",
-    confirmText: "Delete",
-    confirmColor: Theme.of(context).colorScheme.error,
-  );
-
-  if (confirm != true) return;
-
-  try {
-    // 🧩 Step 1: Extract file path
-    final uri = Uri.parse(fileUrl);
-    final path = uri.pathSegments.last;
-    final storagePath = path; // Adjust if inside subfolder
-
-    // 🧹 Step 2: Delete from Supabase Storage
-    await supabase.storage.from('lessons').remove([storagePath]);
-
-    // 🗑️ Step 3: Delete from Supabase 'questions' table
-    await supabase.from('questions').delete().eq('id', id);
-
-    // 🔄 Step 4: Refresh list
-    await _fetchMaterials();
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text("File deleted successfully."),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-      ),
+    BuildContext context,
+    String fileUrl,
+    String id,
+  ) async {
+    final confirm = await _showModernConfirmDialog(
+      // context: context,
+      title: "Delete Question Bank",
+      message:
+          "Are you sure you want to delete this file?\n\n⚠️ This action cannot be undone.",
+      confirmText: "Delete",
+      confirmColor: Theme.of(context).colorScheme.error,
     );
-  } catch (e) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Failed to delete: $e"),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+
+    if (confirm != true) return;
+
+    try {
+      // 🧩 Step 1: Extract file path
+      final uri = Uri.parse(fileUrl);
+      final path = uri.pathSegments.last;
+      final storagePath = path; // Adjust if inside subfolder
+
+      // 🧹 Step 2: Delete from Supabase Storage
+      await supabase.storage.from('questions').remove([storagePath]);
+
+      // 🗑️ Step 3: Delete from Supabase 'questions' table
+      await supabase.from('questions').delete().eq('id', id);
+
+      // 🔄 Step 4: Refresh list
+      await _fetchMaterials();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("File deleted successfully."),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
-        backgroundColor: Theme.of(context).colorScheme.errorContainer,
-      ),
-    );
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed to delete: $e"),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
   }
-}
 
   // 🌐 Open Material URL
   /* Future<void> _openMaterial(String url) async {
@@ -225,28 +238,31 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
       );
     }
   } */
- Future<void> _openMaterial(String url, String title) async {
-  final uri = Uri.tryParse(url);
+  Future<void> _openMaterial(String url, String title) async {
+    final uri = Uri.tryParse(url);
 
-  if (uri == null) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Invalid material link')),
-    );
-    return;
-  }
+    if (uri == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Invalid material link'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+      return;
+    }
 
-  // 👇 Open in-app PDF viewer
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (context) => PDFViewerPage(
-        pdfUrl: url,
-        title: title,
+    // 👇 Open in-app PDF viewer
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PDFViewerPage(pdfUrl: url, title: title),
       ),
-    ),
-  );
-}
+    );
+  }
 
   /// 💾 Confirm + Download file
   Future<void> _confirmAndDownload(String url, String filename) async {
@@ -286,17 +302,29 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
       await Dio().download(url, savePath);
 
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Downloaded to: $savePath')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Downloaded to: $savePath'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
 
       // 📂 Open after download
       await OpenFilex.open(savePath);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Download failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Download failed: $e'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
     }
   }
 
@@ -315,15 +343,16 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
       opacity: _listAnimation,
       child: SlideTransition(
         position: _listAnimation.drive(slideTween),
-          child: Card(
-            color: Colors.white,
-            elevation: 3,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            margin: const EdgeInsets.symmetric(vertical: 8),
-          child: InkWell(   // Added InkWell for card tap
-            onTap: () => _openMaterial(url,subject),
+        child: Card(
+          color: Colors.white,
+          elevation: 3,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          child: InkWell(
+            // Added InkWell for card tap
+            onTap: () => _openMaterial(url, subject),
             splashColor: Color.fromARGB(255, 196, 221, 254),
             borderRadius: BorderRadius.circular(12),
             child: ListTile(
@@ -333,7 +362,10 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
               ),
               title: Text(
                 subject,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
               subtitle: Text(
                 '${material['department']} • ${material['year']}',

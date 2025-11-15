@@ -40,7 +40,11 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("Failed to load analytics: Check your Internet.")));
+      ).showSnackBar(SnackBar(content: Text("Failed to load analytics: Check your Internet."),
+      behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),));
     }
     
   }

@@ -96,6 +96,10 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Failed to load materials: Check your Internet."),
+          behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
         ),
       );
     } finally {
@@ -120,7 +124,11 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Invalid material link')));
+      ).showSnackBar(SnackBar(content: const Text('Invalid material link'),
+      behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),));
       return;
     }
 
@@ -227,7 +235,11 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Downloaded to: $savePath')));
+      ).showSnackBar(SnackBar(content: Text('Downloaded to: $savePath'),
+      behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),));
 
       // 📂 Open after download
       await OpenFilex.open(savePath);
@@ -235,7 +247,11 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Download failed: $e')));
+      ).showSnackBar(SnackBar(content: Text('Download failed: $e'),
+      behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),));
     }
   }
 
