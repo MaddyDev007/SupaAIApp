@@ -23,17 +23,69 @@ class _TeacherDashboardState extends State<TeacherDashboard>
   late final Box<UserModel> userBox;
   UserModel? userModel;
 
+  late final List<Widget> allCards;
+
   @override
   void initState() {
     super.initState();
     userBox = Hive.box<UserModel>('userBox');
     userModel = userBox.get('profile');
+
+    allCards = [
+      _dashboardCard(
+        title: 'Upload Material',
+        subtitle: 'Share resources with students',
+        icon: Icons.upload_file,
+        color: Colors.orange,
+        onTap: () => pushWithAnimation(context, UploadMaterialPage()),
+      ),
+      _dashboardCard(
+        title: 'Chatbot Assistant',
+        subtitle: 'Get instant help and support',
+        icon: Icons.smart_toy_outlined,
+        color: Colors.green,
+        onTap: () => pushWithAnimation(context, ChatbotPage()),
+      ),
+      _dashboardCard(
+        title: 'Quiz Results',
+        subtitle: 'View and manage student results',
+        icon: Icons.assignment_turned_in,
+        color: Colors.pink,
+        onTap: () => pushWithAnimation(context, ResultPage()),
+      ),
+      _dashboardCard(
+        title: 'View Materials',
+        subtitle: 'Manage uploaded resources',
+        icon: Icons.picture_as_pdf,
+        color: Colors.blue,
+        onTap: () => pushWithAnimation(context, ViewMaterialsTeacherPage()),
+      ),
+      _dashboardCard(
+        title: 'Question Banks',
+        subtitle: 'Manage question banks',
+        icon: Icons.folder_copy_rounded,
+        color: Colors.purple,
+        onTap: () => pushWithAnimation(context, ViewQNBankTeacherPage()),
+      ),
+      _dashboardCard(
+        title: 'Analytics Dashboard',
+        subtitle: 'View teaching analytics',
+        icon: Icons.bar_chart_rounded,
+        color: Colors.red,
+        onTap: () => pushWithAnimation(context, const TeacherAnalyticsPage()),
+      ),
+    ];
   }
 
   void _onNavTapped(int index) {
     setState(() => _selectedIndex = index);
   }
 
+  static const _curve = Cubic(0.22, 0.61, 0.36, 1.0);
+  static final _slideTween = Tween<Offset>(
+    begin: const Offset(1, 0),
+    end: Offset.zero,
+  );
   void pushWithAnimation(BuildContext context, Widget page) {
     Navigator.push(
       context,
@@ -41,21 +93,29 @@ class _TeacherDashboardState extends State<TeacherDashboard>
         transitionDuration: const Duration(milliseconds: 350),
         pageBuilder: (_, __, ___) => page,
         transitionsBuilder: (_, animation, __, child) {
-          final curved = CurvedAnimation(
-            parent: animation,
-            curve: const Cubic(0.22, 0.61, 0.36, 1.0), // smooth custom curve
-          );
-
+          final curved = CurvedAnimation(parent: animation, curve: _curve);
           return SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(1, 0),
-              end: Offset.zero,
-            ).animate(curved),
+            position: _slideTween.animate(curved),
             child: child,
           );
         },
       ),
     );
+  }
+
+  List<Widget> _getVisibleCards(List<Widget> all) {
+    switch (_selectedIndex) {
+      case 1:
+        return [all[3], all[4]];
+      case 2:
+        return [all[2]];
+      case 3:
+        return [all[1]];
+      case 4:
+        return [all[5]];
+      default:
+        return all;
+    }
   }
 
   Widget _dashboardCard({
@@ -117,64 +177,7 @@ class _TeacherDashboardState extends State<TeacherDashboard>
 
   @override
   Widget build(BuildContext context) {
-    final allCards = [
-      _dashboardCard(
-        title: 'Upload Material',
-        subtitle: 'Share resources with students',
-        icon: Icons.upload_file,
-        color: Colors.orange,
-        onTap: () => pushWithAnimation(context, UploadMaterialPage()),
-      ),
-      _dashboardCard(
-        title: 'Chatbot Assistant',
-        subtitle: 'Get instant help and support',
-        icon: Icons.smart_toy_outlined,
-        color: Colors.green,
-        onTap: () => pushWithAnimation(context, ChatbotPage()),
-      ),
-      _dashboardCard(
-        title: 'Quiz Results',
-        subtitle: 'View and manage student results',
-        icon: Icons.assignment_turned_in,
-        color: Colors.pink,
-        onTap: () => pushWithAnimation(context, ResultPage()),
-      ),
-      _dashboardCard(
-        title: 'View Materials',
-        subtitle: 'Manage uploaded resources',
-        icon: Icons.picture_as_pdf,
-        color: Colors.blue,
-        onTap: () => pushWithAnimation(context, ViewMaterialsTeacherPage()),
-      ),
-      _dashboardCard(
-        title: 'Question Banks',
-        subtitle: 'Manage question banks',
-        icon: Icons.folder_copy_rounded,
-        color: Colors.purple,
-        onTap: () => pushWithAnimation(context, ViewQNBankTeacherPage()),
-      ),
-      _dashboardCard(
-        title: 'Analytics Dashboard',
-        subtitle: 'View teaching analytics',
-        icon: Icons.bar_chart_rounded,
-        color: Colors.red,
-        onTap: () => pushWithAnimation(context,const TeacherAnalyticsPage()),
-      ),
-    ];
-
     // Filter visible cards based on bottom nav index
-    List<Widget> visibleCards;
-    if (_selectedIndex == 1) {
-      visibleCards = [allCards[3], allCards[4]];
-    } else if (_selectedIndex == 2) {
-      visibleCards = [allCards[2]];
-    } else if (_selectedIndex == 3) {
-      visibleCards = [allCards[1]];
-    } else if (_selectedIndex == 4) {
-      visibleCards = [allCards[5]];
-    } else {
-      visibleCards = allCards;
-    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FB),
@@ -227,15 +230,10 @@ class _TeacherDashboardState extends State<TeacherDashboard>
           ),
         ),
       ),
-      body:Builder(
+      body: Builder(
         builder: (context) {
-          final teacher = {
-            'name': userModel?.name ?? "Student",
-            'department': userModel?.department ?? "",
-            'year': userModel?.year ?? "",
-          };
-
-          final name = teacher['name'] as String;
+          final visibleCards = _getVisibleCards(allCards);
+          final name = userModel?.name ?? "Teacher";
 
           return SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
@@ -262,9 +260,8 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                   builder: (context, constraints) {
                     final double cardWidth = 220; // fixed width
                     final double cardHeight = 200; // fixed height
-                    final int crossAxisCount =
-                        (constraints.maxWidth / (cardWidth + 20))
-                            .floor(); // auto-fit
+                    final int crossAxisCount = (constraints.maxWidth ~/ 260)
+                        .clamp(1, 4); // auto-fit
 
                     return GridView.builder(
                       shrinkWrap: true, // ✅ allows it to fit within scroll view

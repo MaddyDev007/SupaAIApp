@@ -1,199 +1,325 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:open_filex/open_filex.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SemResultPage extends StatefulWidget {
-  const SemResultPage({super.key});
-
+  final Map<String, dynamic> profile;
+  const SemResultPage({super.key, required this.profile});
   @override
   State<SemResultPage> createState() => _SemResultPageState();
 }
 
 class _SemResultPageState extends State<SemResultPage> {
-  final _regController = TextEditingController();
-  final _dobController = TextEditingController();
+  final _reg = TextEditingController();
+  final _dob = TextEditingController();
+  final _search = TextEditingController();
+
+  bool _showSearch = false;
+  bool _asc = true;
+  bool _loading = false;
+
+  String _key = "Semester";
+  String _query = "";
+  Map<String, dynamic>? result;
 
   @override
   void initState() {
     super.initState();
-    _fetchStudentDetails();
+    _reg.text = widget.profile["reg_no"];
   }
 
-  Future<void> _fetchStudentDetails() async {
-  try {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return;
-
-    final profile = await Supabase.instance.client
-        .from('profiles')
-        .select("reg_no")
-        .eq('id', user.id)
-        .single();
-
-    // ✅ Auto-fill register number
-    if (profile['reg_no'] != null) {
-      setState(() {
-        _regController.text = profile['reg_no'];
-      });
-    }
-
-  } catch (e) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Unable to load student details"),
-      behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),),
-    );
-  }
-}
-
-
-  // Search & sort state
-  final TextEditingController _searchCtrl = TextEditingController();
-  String _searchQuery = "";
-  bool _showSearch = false;
-
-  String _sortKey = 'Semester'; // 'Semester' | 'Grade'
-  bool _sortAsc = true;
-
-  bool _loading = false;
-  Map<String, dynamic>? resultData;
-
-  final String apiUrl = "https://supaaiapp-1.onrender.com/results/getResult";
-
-  // ---------------- API ----------------
   Future<void> fetchResult() async {
-    if (_regController.text.isEmpty || _dobController.text.isEmpty) {
-      showErrorDialog("Fill inputs", "Please fill all fields.");
-      return;
+    if (_reg.text.isEmpty || _dob.text.isEmpty) {
+      return _err("Fill inputs", "Please fill all fields.");
     }
 
     setState(() => _loading = true);
 
-    final body = jsonEncode({
-      "register_number": _regController.text.trim(),
-      "dob": _dobController.text.trim().replaceAll("/", "-"),
-    });
-
     try {
-      final res = await http.post(
-        Uri.parse(apiUrl),
-        body: body,
+      final r = await http.post(
+        Uri.parse("https://supaaiapp-1.onrender.com/results/getResult"),
         headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "register_number": _reg.text.trim(),
+          "dob": _dob.text.trim().replaceAll("/", "-"),
+        }),
       );
 
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
+      if (r.statusCode == 200) {
+        final data = jsonDecode(r.body);
+        final subs = data["subjects"] as List?;
 
-        if (data["subjects"] == null || (data["subjects"] as List).isEmpty) {
-          showErrorDialog("No Result Found", "No results found for this user.");
-          setState(() => _loading = false);
-          return;
+        if (subs == null || subs.isEmpty) {
+          _err("No Result Found", "No results found.");
+        } else {
+          setState(() {
+            result = data;
+            _query = "";
+            _search.clear();
+          });
         }
-
-        setState(() {
-          resultData = data;
-          _searchQuery = "";
-          _searchCtrl.clear();
-        });
       } else {
-        showErrorDialog(
-          "No Result Found",
-          "Result not found. Check Register No / DOB.",
-        );
+        _err("No Result Found", "Invalid Register No or DOB.");
       }
-    } catch (e) {
-      showErrorDialog("Error", "Network Error: check your Internet.");
+    } catch (_) {
+      _err("Network Error", "Please check your Internet.");
     }
 
-    setState(() => _loading = false);
+    if (mounted) setState(() => _loading = false);
   }
 
-  void showErrorDialog(String head, String message) {
+  void _err(String t, String m) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(head, style: const TextStyle(fontWeight: FontWeight.bold)),
-        content: Text(message),
+        title: Text(t, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Text(m),
         actions: [
           TextButton(
-            child: const Text("OK"),
             onPressed: () => Navigator.pop(context),
+            child: const Text("OK", style: TextStyle(color: Colors.blue)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTextField({
-    required String label,
-    required TextEditingController controller,
-    bool obscure = false,
-  }) {
-    return TextField(
-      controller: controller,
-      cursorColor: Colors.blue,
-      obscureText: obscure,
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: Colors.white,
-        labelText: label,
-        floatingLabelStyle: TextStyle(
-          color: Colors.blueAccent, // 👈 Change label text color here
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.blue.shade100, width: 1.5),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: Colors.blue.shade300, // Color when focused
-            width: 2,
-          ),
-        ),
-      ),
-    );
+  List _filterSort(List subs) {
+    final q = _query;
+    final f = subs.where((s) {
+      final n = s["course_name"].toString().toLowerCase();
+      final c = s["code"].toString().toLowerCase();
+      return q.isEmpty || n.contains(q) || c.contains(q);
+    }).toList();
+
+    int toInt(v) {
+      final x = v.toString().replaceAll(RegExp(r'[^0-9]'), "");
+      return int.tryParse(x) ?? 0;
+    }
+
+    int gp(v) => double.tryParse(v.toString())?.round() ?? 0;
+
+    f.sort((a, b) {
+      final cmp = _key == "Grade"
+          ? gp(a["grade_point"]).compareTo(gp(b["grade_point"]))
+          : toInt(a["semester"]).compareTo(toInt(b["semester"]));
+      return _asc ? cmp : -cmp;
+    });
+
+    return f;
   }
 
-  // ---------------- UI ----------------
+  Widget _txt(String t, TextEditingController c) => TextField(
+    controller: c,
+    cursorColor: Colors.blue,
+    decoration: InputDecoration(
+      filled: true,
+      fillColor: Colors.white,
+      labelText: t,
+      floatingLabelStyle: const TextStyle(color: Colors.blueAccent),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.blue.shade100, width: 1.5),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.blue.shade300, width: 2),
+      ),
+    ),
+  );
+
+  Future<Uint8List> _buildPdf(Map<String, dynamic> data) async {
+    final pdf = pw.Document();
+    final subs = _filterSort(data["subjects"]);
+
+    pw.Widget table = pw.TableHelper.fromTextArray(
+      headers: const ["Sem", "Course", "Code", "Cr", "Grade", "GP", "Result"],
+      data: subs.map((s) {
+        return [
+          s["semester"].toString(),
+          s["course_name"],
+          s["code"],
+          s["credits"].toString(),
+          s["grade"],
+          s["grade_point"].toString(),
+          s["result"],
+        ];
+      }).toList(),
+      cellStyle: const pw.TextStyle(fontSize: 10),
+      headerDecoration: const pw.BoxDecoration(
+        color: PdfColor.fromInt(0xFFE0E0E0),
+      ),
+    );
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(24),
+        build: (_) => [
+          pw.Text(
+            "TEC Semester Result",
+            style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+          ),
+          pw.SizedBox(height: 12),
+          pw.Text("Register Number: ${data["register_number"]}"),
+          pw.Text("Name: ${data["name"]}"),
+          pw.Text("Degree: ${data["degree"]}"),
+          pw.Text("Exam Month: ${data["exam_month"]}"),
+          pw.SizedBox(height: 20),
+          pw.Text(
+            "Subjects",
+            style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold),
+          ),
+          pw.SizedBox(height: 10),
+          table,
+        ],
+      ),
+    );
+
+    return pdf.save();
+  }
+
+  Future<bool> _showModernConfirmDialog({
+    required String title,
+    required String message,
+    required String confirmText,
+    Color confirmColor = Colors.blue,
+  }) async {
+    final theme = Theme.of(context);
+    return (await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Text(
+              title,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            content: Text(
+              message,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: Colors.black54,
+              ),
+            ),
+            actionsPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 8,
+            ),
+            actions: [
+              OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: Colors.transparent),
+                ),
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text(
+                  "Cancel",
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: confirmColor,
+                ),
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(
+                  confirmText,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        )) ??
+        false;
+  }
+
+  Future<void> _confirmAndDownload(data) async {
+    final confirm = await _showModernConfirmDialog(
+      title: "Download Question Bank",
+      message: "Do you want to download this file to your Downloads folder?",
+      confirmText: "Download",
+    );
+
+    if (confirm) await _download(data);
+  }
+
+  Future<void> _download(Map<String, dynamic> data) async {
+    try {
+      final bytes = await _buildPdf(data);
+      final dir = Directory("/storage/emulated/0/Download");
+      if (!await dir.exists()) await dir.create(recursive: true);
+
+      String file = "TEC_Result_${data["register_number"]}.pdf";
+      String path = "${dir.path}/$file";
+      int c = 1;
+
+      while (await File(path).exists()) {
+        final n = file.split(".").first;
+        final ext = file.contains(".") ? ".${file.split(".").last}" : "";
+        path = "${dir.path}/$n ($c)$ext";
+        c++;
+      }
+
+      await File(path).writeAsBytes(bytes);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Saved to: $path"),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+
+      await OpenFilex.open(path);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed: $e"),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final data = result;
+
     return Scaffold(
       backgroundColor: Colors.blue.shade50,
       appBar: AppBar(
         title: const Text(
           "Semester Results",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+          style: TextStyle(color: Colors.white),
         ),
-        iconTheme: IconThemeData(
-          color: Colors.white, // <-- change back arrow color here
-        ),
+        iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,
         backgroundColor: Colors.blue,
-        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            _buildTextField(
-              label: 'Register Number',
-              controller: _regController,
-            ),
+            _txt("Register Number", _reg),
             const SizedBox(height: 15),
-
-            _buildTextField(
-              label: 'Date of Birth (DD-MM-YYYY)',
-              controller: _dobController,
-            ),
+            _txt("Date of Birth (DD-MM-YYYY)", _dob),
             const SizedBox(height: 20),
 
             SizedBox(
@@ -221,112 +347,61 @@ class _SemResultPageState extends State<SemResultPage> {
                           ),
                           SizedBox(width: 10),
                           Text(
-                            'Fetching...',
+                            "Fetching...",
                             style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
                               color: Colors.white,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ],
                       )
                     : const Text(
-                        'Fetch Result',
+                        "Fetch Result",
                         style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
                           color: Colors.white,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
               ),
             ),
-            const SizedBox(height: 24),
 
-            if (resultData != null) buildResultUI(resultData!),
+            const SizedBox(height: 20),
+
+            if (data != null) _buildResult(data),
           ],
         ),
       ),
     );
   }
 
-  // ---- Filtering + sorting helpers ----
-  List<dynamic> _applyFiltersAndSorting(List<dynamic> subjects) {
-    // Filter
-    final q = _searchQuery.trim().toLowerCase();
-    List<dynamic> filtered = subjects.where((s) {
-      final name = s["course_name"].toString().toLowerCase();
-      final code = s["code"].toString().toLowerCase();
-      //final sem = s["semester"].toString().toLowerCase();
-      return q.isEmpty || name.contains(q) || code.contains(q);
-    }).toList();
+  Widget _buildResult(Map<String, dynamic> data) {
+    final subs = data["subjects"];
+    final list = _filterSort(subs);
 
-    // Sort
-    int toInt(dynamic v) {
-      try {
-        return int.parse(v.toString().replaceAll(RegExp(r'[^0-9]'), ''));
-      } catch (_) {
-        return 0;
-      }
-    }
-
-    int gp(dynamic v) {
-      try {
-        // grade_point already numeric in your JSON
-        return double.parse(v.toString()).round();
-      } catch (_) {
-        return 0;
-      }
-    }
-
-    filtered.sort((a, b) {
-      int cmp;
-      if (_sortKey == 'Grade') {
-        // Grade: sort by grade_point (desc default UX for grade)
-        cmp = gp(a["grade_point"]).compareTo(gp(b["grade_point"]));
-      } else {
-        // Semester numeric
-        cmp = toInt(a["semester"]).compareTo(toInt(b["semester"]));
-      }
-      return _sortAsc ? cmp : -cmp;
-    });
-
-    return filtered;
-  }
-
-  Widget buildResultUI(Map<String, dynamic> data) {
-    final subjects = (data["subjects"] as List<dynamic>);
-    final filtered = _applyFiltersAndSorting(subjects);
-
-    // Pass / Fail calculation (from original data, not filtered)
-    final passCount = subjects
-        .where((s) => s["result"].toString().toUpperCase().contains("PASS"))
+    final pass = subs
+        .where(
+          (s) => (s["result"] ?? "").toString().toUpperCase().contains("PASS"),
+        )
         .length;
-    final failCount = subjects.length - passCount;
+    final fail = subs.length - pass;
 
-    // SGPA color logic
-    double sgpaValue = 0.0;
-    try {
-      sgpaValue = double.parse(data["sgpa"].toString());
-    } catch (_) {}
-    Color sgpaBg, sgpaText;
-    if (sgpaValue >= 8.0) {
-      sgpaBg = Colors.green.shade100;
-      sgpaText = Colors.green.shade800;
-    } else if (sgpaValue >= 6.0) {
-      sgpaBg = Colors.orange.shade100;
-      sgpaText = Colors.orange.shade800;
-    } else {
-      sgpaBg = Colors.red.shade100;
-      sgpaText = Colors.red.shade800;
-    }
+    final sgpa = double.tryParse(data["sgpa"].toString()) ?? 0;
+    final bg = sgpa >= 8
+        ? Colors.green.shade100
+        : sgpa >= 6
+        ? Colors.orange.shade100
+        : Colors.red.shade100;
+    final tx = sgpa >= 8
+        ? Colors.green.shade800
+        : sgpa >= 6
+        ? Colors.orange.shade800
+        : Colors.red.shade800;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // -------- Header Card ----------
         Card(
           elevation: 3,
-          color: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -335,89 +410,81 @@ class _SemResultPageState extends State<SemResultPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                rowText("Register Number:", data["register_number"] ?? "-"),
-                rowText("Name:", data["name"] ?? "-"),
-                rowText("Degree:", data["degree"] ?? "-"),
-                rowText("Exam Month:", data["exam_month"] ?? "-"),
+                _row("Register Number:", data["register_number"]),
+                _row("Name:", data["name"]),
+                _row("Degree:", data["degree"]),
+                _row("Exam Month:", data["exam_month"]),
                 const SizedBox(height: 10),
+
                 Row(
                   children: [
                     const Text(
                       "GPA:",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: TextStyle(fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: sgpaBg,
+                        color: bg,
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
                         data["sgpa"].toString(),
                         style: TextStyle(
-                          color: sgpaText,
-                          fontSize: 14,
+                          color: tx,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 12),
                 Row(
                   children: [
                     _badge(
-                      "Total: ${subjects.length}",
+                      "Total: ${subs.length}",
                       Colors.blue.shade100,
                       Colors.blue,
                     ),
-                    const SizedBox(width: 10),
-                    _badge(
-                      "Pass: $passCount",
-                      Colors.green.shade100,
-                      Colors.green,
-                    ),
-                    const SizedBox(width: 10),
-                    _badge("Fail: $failCount", Colors.red.shade100, Colors.red),
+                    const SizedBox(width: 8),
+                    _badge("Pass: $pass", Colors.green.shade100, Colors.green),
+                    const SizedBox(width: 8),
+                    _badge("Fail: $fail", Colors.red.shade100, Colors.red),
                   ],
                 ),
+
                 const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => generatePdf(data),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      backgroundColor: Colors.blue,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _btn(
+                      () =>
+                          Printing.layoutPdf(onLayout: (_) => _buildPdf(data)),
+                      Colors.green,
+                      Icons.print_rounded,
+                      "Print",
                     ),
-                    child: const Text(
-                      'Download as PDF',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
+                    
+                    _btn(
+                      () => _confirmAndDownload(data),
+                      Colors.blue,
+                      Icons.download,
+                      "Download",
                     ),
-                  ),
+                  ],
                 ),
               ],
             ),
           ),
         ),
 
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
 
-        // -------- Title row with Search + Sort ----------
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -425,50 +492,42 @@ class _SemResultPageState extends State<SemResultPage> {
               "Subjects",
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-
             Row(
               children: [
-                // Sort menu
-                PopupMenuButton<String>(
-                  tooltip: "Sort",
-                  onSelected: (value) {
-                    if (value == 'by_sem') {
-                      setState(() => _sortKey = 'Semester');
-                    } else if (value == 'by_grade') {
-                      setState(() => _sortKey = 'Grade');
-                    } else if (value == 'toggle') {
-                      setState(() => _sortAsc = !_sortAsc);
-                    }
+                PopupMenuButton(
+                  onSelected: (v) {
+                    setState(() {
+                      if (v == "sem") _key = "Semester";
+                      if (v == "grade") _key = "Grade";
+                      if (v == "toggle") _asc = !_asc;
+                    });
                   },
-                  itemBuilder: (context) => [
+                  itemBuilder: (_) => [
                     CheckedPopupMenuItem(
-                      value: 'by_sem',
-                      checked: _sortKey == 'Semester',
+                      value: "sem",
+                      checked: _key == "Semester",
                       child: const Text("Sort by Semester"),
                     ),
                     CheckedPopupMenuItem(
-                      value: 'by_grade',
-                      checked: _sortKey == 'Grade',
-                      child: const Text("Sort by Grade (GP)"),
+                      value: "grade",
+                      checked: _key == "Grade",
+                      child: const Text("Sort by Grade"),
                     ),
                     const PopupMenuItem(
-                      value: 'toggle',
+                      value: "toggle",
                       child: Text("Toggle Asc/Desc"),
                     ),
                   ],
                   icon: const Icon(Icons.sort),
                 ),
-
-                // Search icon
                 IconButton(
-                  tooltip: "Search",
                   icon: const Icon(Icons.search),
                   onPressed: () {
                     setState(() => _showSearch = !_showSearch);
                     if (!_showSearch) {
                       setState(() {
-                        _searchQuery = "";
-                        _searchCtrl.clear();
+                        _query = "";
+                        _search.clear();
                       });
                     }
                   },
@@ -478,26 +537,20 @@ class _SemResultPageState extends State<SemResultPage> {
           ],
         ),
 
-        // Search box (collapsible)
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 200),
           child: !_showSearch
-              ? const SizedBox.shrink()
+              ? const SizedBox()
               : Padding(
-                  padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   child: TextField(
-                    controller: _searchCtrl,
+                    controller: _search,
                     autofocus: true,
-                    cursorColor: Colors.blue,
                     decoration: InputDecoration(
-                      prefixIcon: Icon(Icons.search),
+                      prefixIcon: const Icon(Icons.search),
                       filled: true,
                       fillColor: Colors.white,
-                      hintText: "Search by subject name / code",
-                      floatingLabelStyle: TextStyle(
-                        color: Colors
-                            .blueAccent, // 👈 Change label text color here
-                      ),
+                      hintText: "Search name / code",
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
@@ -508,36 +561,32 @@ class _SemResultPageState extends State<SemResultPage> {
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                          color: Colors.blue.shade300, // Color when focused
+                          color: Colors.blue.shade300,
                           width: 2,
                         ),
                       ),
                     ),
-
-                    onChanged: (v) =>
-                        setState(() => _searchQuery = v.toLowerCase()),
+                    onChanged: (v) => setState(() => _query = v.toLowerCase()),
                   ),
                 ),
         ),
 
-        // -------- Subjects list (filtered + sorted) ----------
         ListView.builder(
-          shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: filtered.length,
-          itemBuilder: (context, index) {
-            final sub = filtered[index];
-            final isPass = sub["result"].toString().toUpperCase().contains(
-              "PASS",
-            );
+          shrinkWrap: true,
+          itemCount: list.length,
+          itemBuilder: (_, i) {
+            final s = list[i];
+            final pass = s["result"].toString().toUpperCase().contains("PASS");
+            final c = pass ? Colors.green : Colors.red;
 
             return Card(
               margin: const EdgeInsets.symmetric(vertical: 6),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(
-                  color: isPass ? Colors.green.shade300 : Colors.red.shade300,
-                  width: isPass ? 0.5 : 1.2,
+                  color: pass ? Colors.green.shade300 : Colors.red.shade300,
+                  width: pass ? .5 : 1.2,
                 ),
               ),
               child: Padding(
@@ -546,42 +595,32 @@ class _SemResultPageState extends State<SemResultPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      sub["course_name"],
+                      s["course_name"],
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: isPass
-                            ? Colors.green.shade700
-                            : Colors.red.shade700,
+                        color: c.shade700,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    rowText("Code:", sub["code"].toString()),
-                    rowText("Semester:", sub["semester"].toString()),
-                    rowText("Credits:", sub["credits"].toString()),
-                    rowText("Grade:", sub["grade"].toString()),
-                    rowText("Grade Point:", sub["grade_point"].toString()),
+                    _row("Code:", s["code"]),
+                    _row("Semester:", s["semester"]),
+                    _row("Credits:", s["credits"]),
+                    _row("Grade:", s["grade"]),
+                    _row("Grade Point:", s["grade_point"]),
                     const SizedBox(height: 4),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isPass
-                              ? Colors.green.shade100
-                              : Colors.red.shade100,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          sub["result"].toString(),
-                          style: TextStyle(
-                            color: isPass ? Colors.green : Colors.red,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: c.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        s["result"],
+                        style: TextStyle(color: c, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
@@ -594,132 +633,46 @@ class _SemResultPageState extends State<SemResultPage> {
     );
   }
 
-  // ---------------- Shared widgets ----------------
-  Widget rowText(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(value, style: const TextStyle(color: Colors.black87)),
-          ),
-        ],
+  Widget _row(String a, b) => Padding(
+    padding: const EdgeInsets.only(bottom: 6),
+    child: Row(
+      children: [
+        Text(a, style: const TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(width: 6),
+        Expanded(child: Text(b.toString())),
+      ],
+    ),
+  );
+
+  Widget _badge(String t, Color bg, Color fg) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+    decoration: BoxDecoration(
+      color: bg,
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Text(
+      t,
+      style: TextStyle(color: fg, fontWeight: FontWeight.bold),
+    ),
+  );
+
+  Widget _btn(VoidCallback f, Color c, IconData i, String t) => SizedBox(
+    
+    child: ElevatedButton.icon(
+      onPressed: f,
+      icon: Icon(i, color: Colors.white),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: c,
+        padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
-    );
-  }
-
-  Widget _badge(String text, Color bg, Color fg) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(20),
+      label: Text(
+        t,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
       ),
-      child: Text(
-        text,
-        style: TextStyle(color: fg, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-
-  // ---------------- PDF ----------------
-  Future<void> generatePdf(Map<String, dynamic> data) async {
-    final pdf = pw.Document();
-    final subjects = (data["subjects"] as List<dynamic>);
-    final filtered = _applyFiltersAndSorting(subjects);
-
-    pdf.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(24),
-        build: (context) {
-          return [
-            pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text(
-                  "TEC Semester Result",
-                  style: pw.TextStyle(
-                    fontSize: 24,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-                pw.SizedBox(height: 16),
-
-                pw.Text("Register Number: ${data["register_number"]}"),
-                pw.Text("Name: ${data["name"]}"),
-                pw.Text("Degree: ${data["degree"]}"),
-                pw.Text("Exam Month: ${data["exam_month"]}"),
-                pw.Text(
-                  "GPA: ${data["sgpa"]}",
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                ),
-                pw.SizedBox(height: 20),
-
-                pw.Text(
-                  "Subjects",
-                  style: pw.TextStyle(
-                    fontSize: 18,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-                pw.SizedBox(height: 12),
-
-                // ✅ Auto-paginating table
-                pw.TableHelper.fromTextArray(
-                  headers: const [
-                    "Sem",
-                    "Course Name",
-                    "Code",
-                    "Credits",
-                    "Grade",
-                    "GP",
-                    "Result",
-                  ],
-                  data: filtered.map((s) {
-                    return [
-                      s["semester"].toString(),
-                      s["course_name"].toString(),
-                      s["code"].toString(),
-                      s["credits"].toString(),
-                      s["grade"].toString(),
-                      s["grade_point"].toString(),
-                      s["result"].toString(),
-                    ];
-                  }).toList(),
-                  headerDecoration: const pw.BoxDecoration(
-                    color: PdfColor.fromInt(0xFFE0E0E0),
-                  ),
-                  headerStyle: pw.TextStyle(
-                    fontWeight: pw.FontWeight.bold,
-                    color: PdfColors.black,
-                  ),
-                  cellStyle: const pw.TextStyle(fontSize: 10),
-                  cellAlignment: pw.Alignment.centerLeft,
-                  columnWidths: {
-                    0: const pw.FixedColumnWidth(30),
-                    1: const pw.FlexColumnWidth(),
-                    2: const pw.FixedColumnWidth(60),
-                    3: const pw.FixedColumnWidth(40),
-                    4: const pw.FixedColumnWidth(40),
-                    5: const pw.FixedColumnWidth(40),
-                    6: const pw.FixedColumnWidth(40),
-                  },
-                  rowDecoration: const pw.BoxDecoration(
-                    border: pw.Border(
-                      bottom: pw.BorderSide(width: .5, color: PdfColors.grey),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ];
-        },
-      ),
-    );
-
-    await Printing.layoutPdf(onLayout: (format) async => pdf.save());
-  }
+    ),
+  );
 }

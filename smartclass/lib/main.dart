@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:smartclass/models/user_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -49,7 +48,14 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Smart Classroom',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(primarySwatch: Colors.blue),
+      // theme: ThemeData(primarySwatch: Colors.blue),
+      theme: ThemeData(
+        textSelectionTheme: TextSelectionThemeData(
+          cursorColor: Colors.blue, // Cursor color
+          selectionColor: Colors.blue.withOpacity(0.3), // Drag selection color
+          selectionHandleColor: Colors.blue, // Handle color
+        ),
+      ),
       home: const SplashRedirector(),
 
       onGenerateRoute: (settings) {

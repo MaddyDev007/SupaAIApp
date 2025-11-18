@@ -43,21 +43,26 @@ class _ChatbotPageState extends State<ChatbotPage> {
       });
     }
 
+    bool lastState = false;
     // ✅ Track scroll to show/hide FAB
     _scrollController.addListener(() {
       final atBottom =
           _scrollController.offset >=
           _scrollController.position.maxScrollExtent - 50;
 
-      setState(() {
-        _showFAB = !atBottom;
-      });
+      if (atBottom != lastState) {
+        lastState = atBottom;
+        setState(() {
+          _showFAB = !atBottom;
+        });
+      }
     });
   }
 
   @override
   void dispose() {
     _dotAnimationTimer?.cancel();
+
     _controller.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -100,8 +105,8 @@ class _ChatbotPageState extends State<ChatbotPage> {
 
     try {
       final res = await http.post(
-        Uri.parse('https://supaaiapp-1.onrender.com/chatbot/'),
         // Uri.parse('http://127.0.0.1:8000/chatbot/'),
+        Uri.parse('https://supaaiapp-1.onrender.com/chatbot/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'question': question}),
       );
@@ -156,7 +161,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
           ],
         ),
         content: const Text(
-          'Are you sure you want to clear the chat history?\nThis action cannot be undone.',
+          'Are you sure you want to clear the chat history?',
           style: TextStyle(fontSize: 15),
         ),
         actions: [
@@ -241,8 +246,9 @@ class _ChatbotPageState extends State<ChatbotPage> {
 
   AppBar _buildAppBar() {
     return AppBar(
+      centerTitle: true,
       elevation: 0,
-      backgroundColor: Colors.blue.shade600,
+      backgroundColor: Colors.blue,
       iconTheme: const IconThemeData(color: Colors.white),
       title: const Text(
         'AI Chatbot',
@@ -265,6 +271,10 @@ class _ChatbotPageState extends State<ChatbotPage> {
           controller: _scrollController,
           padding: const EdgeInsets.only(bottom: 20),
           itemCount: _messages.length + (_isLoading ? 1 : 0),
+          physics: const BouncingScrollPhysics(), // smoother
+          addRepaintBoundaries: true,
+          addAutomaticKeepAlives: true,
+          addSemanticIndexes: false,
           itemBuilder: (context, index) {
             if (index == _messages.length) {
               return _TypingIndicator(dotIndex: _dotIndex);
@@ -277,6 +287,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
             if (role == "bot_typing") {
               return _TypingMessageBubble(
                 fullText: text,
+                scrollController: _scrollController,
                 onTypingComplete: () {
                   final i = chatHistory.indexOf(msg);
                   if (i != -1) {
@@ -308,35 +319,25 @@ class _MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: isUser ? Colors.blue.shade100 : Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: isUser ? const Radius.circular(16) : Radius.zero,
-            bottomRight: isUser ? Radius.zero : const Radius.circular(16),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.07),
-              blurRadius: 5,
-              offset: const Offset(0, 2),
+    return RepaintBoundary(
+      child: Align(
+        alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+        child: Container(
+          margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: isUser ? Colors.blue.shade100 : Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: const Radius.circular(16),
+              topRight: const Radius.circular(16),
+              bottomLeft: isUser ? const Radius.circular(16) : Radius.zero,
+              bottomRight: isUser ? Radius.zero : const Radius.circular(16),
             ),
-          ],
+          ),
+          child: isUser
+              ? SelectableText(text)
+              : SelectionArea(child: MarkdownBody(data: text)),
         ),
-        child: isUser
-            ? Text(text, style: const TextStyle(fontSize: 15))
-            : MarkdownBody(
-                data: text,
-                styleSheet: MarkdownStyleSheet(
-                  p: const TextStyle(fontSize: 15),
-                ),
-              ),
       ),
     );
   }
@@ -353,24 +354,29 @@ class _TypingIndicator extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(16),
+            topRight: const Radius.circular(16),
+            bottomLeft: Radius.circular(0),
+            bottomRight: const Radius.circular(16),
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: List.generate(3, (i) {
             return AnimatedOpacity(
               opacity: dotIndex == i ? 1.0 : 0.3,
-              duration: const Duration(milliseconds: 300),
+              duration: const Duration(milliseconds: 200),
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 2),
                 width: 6,
                 height: 6,
                 decoration: const BoxDecoration(
                   color: Colors.black54,
-                  shape: BoxShape.circle,
+                  shape: BoxShape.circle
                 ),
               ),
             );
@@ -471,11 +477,15 @@ class _MessageInputBarState extends State<_MessageInputBar> {
 class _TypingMessageBubble extends StatefulWidget {
   const _TypingMessageBubble({
     required this.fullText,
-    required this.onTypingComplete,
+    required this.onTypingComplete, required this.scrollController,
+    
   });
 
   final String fullText;
   final VoidCallback onTypingComplete;
+  final ScrollController scrollController;
+
+
 
   @override
   State<_TypingMessageBubble> createState() => _TypingMessageBubbleState();
@@ -493,25 +503,42 @@ class _TypingMessageBubbleState extends State<_TypingMessageBubble> {
 
   @override
   void dispose() {
+    if (_displayedText.length < widget.fullText.length) {
+      widget.onTypingComplete();
+    }
     _timer?.cancel();
     super.dispose();
   }
 
   void _startTypingAnimation() {
-    _timer = Timer.periodic(const Duration(milliseconds: 12), (timer) {
-      if (_displayedText.length < widget.fullText.length) {
-        setState(() {
-          _displayedText = widget.fullText.substring(
-            0,
-            _displayedText.length + 1,
+  _timer = Timer.periodic(const Duration(milliseconds: 12), (timer) {
+    if (_displayedText.length < widget.fullText.length) {
+      setState(() {
+        _displayedText = widget.fullText.substring(
+          0,
+          _displayedText.length + 1,
+        );
+      });
+
+      // 👇 Smooth Auto-scroll Fix
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await Future.delayed(const Duration(milliseconds: 5)); // tiny delay
+        if (widget.scrollController.hasClients) {
+          widget.scrollController.animateTo(
+            widget.scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 60),
+            curve: Curves.easeOut,
           );
-        });
-      } else {
-        timer.cancel();
-        widget.onTypingComplete();
-      }
-    });
-  }
+        }
+      });
+
+    } else {
+      timer.cancel();
+      widget.onTypingComplete();
+    }
+  });
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -519,13 +546,16 @@ class _TypingMessageBubbleState extends State<_TypingMessageBubble> {
       alignment: Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 5),
-          ],
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(16),
+            topRight: const Radius.circular(16),
+            bottomLeft: Radius.circular(0),
+            bottomRight: const Radius.circular(16),
+          ),
+          
         ),
         child: MarkdownBody(
           data: _displayedText.isEmpty ? "..." : _displayedText,

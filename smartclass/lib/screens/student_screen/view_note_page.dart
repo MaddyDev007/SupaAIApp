@@ -55,11 +55,11 @@ class ViewNotePage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
 
-                if (imageUrl != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(imageUrl!, height: 180, fit: BoxFit.cover),
-              ),
+              if (imageUrl != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(imageUrl!, height: 180, fit: BoxFit.cover),
+                ),
             const SizedBox(height: 20),
                 // Title
                 Text(

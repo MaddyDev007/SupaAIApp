@@ -24,6 +24,6 @@ app.include_router(question.router, prefix="/question")
 
 app.include_router(results.router, prefix="/results")
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 async def root():
     return {"status": "ok", "message": "SmartClass Backend running"}

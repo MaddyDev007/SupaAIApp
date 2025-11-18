@@ -35,12 +35,11 @@ class _NotesPageState extends State<NotesPage> {
         SnackBar(
           content: Text(
             "⚠️ Failed to load notes: Check your internet connection.",
-            
           ),
           behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
 
@@ -113,21 +112,25 @@ class _NotesPageState extends State<NotesPage> {
 
       if (mounted) {
         setState(() {}); // Refresh UI
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: const Text("Note deleted"),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text("Note deleted"),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error deleting note,Check your Internet. $e"),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),),
+        SnackBar(
+          content: Text("Error deleting note,Check your Internet. $e"),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
       );
     }
   }
@@ -213,26 +216,24 @@ class _NotesPageState extends State<NotesPage> {
                 margin: const EdgeInsets.symmetric(vertical: 8),
                 child: InkWell(
                   onTap: () {
-                    Navigator.push(
+                    pushWithAnimation(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => ViewNotePage(
-                          title: note['title'],
-                          content: note['content'],
-                          noteId: note['id'],
-                          imageUrl: note['image_url'],
-                          color: note['color'] != null
-                              ? Color(int.parse(note['color']))
-                              : Colors.white,
-                          onEdit: () {
-                            Navigator.pop(context); // close detail page
-                            _openEditNotePage(note: note);
-                          },
-                          onDelete: () async {
-                            await _deleteNote(note['id']);
-                            Navigator.pop(context); // close after delete
-                          },
-                        ),
+                      ViewNotePage(
+                        title: note['title'],
+                        content: note['content'],
+                        imageUrl: note['image_url'],
+                        noteId: note['id'],
+                        color: note['color'] != null
+                            ? Color(int.parse(note['color']))
+                            : Colors.white,
+                        onEdit: () {
+                          Navigator.pop(context); // close detail page
+                          _openEditNotePage(note: note);
+                        },
+                        onDelete: () async {
+                          await _deleteNote(note['id']);
+                          Navigator.pop(context); // close after delete
+                        },
                       ),
                     );
                   },
@@ -248,20 +249,59 @@ class _NotesPageState extends State<NotesPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const SizedBox(height: 6),
-                        Text(
-                          note['title'] ?? '',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    note['title'] ?? '',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    note['content'] ?? '',
+                                    style: TextStyle(color: Colors.grey[700]),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 8),
+
+                                  Text(
+                                    note['created_at'] != null
+                                        ? DateTime.parse(
+                                            note['created_at'],
+                                          ).toLocal().toString().split(' ')[0]
+                                        : '',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            if (note['image_url'] != null && note['image_url'].toString().isNotEmpty) ...[
+                              const SizedBox(width: 10),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.network(
+                                  note["image_url"],
+                                  height: 70,
+                                  width: 70,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          note['content'] ?? '',
-                          style: TextStyle(color: Colors.grey[700]),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+
                         const Divider(),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -272,30 +312,28 @@ class _NotesPageState extends State<NotesPage> {
                                 color: Color.fromARGB(255, 102, 224, 224),
                               ),
                               onPressed: () {
-                                Navigator.push(
+                                pushWithAnimation(
                                   context,
-                                  MaterialPageRoute(
-                                    builder: (context) => ViewNotePage(
-                                      title: note['title'],
-                                      content: note['content'],
-                                      imageUrl: note['image_url'],
-                                      noteId: note['id'],
-                                      color: note['color'] != null
-                                          ? Color(int.parse(note['color']))
-                                          : Colors.white,
-                                      onEdit: () {
-                                        Navigator.pop(
-                                          context,
-                                        ); // close detail page
-                                        _openEditNotePage(note: note);
-                                      },
-                                      onDelete: () async {
-                                        await _deleteNote(note['id']);
-                                        Navigator.pop(
-                                          context,
-                                        ); // close after delete
-                                      },
-                                    ),
+                                  ViewNotePage(
+                                    title: note['title'],
+                                    content: note['content'],
+                                    imageUrl: note['image_url'],
+                                    noteId: note['id'],
+                                    color: note['color'] != null
+                                        ? Color(int.parse(note['color']))
+                                        : Colors.white,
+                                    onEdit: () {
+                                      Navigator.pop(
+                                        context,
+                                      ); // close detail page
+                                      _openEditNotePage(note: note);
+                                    },
+                                    onDelete: () async {
+                                      await _deleteNote(note['id']);
+                                      Navigator.pop(
+                                        context,
+                                      ); // close after delete
+                                    },
                                   ),
                                 );
                               },

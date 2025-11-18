@@ -22,20 +22,89 @@ class _StudentDashboardState extends State<StudentDashboard> {
 
   late final Box<UserModel> userBox;
   UserModel? userModel;
+  int a85 = (0.85 * 255).round();
+  int a25 = (0.25 * 255).round();
+  int a20 = (0.20 * 255).round();
+  int a15 = (0.15 * 255).round();
+  int a05 = (0.05 * 255).round();
+  int a70 = (0.70 * 255).round();
+  int a60 = (0.60 * 255).round();
+
+  late final List<Widget> allCards;
 
   @override
   void initState() {
     super.initState();
     userBox = Hive.box<UserModel>('userBox');
     userModel = userBox.get('profile');
+    final department = userModel?.department ?? "";
+    final year = userModel?.year ?? "";
+
+    allCards = [
+      _dashboardCard(
+        title: 'Start Quiz',
+        subtitle: 'Test your knowledge',
+        icon: Icons.menu_book_rounded,
+        color: Colors.orange,
+        onTap: () => pushWithAnimation(
+          context,
+          QuizListPage(department: department, year: year),
+        ),
+      ),
+      _dashboardCard(
+        title: 'Ask Chatbot',
+        subtitle: 'Instant smart help',
+        icon: Icons.smart_toy_outlined,
+        color: Colors.green,
+        onTap: () => pushWithAnimation(context, ChatbotPage()),
+      ),
+      _dashboardCard(
+        title: 'View Materials',
+        subtitle: 'Access study resources',
+        icon: Icons.picture_as_pdf,
+        color: Colors.blue,
+        onTap: () => pushWithAnimation(
+          context,
+          ViewMaterialsPage(department: department, year: year),
+        ),
+      ),
+      _dashboardCard(
+        title: 'Question Banks',
+        subtitle: 'Practice with QNs',
+        icon: Icons.folder_copy_rounded,
+        color: Colors.purple,
+        onTap: () => pushWithAnimation(
+          context,
+          ViewMaterialsQNPage(department: department, year: year),
+        ),
+      ),
+      _dashboardCard(
+        title: 'Notes',
+        subtitle: 'Personal study notes',
+        icon: Icons.edit_note_rounded,
+        color: const Color(0xFF3559C7),
+        onTap: () => pushWithAnimation(context, NotesPage()),
+      ),
+      _dashboardCard(
+        title: 'Analytics',
+        subtitle: 'Track your progress',
+        icon: Icons.bar_chart_rounded,
+        color: Colors.red,
+        onTap: () => pushWithAnimation(context, AnalyticsDashboard()),
+      ),
+    ];
   }
-  
+
   void _onNavTapped(int index) {
     if (index == 4) {
-      pushWithAnimation(context, SemResultPage());
-      return;
+      return pushWithAnimation(
+        context,
+        SemResultPage(profile: {"reg_no": userModel?.regNo}),
+      );
     }
-    setState(() => _selectedIndex = index);
+    if (_selectedIndex != index) {
+      setState(() => _selectedIndex = index);
+    }
   }
 
   Widget _dashboardCard({
@@ -50,19 +119,16 @@ class _StudentDashboardState extends State<StudentDashboard> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         decoration: BoxDecoration(
-          color: Colors.white.withAlpha((0.85 * 255).round()),
+          color: Colors.white.withAlpha(a85),
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: color.withAlpha((0.25 * 255).round()),
+              color: color.withAlpha(a25),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
           ],
-          border: Border.all(
-            color: color.withAlpha((0.2 * 255).round()),
-            width: 1.2,
-          ),
+          border: Border.all(color: color.withAlpha(a20), width: 1.2),
         ),
         child: Container(
           padding: const EdgeInsets.all(20),
@@ -71,7 +137,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
               CircleAvatar(
-                backgroundColor: color.withAlpha((0.15 * 255).round()),
+                backgroundColor: color.withAlpha(a15),
                 child: Icon(icon, color: color, size: 30),
               ),
               const SizedBox(height: 16),
@@ -95,6 +161,11 @@ class _StudentDashboardState extends State<StudentDashboard> {
     );
   }
 
+  static const _curve = Cubic(0.22, 0.61, 0.36, 1.0);
+  static final _slideTween = Tween<Offset>(
+    begin: const Offset(1, 0),
+    end: Offset.zero,
+  );
   void pushWithAnimation(BuildContext context, Widget page) {
     Navigator.push(
       context,
@@ -102,21 +173,27 @@ class _StudentDashboardState extends State<StudentDashboard> {
         transitionDuration: const Duration(milliseconds: 350),
         pageBuilder: (_, __, ___) => page,
         transitionsBuilder: (_, animation, __, child) {
-          final curved = CurvedAnimation(
-            parent: animation,
-            curve: const Cubic(0.22, 0.61, 0.36, 1.0), // smooth custom curve
-          );
-
+          final curved = CurvedAnimation(parent: animation, curve: _curve);
           return SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(1, 0),
-              end: Offset.zero,
-            ).animate(curved),
+            position: _slideTween.animate(curved),
             child: child,
           );
         },
       ),
     );
+  }
+
+  List<Widget> _getVisibleCards(List<Widget> all) {
+    switch (_selectedIndex) {
+      case 1:
+        return [all[2], all[3]];
+      case 2:
+        return [all[0]];
+      case 3:
+        return [all[1]];
+      default:
+        return all;
+    }
   }
 
   @override
@@ -174,80 +251,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
       ),
       body: Builder(
         builder: (context) {
-          final student = {
-            'name': userModel?.name ?? "Student",
-            'department': userModel?.department ?? "",
-            'year': userModel?.year ?? "",
-          };
-
-          final name = student['name']!;
-          final department = student['department']!;
-          final year = student['year']!;
-
-          final allCards = [
-            _dashboardCard(
-              title: 'Start Quiz',
-              subtitle: 'Test your knowledge',
-              icon: Icons.menu_book_rounded,
-              color: Colors.orange,
-              onTap: () => pushWithAnimation(
-                context,
-                QuizListPage(department: department, year: year),
-              ),
-            ),
-            _dashboardCard(
-              title: 'Ask Chatbot',
-              subtitle: 'Instant smart help',
-              icon: Icons.smart_toy_outlined,
-              color: Colors.green,
-              onTap: () => pushWithAnimation(context, ChatbotPage()),
-            ),
-            _dashboardCard(
-              title: 'View Materials',
-              subtitle: 'Access study resources',
-              icon: Icons.picture_as_pdf,
-              color: Colors.blue,
-              onTap: () => pushWithAnimation(
-                context,
-                ViewMaterialsPage(department: department, year: year),
-              ),
-            ),
-            _dashboardCard(
-              title: 'Question Banks',
-              subtitle: 'Practice with QNs',
-              icon: Icons.folder_copy_rounded,
-              color: Colors.purple,
-              onTap: () => pushWithAnimation(
-                context,
-                ViewMaterialsQNPage(department: department, year: year),
-              ),
-            ),
-            _dashboardCard(
-              title: 'Notes',
-              subtitle: 'Personal study notes',
-              icon: Icons.edit_note_rounded,
-              color: const Color(0xFF3559C7),
-              onTap: () => pushWithAnimation(context, NotesPage()),
-            ),
-            _dashboardCard(
-              title: 'Analytics',
-              subtitle: 'Track your progress',
-              icon: Icons.bar_chart_rounded,
-              color: Colors.red,
-              onTap: () => pushWithAnimation(context, AnalyticsDashboard()),
-            ),
-          ];
-
-          List<Widget> visibleCards;
-          if (_selectedIndex == 1) {
-            visibleCards = [allCards[2], allCards[3]];
-          } else if (_selectedIndex == 2) {
-            visibleCards = [allCards[0]];
-          } else if (_selectedIndex == 3) {
-            visibleCards = [allCards[1]];
-          } else {
-            visibleCards = allCards;
-          }
+          final name = userModel?.name ?? "Student";
+          final visibleCards = _getVisibleCards(allCards);
 
           return SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
@@ -274,8 +279,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
                   builder: (context, constraints) {
                     final double cardWidth = 220;
                     final double cardHeight = 200;
-                    final int crossAxisCount =
-                        (constraints.maxWidth / (cardWidth + 20)).floor();
+                    final int crossAxisCount = (constraints.maxWidth ~/ 260)
+                        .clamp(1, 4);
 
                     return GridView.builder(
                       shrinkWrap: true, // ✅ makes grid take needed space
@@ -311,14 +316,14 @@ class _StudentDashboardState extends State<StudentDashboard> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white.withAlpha((0.8 * 255).round()),
+          color: Colors.white.withAlpha(a85),
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(25),
             topRight: Radius.circular(25),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withAlpha((0.05 * 255).round()),
+              color: Colors.black.withAlpha(a05),
               blurRadius: 10,
               offset: const Offset(0, -3),
             ),
@@ -331,8 +336,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
           ),
           child: NavigationBar(
             height: 70,
-            backgroundColor: Colors.white.withAlpha((0.7 * 255).round()),
-            indicatorColor: Colors.blue.shade100.withAlpha((0.6 * 255).round()),
+            backgroundColor: Colors.white.withAlpha(a70),
+            indicatorColor: Colors.blue.shade100.withAlpha(a60),
             selectedIndex: _selectedIndex,
             onDestinationSelected: _onNavTapped,
             labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,

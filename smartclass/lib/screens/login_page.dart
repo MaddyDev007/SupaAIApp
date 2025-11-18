@@ -12,10 +12,11 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  final AuthService _authService = AuthService();
+
+  final _authService = AuthService();
 
   bool _isLoading = false;
   bool _obscurePassword = true;
@@ -28,22 +29,27 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
+  // -------------------- Login Function --------------------
   Future<void> _loginUser() async {
-  if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) return;
 
-  setState(() {
-    _isLoading = true;
-    _errorMsg = '';
-  });
+    setState(() {
+      _isLoading = true;
+      _errorMsg = '';
+    });
 
-  final email = _emailController.text.trim();
-  final password = _passwordController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
 
-  try {
-    final success = await _authService.signIn(email, password);
-    if (!context.mounted) return;
+    try {
+      final success = await _authService.signIn(email, password);
+      if (!mounted) return;
 
-    if (success) {
+      if (!success) {
+        setState(() => _errorMsg = 'Invalid email or password.');
+        return;
+      }
+
       final session = Supabase.instance.client.auth.currentSession;
       final userId = session?.user.id;
 
@@ -52,19 +58,16 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
 
+      // Fetch profile
       final user = await Supabase.instance.client
           .from('profiles')
           .select()
           .eq('id', userId)
           .single();
 
-      final role = user['role'] as String;
-      final route =
-          role == 'teacher' ? '/teacher-dashboard' : '/student-dashboard';
-
-      final userBox = Hive.box<UserModel>('userBox');
-
-      await userBox.put(
+      // Save offline profile
+      final box = Hive.box<UserModel>('userBox');
+      await box.put(
         'profile',
         UserModel(
           name: user['name'] ?? "",
@@ -78,38 +81,36 @@ class _LoginPageState extends State<LoginPage> {
 
       if (!mounted) return;
 
+      final role = user['role'] as String;
+      final route =
+          role == 'teacher' ? '/teacher-dashboard' : '/student-dashboard';
+
       Navigator.pushNamedAndRemoveUntil(
         context,
         route,
-        (Route<dynamic> route) => false,
+        (route) => false,
       );
-    } else {
-      setState(() => _errorMsg = 'Invalid email or password.');
+    } on PostgrestException catch (e) {
+      setState(() {
+        _errorMsg = e.code == 'PGRST100'
+            ? 'Invalid request to the database.'
+            : 'Server error: ${e.message}';
+      });
+    } on AuthException catch (e) {
+      setState(() {
+        _errorMsg = e.message.contains('Invalid login credentials')
+            ? 'Invalid email or password.'
+            : 'Authentication failed: check your Internet.';
+      });
+    } catch (e) {
+      setState(() => _errorMsg = 'Login failed. Error: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
-  } on PostgrestException catch (e) {
-    // 🔹 Specific handling for Supabase query-related errors
-    if (e.code == 'PGRST100') {
-      setState(() => _errorMsg = 'Invalid request to the database.');
-    } else {
-      setState(() => _errorMsg = 'Server error: ${e.message}');
-    }
-  } on AuthException catch (e) {
-    // 🔹 Handle Supabase Auth API errors (like invalid credentials)
-    if (e.message.contains('Invalid login credentials')) {
-      setState(() => _errorMsg = 'Invalid email or password.');
-    } else {
-      setState(() => _errorMsg = 'Authentication failed: check your Internet.');
-    }
-  } catch (e) {
-    // 🔹 Fallback for any other unexpected error
-    setState(() => _errorMsg = 'Login failed. Error: $e');
-  } finally {
-    setState(() => _isLoading = false);
   }
-}
 
-
-  Widget _buildTextField({
+  // -------------------- Input Builder --------------------
+  Widget _inputField({
     required String label,
     required TextEditingController controller,
     required String? Function(String?) validator,
@@ -118,14 +119,19 @@ class _LoginPageState extends State<LoginPage> {
   }) {
     return TextFormField(
       controller: controller,
-      cursorColor: Colors.blue,
       obscureText: obscure,
+      cursorColor: Colors.blue,
       validator: validator,
       decoration: InputDecoration(
+        labelText: label,
         filled: true,
         fillColor: Colors.white,
-        labelText: label,
         floatingLabelStyle: const TextStyle(color: Colors.blueAccent),
+        prefixIcon: Icon(
+          label == "Email" ? Icons.email_outlined : Icons.lock_outline,
+          color: Colors.grey,
+        ),
+        suffixIcon: suffixIcon,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.blue.shade100, width: 1.5),
@@ -134,14 +140,11 @@ class _LoginPageState extends State<LoginPage> {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.blue.shade300, width: 2),
         ),
-        prefixIcon: label == "Email"
-            ? const Icon(Icons.email_outlined, color: Colors.grey)
-            : const Icon(Icons.lock_outline, color: Colors.grey),
-        suffixIcon: suffixIcon,
       ),
     );
   }
 
+  // -------------------- UI --------------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -150,12 +153,12 @@ class _LoginPageState extends State<LoginPage> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Form(
-            key: _formKey, // ✅ Added form validation wrapper
+            key: _formKey,
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.school, size: 80, color: Colors.blue),
+                const Icon(Icons.school, size: 80, color: Colors.blue),
                 const SizedBox(height: 20),
+
                 Text(
                   "Welcome Back",
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
@@ -163,31 +166,35 @@ class _LoginPageState extends State<LoginPage> {
                         color: Colors.blue,
                       ),
                 ),
+
                 const SizedBox(height: 40),
 
-                // Email Field
-                _buildTextField(
+                // ---------------- Email ----------------
+                _inputField(
                   label: 'Email',
                   controller: _emailController,
                   validator: (val) {
-                    if (val == null || val.isEmpty) {
-                      return 'Enter your email';
-                    }
-                    final emailRegex =
-                        RegExp(r'^[^@]+@[^@]+\.[^@]+'); // simple check
-                    if (!emailRegex.hasMatch(val)) {
-                      return 'Enter a valid email';
-                    }
-                    return null;
+                    if (val == null || val.isEmpty) return 'Enter your email';
+                    final reg = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+                    return reg.hasMatch(val) ? null : 'Enter a valid email';
                   },
                 ),
+
                 const SizedBox(height: 16),
 
-                // Password Field
-                _buildTextField(
+                // ---------------- Password ----------------
+                _inputField(
                   label: 'Password',
                   controller: _passwordController,
                   obscure: _obscurePassword,
+                  validator: (val) {
+                    if (val == null || val.isEmpty) {
+                      return 'Enter your password';
+                    }
+                    return val.length < 6
+                        ? 'Password must be at least 6 characters'
+                        : null;
+                  },
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscurePassword
@@ -198,19 +205,11 @@ class _LoginPageState extends State<LoginPage> {
                     onPressed: () =>
                         setState(() => _obscurePassword = !_obscurePassword),
                   ),
-                  validator: (val) {
-                    if (val == null || val.isEmpty) {
-                      return 'Enter your password';
-                    }
-                    if (val.length < 6) {
-                      return 'Password must be at least 6 characters';
-                    }
-                    return null;
-                  },
                 ),
+
                 const SizedBox(height: 20),
 
-                // Login Button
+                // ---------------- Login Button ----------------
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -223,9 +222,9 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                     child: _isLoading
-                        ? Row(
+                        ? const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
+                            children: [
                               SizedBox(
                                 height: 20,
                                 width: 20,
@@ -258,28 +257,25 @@ class _LoginPageState extends State<LoginPage> {
 
                 if (_errorMsg.isNotEmpty) ...[
                   const SizedBox(height: 10),
-                  Text(
-                    _errorMsg,
-                    style: const TextStyle(color: Colors.red),
-                  ),
+                  Text(_errorMsg, style: const TextStyle(color: Colors.red)),
                 ],
 
                 const SizedBox(height: 16),
 
-                // Signup option
+                // ---------------- Signup link ----------------
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text("Don’t have an account?"),
                     TextButton(
-                      onPressed: () =>
-                          Navigator.pushReplacementNamed(context, '/signup'),
+                      onPressed: () => Navigator.pushReplacementNamed(
+                        context,
+                        '/signup',
+                      ),
                       child: const Text(
                         "Sign up",
                         style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
+                            fontWeight: FontWeight.bold, color: Colors.blue),
                       ),
                     ),
                   ],

@@ -4,7 +4,7 @@ import 'package:smartclass/models/user_model.dart';
 import 'package:smartclass/screens/login_page.dart';
 import 'package:smartclass/screens/common_screen/update.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'chatbot_page.dart';
+import 'chatbot_page.dart' show chatHistory;
 
 class ProfilePage extends StatelessWidget {
   final Map<String, dynamic>? profile;
@@ -19,7 +19,7 @@ class ProfilePage extends StatelessWidget {
       backgroundColor: const Color(0xfff5f7fb),
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.blue.shade600,
+        backgroundColor: Colors.blue,
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
           "My Profile",
@@ -215,6 +215,7 @@ class ProfilePage extends StatelessWidget {
       (_) => false,
     );
   }
+  static const _curve = Cubic(0.22, 0.61, 0.36, 1.0);
 
   void _pushAnimation(BuildContext context, Widget page) {
     Navigator.push(
@@ -225,7 +226,7 @@ class ProfilePage extends StatelessWidget {
         transitionsBuilder: (_, animation, __, child) {
           final curved = CurvedAnimation(
             parent: animation,
-            curve: const Cubic(0.22, 0.61, 0.36, 1.0),
+            curve: _curve,
           );
 
           return SlideTransition(

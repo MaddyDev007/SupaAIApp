@@ -22,17 +22,23 @@ class _UpdatePageState extends State<UpdatePage> {
   String? _selectedDept;
   String? _selectedYear;
 
-  bool _loading = true;
   bool _saving = false;
   String? _errorMsg;
 
-  final List<String> _departments = ['CSE', 'EEE', 'ECE', 'Mech'];
-  final List<String> _years = [
+  static const List<String> _departments = ['CSE', 'EEE', 'ECE', 'Mech'];
+  static const List<String> _years = [
     '1st year',
     '2nd year',
     '3rd year',
     '4th year',
   ];
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _regController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -45,8 +51,6 @@ class _UpdatePageState extends State<UpdatePage> {
     _regController.text = data['reg_no'] ?? "";
     _selectedDept = data['department'];
     _selectedYear = data['year'];
-
-    setState(() => _loading = false);
   }
 
   Future<void> _updateProfile() async {
@@ -65,12 +69,15 @@ class _UpdatePageState extends State<UpdatePage> {
       }
 
       // ✅ Update in Supabase
-      await _supabase.from('profiles').update({
-        'name': _nameController.text.trim(),
-        'department': _selectedDept,
-        'year': _selectedYear,
-        'reg_no': _regController.text.trim(),
-      }).eq('id', user.id);
+      await _supabase
+          .from('profiles')
+          .update({
+            'name': _nameController.text.trim(),
+            'department': _selectedDept,
+            'year': _selectedYear,
+            'reg_no': _regController.text.trim(),
+          })
+          .eq('id', user.id);
 
       // ✅ Update Hive offline storage
       final userBox = Hive.box<UserModel>('userBox');
@@ -89,16 +96,26 @@ class _UpdatePageState extends State<UpdatePage> {
 
       // ✅ Show success toast
       if (!mounted) return;
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Profile updated successfully 🎉"),
-          backgroundColor: Colors.green,
+          content: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 10),
+              Expanded(child: Text("Profile updated successfully 🎉")),
+            ],
+          ),
+          backgroundColor: Colors.green.shade600,
           behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 6,
+          duration: const Duration(seconds: 3),
+          
         ),
-        ),
-        
       );
 
       // ✅ Redirect based on role
@@ -123,10 +140,7 @@ class _UpdatePageState extends State<UpdatePage> {
     return DropdownButtonFormField<String>(
       value: value,
       items: items
-          .map((item) => DropdownMenuItem(
-                value: item,
-                child: Text(item),
-              ))
+          .map((item) => DropdownMenuItem(value: item, child: Text(item)))
           .toList(),
       onChanged: onChanged,
       decoration: _inputDecoration(label),
@@ -172,91 +186,87 @@ class _UpdatePageState extends State<UpdatePage> {
       ),
 
       // ✅ Loading Screen
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(20),
-              child: Form(
-                key: _formKey,
-                child: ListView(
-                  children: [
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: _inputDecoration("Full Name"),
-                      validator: (v) =>
-                          v == null || v.isEmpty ? "Enter name" : null,
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            children: [
+              TextFormField(
+                controller: _nameController,
+                decoration: _inputDecoration("Full Name"),
+                validator: (v) => v == null || v.isEmpty ? "Enter name" : null,
+              ),
+              const SizedBox(height: 16),
+
+              TextFormField(
+                controller: _regController,
+                decoration: _inputDecoration("Register Number"),
+                validator: (v) => v == null ? "Enter register number" : null,
+              ),
+
+              const SizedBox(height: 16),
+              _dropdown(
+                label: "Department",
+                items: _departments,
+                value: _selectedDept,
+                onChanged: (v) => setState(() => _selectedDept = v),
+              ),
+
+              const SizedBox(height: 16),
+              _dropdown(
+                label: "Year",
+                items: _years,
+                value: _selectedYear,
+                onChanged: (v) => setState(() => _selectedYear = v),
+              ),
+
+              const SizedBox(height: 30),
+
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _saving ? null : _updateProfile,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    const SizedBox(height: 16),
-
-                    TextFormField(
-                      controller: _regController,
-                      decoration: _inputDecoration("Register Number"),
-                      validator: (v) =>
-                          v == null  ? "Enter register number" : null,
-                    ),
-
-                    const SizedBox(height: 16),
-                    _dropdown(
-                      label: "Department",
-                      items: _departments,
-                      value: _selectedDept,
-                      onChanged: (v) => setState(() => _selectedDept = v),
-                    ),
-
-                    const SizedBox(height: 16),
-                    _dropdown(
-                      label: "Year",
-                      items: _years,
-                      value: _selectedYear,
-                      onChanged: (v) => setState(() => _selectedYear = v),
-                    ),
-
-                    const SizedBox(height: 30),
-
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _saving ? null : _updateProfile,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: _saving
+                      ? const SizedBox(
+                          height: 22,
+                          width: 22,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          "Update Profile",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
                           ),
                         ),
-                        child: _saving
-                            ? const SizedBox(
-                                height: 22,
-                                width: 22,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Text(
-                                "Update Profile",
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                      ),
-                    ),
-
-                    if (_errorMsg != null) ...[
-                      const SizedBox(height: 12),
-                      Center(
-                        child: Text(
-                          _errorMsg!,
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                      ),
-                    ],
-                  ],
                 ),
               ),
-            ),
+
+              if (_errorMsg != null) ...[
+                const SizedBox(height: 12),
+                Center(
+                  child: Text(
+                    _errorMsg!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
