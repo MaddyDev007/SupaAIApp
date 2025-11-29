@@ -6,7 +6,11 @@ class QuizListPage extends StatefulWidget {
   final String department;
   final String year;
 
-  const QuizListPage({super.key, required this.department, required this.year});
+  const QuizListPage({
+    super.key,
+    required this.department,
+    required this.year,
+  });
 
   @override
   State<QuizListPage> createState() => _QuizListPageState();
@@ -15,19 +19,20 @@ class QuizListPage extends StatefulWidget {
 class _QuizListPageState extends State<QuizListPage>
     with TickerProviderStateMixin {
   final supabase = Supabase.instance.client;
+
   late Future<List<Map<String, dynamic>>> _quizzesFuture;
 
   late final AnimationController _listController;
   late final Animation<double> _listAnimation;
 
-  String _filterOption = 'All'; // New filter option
+  String _filterOption = 'All';
   final List<String> _filterOptions = ['All', 'Finished', 'Unfinished'];
 
   @override
   void initState() {
     super.initState();
-    _quizzesFuture = _fetchQuizzes();
 
+    // 1) Create animation controller first
     _listController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -36,6 +41,12 @@ class _QuizListPageState extends State<QuizListPage>
       parent: _listController,
       curve: Curves.easeOut,
     );
+
+    // 2) Then kick off the fetch and start the animation afterwards
+    _quizzesFuture = _fetchQuizzes().then((list) {
+      if (mounted) _listController.forward(from: 0);
+      return list;
+    });
   }
 
   @override
@@ -45,59 +56,85 @@ class _QuizListPageState extends State<QuizListPage>
   }
 
   Future<List<Map<String, dynamic>>> _fetchQuizzes() async {
-    try{
+    try {
       final user = supabase.auth.currentUser;
-    if (user == null) return [];
+      if (user == null) return [];
 
-    final quizzes = await supabase
-        .from('quizzes')
-        .select('id, subject, created_at')
-        .eq('department', widget.department)
-        .eq('year', widget.year)
-        .order('created_at', ascending: false);
+      // quizzes for dept + year
+      final quizzes = await supabase
+          .from('quizzes')
+          .select('id, subject, created_at, department, year')
+          .eq('department', widget.department)
+          .eq('year', widget.year)
+          .order('created_at', ascending: false);
 
-    final attempts = await supabase
-        .from('results')
-        .select('quiz_id, score')
-        .eq('student_id', user.id);
+      // attempts for this user (keep latest by created_at if multiple)
+      final attempts = await supabase
+          .from('results')
+          .select('quiz_id, score, created_at')
+          .eq('student_id', user.id)
+          .order('created_at', ascending: false);
 
-    final attemptsMap = {for (var a in attempts) a['quiz_id']: a['score']};
+      // Build latest-attempt map
+      final Map<dynamic, Map<String, dynamic>> latestAttemptByQuiz = {};
+      for (final a in attempts) {
+        final qid = a['quiz_id'];
+        latestAttemptByQuiz.putIfAbsent(qid, () => a);
+      }
 
-    final quizList = List<Map<String, dynamic>>.from(quizzes);
-    for (var quiz in quizList) {
-      final quizId = quiz['id'];
-      quiz['attempted'] = attemptsMap.containsKey(quizId);
-      quiz['score'] = attemptsMap[quizId];
-    }
+      final quizList = List<Map<String, dynamic>>.from(quizzes);
+      for (final quiz in quizList) {
+        final quizId = quiz['id'];
+        final attempt = latestAttemptByQuiz[quizId];
+        quiz['attempted'] = attempt != null;
+        quiz['score'] = attempt?['score'];
+      }
 
-    _listController.forward(from: 0);
-    return quizList;
+      return quizList;
     } catch (e) {
       if (!mounted) return [];
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Failed to load quizzes: Check your Internet."),
-      behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("Failed to load quizzes: Check your Internet."),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
       return [];
     }
   }
 
   List<Map<String, dynamic>> _applyFilter(List<Map<String, dynamic>> quizzes) {
+    bool attemptedOf(Map q) => (q['attempted'] as bool?) ?? false;
+
     if (_filterOption == 'Finished') {
-      return quizzes.where((q) => q['attempted'] == true).toList();
+      return quizzes.where((q) => attemptedOf(q)).toList();
     } else if (_filterOption == 'Unfinished') {
-      return quizzes.where((q) => q['attempted'] == false).toList();
+      return quizzes.where((q) => !attemptedOf(q)).toList();
     }
     return quizzes; // All
   }
 
+  String _formatDate(dynamic raw) {
+    if (raw == null) return 'Unknown';
+    final dt = raw is DateTime ? raw : DateTime.tryParse(raw.toString());
+    if (dt == null) return 'Unknown';
+    final local = dt.toLocal();
+    // yyyy-mm-dd hh:mm (no milliseconds)
+    final date = "${local.year.toString().padLeft(4, '0')}-"
+        "${local.month.toString().padLeft(2, '0')}-"
+        "${local.day.toString().padLeft(2, '0')}";
+    final time = "${local.hour.toString().padLeft(2, '0')}:"
+        "${local.minute.toString().padLeft(2, '0')}";
+    return "$date $time";
+  }
+
   Widget _buildQuizCard(Map<String, dynamic> quiz, int index) {
-    final subject = quiz['subject'] ?? 'Unknown Subject';
-    final createdAt = DateTime.tryParse(quiz['created_at'] ?? '');
-    final attempted = quiz['attempted'] ?? false;
+    final subject = (quiz['subject'] as String?) ?? 'Unknown Subject';
+    final createdAt = quiz['created_at'];
+    final attempted = (quiz['attempted'] as bool?) ?? false;
     final score = quiz['score'];
 
     final slideTween = Tween<Offset>(
@@ -113,8 +150,11 @@ class _QuizListPageState extends State<QuizListPage>
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: attempted ? Colors.green : Colors.transparent,
+              width: 1.5,
+            ),
           ),
-          elevation: 3,
           color: attempted ? Colors.grey[100] : Colors.white,
           child: ListTile(
             contentPadding: const EdgeInsets.symmetric(
@@ -127,10 +167,11 @@ class _QuizListPageState extends State<QuizListPage>
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: attempted ? Colors.grey.shade700 : Colors.black,
+                
               ),
             ),
             subtitle: Text(
-              "Created: ${createdAt != null ? createdAt.toLocal().toString().split('.')[0] : 'Unknown'}"
+              "Created: ${_formatDate(createdAt)}"
               "${attempted && score != null ? "\nScore: $score" : ""}",
               style: const TextStyle(color: Colors.grey),
             ),
@@ -144,13 +185,19 @@ class _QuizListPageState extends State<QuizListPage>
                       context,
                       MaterialPageRoute(
                         builder: (context) => QuizPage(
+                          // ✅ Pass the quiz id so QuizPage knows what to load
+                          quizId: quiz['id'],
                           department: widget.department,
                           year: widget.year,
                         ),
                       ),
                     ).then((_) {
+                      // re-fetch and replay the list animation
                       setState(() {
-                        _quizzesFuture = _fetchQuizzes();
+                        _quizzesFuture = _fetchQuizzes().then((list) {
+                          if (mounted) _listController.forward(from: 0);
+                          return list;
+                        });
                       });
                     });
                   },
@@ -178,7 +225,7 @@ class _QuizListPageState extends State<QuizListPage>
       ),
       body: Column(
         children: [
-          // Filter dropdown always visible
+          // Filter dropdown
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Row(
@@ -194,15 +241,14 @@ class _QuizListPageState extends State<QuizListPage>
                   focusColor: Colors.blue.shade50,
                   value: _filterOption,
                   items: _filterOptions
-                      .map(
-                        (opt) => DropdownMenuItem(value: opt, child: Text(opt)),
-                      )
+                      .map((opt) => DropdownMenuItem(
+                            value: opt,
+                            child: Text(opt),
+                          ))
                       .toList(),
                   onChanged: (val) {
                     if (val != null) {
-                      setState(() {
-                        _filterOption = val;
-                      });
+                      setState(() => _filterOption = val);
                     }
                   },
                 ),
@@ -213,14 +259,27 @@ class _QuizListPageState extends State<QuizListPage>
             child: FutureBuilder<List<Map<String, dynamic>>>(
               future: _quizzesFuture,
               builder: (context, snapshot) {
-                if (!snapshot.hasData) {
+                // Loading
+                if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
+                // Error
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'Error: ${snapshot.error}',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  );
+                }
+
+                if (!snapshot.hasData) {
+                  return const SizedBox.shrink();
+                }
+
                 // Apply filter
-                List<Map<String, dynamic>> quizzes = _applyFilter(
-                  snapshot.data!,
-                );
+                final quizzes = _applyFilter(snapshot.data!);
 
                 if (quizzes.isEmpty) {
                   return const Center(
@@ -234,10 +293,15 @@ class _QuizListPageState extends State<QuizListPage>
                 return RefreshIndicator(
                   onRefresh: () async {
                     final refreshed = await _fetchQuizzes();
-                    setState(() => _quizzesFuture = Future.value(refreshed));
+                    if (!mounted) return;
+                    setState(() {
+                      _quizzesFuture = Future.value(refreshed);
+                      _listController.forward(from: 0);
+                    });
                   },
                   color: blue,
                   child: ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     itemCount: quizzes.length,
                     itemBuilder: (context, index) =>
                         _buildQuizCard(quizzes[index], index),

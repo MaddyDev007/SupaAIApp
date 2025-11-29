@@ -4,11 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class QuizPage extends StatefulWidget {
+  final dynamic quizId; // ✅ pass this from the list page
   final String department;
   final String year;
 
-  const QuizPage({super.key, required this.department, required this.year});
-
+  const QuizPage({
+    super.key,
+    required this.quizId,
+    required this.department,
+    required this.year,
+  });
   @override
   State<QuizPage> createState() => _QuizPageState();
 }
@@ -18,10 +23,12 @@ class _QuizPageState extends State<QuizPage>
   final supabase = Supabase.instance.client;
 
   List<Map<String, dynamic>> questions = [];
+  List<int> userAnswers = []; // ✅ store user selections
   int currentIndex = 0;
   int score = 0;
   int selected = -1;
-  int seconds = 10;
+  static const int _perQuestionSeconds = 10;
+  int seconds = _perQuestionSeconds;
   Timer? timer;
   bool loading = true;
   String subject = "";
@@ -37,19 +44,14 @@ class _QuizPageState extends State<QuizPage>
       final response = await supabase
           .from('quizzes')
           .select('id, subject, questions')
-          .eq('department', widget.department)
-          .eq('year', widget.year)
-          .order('created_at', ascending: false)
-          .limit(1)
+          .eq('id', widget.quizId) // ✅ fetch by quizId
           .maybeSingle();
 
       if (response == null) {
-        throw Exception(
-          "No quiz found for ${widget.department}, ${widget.year}",
-        );
+        throw Exception("Quiz not found.");
       }
 
-      subject = response['subject'];
+      subject = (response['subject'] as String?) ?? 'Quiz';
       final raw = response['questions'];
 
       if (raw is String) {
@@ -60,50 +62,59 @@ class _QuizPageState extends State<QuizPage>
         throw Exception("Invalid question format");
       }
 
+      userAnswers = List<int>.filled(questions.length, -1);
+
+      if (!mounted) return;
       setState(() {
         loading = false;
-        startTimer();
       });
+      startTimer(); // start after setState
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Failed to load quiz"),
-      behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("Failed to load quiz"),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
       Navigator.pop(context);
     }
   }
 
   void startTimer() {
     timer?.cancel();
-    seconds = 10;
+    seconds = _perQuestionSeconds;
     timer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (!mounted) return;
+      if (!mounted) return; // dispose will cancel anyway
       setState(() {
         seconds--;
-        if (seconds == 0) {
-          nextQuestion();
+        if (seconds <= 0) {
+          nextQuestion(autoAdvance: true);
         }
       });
     });
   }
 
-  void nextQuestion() {
+  void nextQuestion({bool autoAdvance = false}) {
     timer?.cancel();
 
-    if (selected == questions[currentIndex]['answer']) {
-      score++;
+    // If auto-advance due to timeout and user hasn't selected, keep -1
+    // Score updates only when the selection matches the correct answer
+    final correctIndex = (questions[currentIndex]['answer'] as num).toInt();
+    if (selected != -1) {
+      userAnswers[currentIndex] = selected;
+      if (selected == correctIndex) score++;
     }
 
     if (currentIndex < questions.length - 1) {
       setState(() {
         currentIndex++;
         selected = -1;
-        startTimer();
       });
+      startTimer();
     } else {
       saveResultAndShowDialog();
     }
@@ -111,47 +122,43 @@ class _QuizPageState extends State<QuizPage>
 
   Future<void> saveResultAndShowDialog() async {
     final user = supabase.auth.currentUser;
-    if (user == null) return;
+    if (user != null) {
+      try {
+        final profileRes = await supabase
+            .from('profiles')
+            .select('email')
+            .eq('id', user.id)
+            .maybeSingle();
 
-    try {
-      final quizRes = await supabase
-          .from('quizzes')
-          .select('id, subject')
-          .eq('department', widget.department)
-          .eq('year', widget.year)
-          .order('created_at', ascending: false)
-          .limit(1)
-          .maybeSingle();
+        final studentName =
+            (profileRes != null ? profileRes['email'] : null) ??
+            user.email ??
+            'Unknown';
 
-      if (quizRes == null) return;
-      final quizId = quizRes['id'];
-
-      final profileRes = await supabase
-          .from('profiles')
-          .select('email')
-          .eq('id', user.id)
-          .single();
-
-      final studentName = profileRes['email'];
-      await supabase.from('results').insert({
-        'quiz_id': quizId,
-        'student_id': user.id,
-        'student_name': studentName,
-        'score': score,
-        'subject': subject,
-        'department': widget.department,
-        'year': widget.year,
-        'answers': jsonEncode(questions.map((q) => q['answer']).toList()),
-      });
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error saving result: $e"),
-      behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),));
+        await supabase.from('results').insert({
+          'quiz_id': widget.quizId, // ✅ no re-query
+          'student_id': user.id,
+          'student_name': studentName,
+          'score': score,
+          'subject': subject,
+          'department': widget.department,
+          'year': widget.year,
+          // ✅ save the user's choices, not the correct answers
+          'answers': jsonEncode(userAnswers),
+        });
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Error saving result: $e"),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        }
+      }
     }
 
     if (!mounted) return;
@@ -188,21 +195,24 @@ class _QuizPageState extends State<QuizPage>
     }
 
     final q = questions[currentIndex];
-    final progress = (seconds / 10);
+    final options = List<String>.from(q['options']);
+    final progress =
+        seconds.clamp(0, _perQuestionSeconds) / _perQuestionSeconds;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         title: Text(
           "$subject Quiz",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w500,
+          ),
         ),
         centerTitle: true,
         backgroundColor: Colors.blue,
         elevation: 0,
-        iconTheme: IconThemeData(
-          color: Colors.white, // <-- change back arrow color here
-        ),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Container(
         color: Colors.blue.shade50,
@@ -222,7 +232,7 @@ class _QuizPageState extends State<QuizPage>
                         value: progress,
                         strokeWidth: 8,
                         valueColor: const AlwaysStoppedAnimation(Colors.blue),
-                        backgroundColor: Colors.white,
+                        backgroundColor: Colors.blue.shade100,
                       ),
                       Center(
                         child: Text(
@@ -248,7 +258,7 @@ class _QuizPageState extends State<QuizPage>
                     border: Border.all(color: Colors.white24, width: 1),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
+                        color: Colors.black.withOpacity(0.1), // ✅
                         blurRadius: 10,
                       ),
                     ],
@@ -261,7 +271,7 @@ class _QuizPageState extends State<QuizPage>
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        q['question'],
+                        q['question'].toString(),
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -277,7 +287,7 @@ class _QuizPageState extends State<QuizPage>
                 // Options
                 Expanded(
                   child: ListView.builder(
-                    itemCount: q['options'].length,
+                    itemCount: options.length,
                     itemBuilder: (context, i) {
                       final isSelected = selected == i;
                       return AnimatedContainer(
@@ -286,13 +296,10 @@ class _QuizPageState extends State<QuizPage>
                         decoration: BoxDecoration(
                           gradient: isSelected
                               ? const LinearGradient(
-                                  colors: [
-                                    Colors.blue,
-                                    Colors.blue,
-                                  ],
+                                  colors: [Colors.blue, Colors.blue],
                                 )
                               : const LinearGradient(
-                                  colors: [Colors.white24, Colors.white10],
+                                  colors: [Colors.white, Colors.white],
                                 ),
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
@@ -304,7 +311,7 @@ class _QuizPageState extends State<QuizPage>
                         ),
                         child: ListTile(
                           title: Text(
-                            q['options'][i],
+                            options[i],
                             style: TextStyle(
                               color: isSelected ? Colors.white : Colors.black,
                               fontWeight: isSelected
@@ -342,7 +349,7 @@ class _QuizPageState extends State<QuizPage>
                           vertical: 12,
                         ),
                       ),
-                      onPressed: selected != -1 ? nextQuestion : null,
+                      onPressed: selected != -1 ? () => nextQuestion() : null,
                       child: Text(
                         currentIndex == questions.length - 1
                             ? "Finish"

@@ -157,8 +157,8 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         throw Exception('Backend failed: ${res.statusCode}');
       }
 
-      final body = jsonDecode(res.body) as Map<String, dynamic>;
-      final examPdfUrl = body['file_url'];
+      // final body = jsonDecode(res.body) as Map<String, dynamic>;
+      // final examPdfUrl = body['file_url'];
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('✅ Exam generated! Successfully'),

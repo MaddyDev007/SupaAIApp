@@ -76,7 +76,7 @@ class MyApp extends StatelessWidget {
             final args = settings.arguments as Map<String, dynamic>;
             return MaterialPageRoute(
               builder: (_) =>
-                  QuizPage(department: args['department'], year: args['year']),
+                  QuizPage(department: args['department'], year: args['year'],quizId: args['quizId'],),
             );
           case '/results':
             return MaterialPageRoute(builder: (_) => const ResultPage());
