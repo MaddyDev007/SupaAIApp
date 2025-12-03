@@ -157,6 +157,9 @@ class _QuizListPageState extends State<QuizListPage>
           ),
           color: attempted ? Colors.grey[100] : Colors.white,
           child: ListTile(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,
               vertical: 16,
@@ -236,8 +239,13 @@ class _QuizListPageState extends State<QuizListPage>
                 ),
                 const SizedBox(width: 12),
                 DropdownButton<String>(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                  ),
                   borderRadius: BorderRadius.circular(12),
                   dropdownColor: Colors.white,
+                  
+                  elevation: 1,
                   focusColor: Colors.blue.shade50,
                   value: _filterOption,
                   items: _filterOptions

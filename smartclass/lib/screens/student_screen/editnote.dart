@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 // import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -22,7 +23,6 @@ class _EditNotePageState extends State<EditNotePage> {
   // ✅ Speech-to-text controller
   /* late stt.SpeechToText speech;
   bool isListening = false; */
-
   // ✅ Image picker
   final ImagePicker picker = ImagePicker();
   String? imageUrl;
@@ -42,7 +42,6 @@ class _EditNotePageState extends State<EditNotePage> {
   @override
   void initState() {
     super.initState();
-
     titleController = TextEditingController(text: widget.note?['title'] ?? '');
     noteController = TextEditingController(text: widget.note?['content'] ?? '');
 
@@ -146,11 +145,13 @@ class _EditNotePageState extends State<EditNotePage> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to save note: Check your Internet."),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),),
+        SnackBar(
+          content: Text("Failed to save note: Check your Internet."),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
       );
     }
   }
@@ -241,7 +242,11 @@ class _EditNotePageState extends State<EditNotePage> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.black, size: 20),
+                        icon: const Icon(
+                          Icons.delete,
+                          color: Colors.black,
+                          size: 20,
+                        ),
                         onPressed: deleteImage,
                       ),
                     ],
@@ -281,6 +286,34 @@ class _EditNotePageState extends State<EditNotePage> {
                         imageUrl!,
                         height: 180,
                         fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            height: 70,
+                            width: 70,
+                            color: Colors.grey.shade200,
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                value:
+                                    loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                          loadingProgress.expectedTotalBytes!
+                                    : null,
+                              ),
+                            ),
+                          );
+                        },
+                        // If loading fails
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          height: 70,
+                          width: 70,
+                          color: Colors.grey.shade300,
+                          child: const Icon(
+                            Icons.broken_image,
+                            color: Colors.grey,
+                          ),
+                        ),
                       ),
                     ),
                   const SizedBox(height: 20),

@@ -34,6 +34,8 @@ dependencies:
   flutter_markdown_selectionarea: ^0.6.17+1
   # speech_to_text: ^6.5.1
   # image_picker: ^1.0.7
+  lottie: ^3.1.2
+  smooth_page_indicator: ^1.1.0
   
 
 dev_dependencies:
@@ -56,3 +58,4 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/animations/

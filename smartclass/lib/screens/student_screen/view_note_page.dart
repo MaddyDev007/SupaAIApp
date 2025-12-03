@@ -1,16 +1,49 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
+class PortraitOnly extends StatefulWidget {
+  final Widget child;
+  const PortraitOnly({super.key, required this.child});
+
+  @override
+  State<PortraitOnly> createState() => _PortraitOnlyState();
+}
+
+class _PortraitOnlyState extends State<PortraitOnly> {
+  @override
+  void initState() {
+    super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
+  }
+
+  @override
+  void dispose() {
+    // Restore orientations
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
 class ViewNotePage extends StatelessWidget {
   final String title;
   final String content;
   final int noteId;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
-  
-  final dynamic color;
-  
-  final dynamic imageUrl;
 
+  final dynamic color;
+
+  final dynamic imageUrl;
+ 
   const ViewNotePage({
     super.key,
     required this.title,
@@ -27,7 +60,10 @@ class ViewNotePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.blue.shade50,
       appBar: AppBar(
-        title: const Text("View Note", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
+        title: const Text(
+          "View Note",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+        ),
         backgroundColor: Colors.blue,
         iconTheme: IconThemeData(
           color: Colors.white, // <-- change back arrow color here
@@ -54,13 +90,43 @@ class ViewNotePage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
-              if (imageUrl != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(imageUrl!, height: 180, fit: BoxFit.cover),
-                ),
-            const SizedBox(height: 20),
+                if (imageUrl != null)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      imageUrl!,
+                      height: 180,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          height: 70,
+                          width: 70,
+                          color: Colors.grey.shade200,
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                        loadingProgress.expectedTotalBytes!
+                                  : null,
+                            ),
+                          ),
+                        );
+                      },
+                      // If loading fails
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        height: 70,
+                        width: 70,
+                        color: Colors.grey.shade300,
+                        child: const Icon(
+                          Icons.broken_image,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 20),
                 // Title
                 Text(
                   title,
@@ -98,18 +164,14 @@ class ViewNotePage extends StatelessWidget {
                     TextButton.icon(
                       icon: const Icon(Icons.edit, color: Colors.blue),
                       label: const Text("Edit"),
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.blue,
-                      ),
+                      style: TextButton.styleFrom(foregroundColor: Colors.blue),
                       onPressed: onEdit,
                     ),
                     const SizedBox(width: 8),
                     TextButton.icon(
                       icon: const Icon(Icons.delete, color: Colors.red),
                       label: const Text("Delete"),
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.red,
-                      ),
+                      style: TextButton.styleFrom(foregroundColor: Colors.red),
                       onPressed: onDelete,
                     ),
                   ],

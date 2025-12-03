@@ -1,9 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:smartclass/screens/student_screen/pdf_view_page.dart';
+import 'package:smartclass/screens/common_screen/pdf_view_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dio/dio.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:url_launcher/url_launcher.dart';
 // import 'package:path_provider/path_provider.dart';
 // import 'package:url_launcher/url_launcher.dart';
 
@@ -88,17 +89,37 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
     });
   }
 
-  // 🌐 Open Material URL
-  // Future<void> _openMaterial(String url) async {
-  //   final uri = Uri.tryParse(url);
-  //   if (uri == null ||
-  //       !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-  //     if (!mounted) return;
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(content: Text('Could not open the material.')),
-  //     );
-  //   }
-  // }
+  Future<void> _openMaterialExternal(String url) async {
+    final uri = Uri.tryParse(url);
+
+    if (uri == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Invalid URL.')));
+      return;
+    }
+
+    // Try to launch externally (browser, PDF viewer, etc.)
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!launched && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open the material.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error opening material: $e')));
+      }
+    }
+  }
 
   Future<void> _openMaterial(String url, String title) async {
     final uri = Uri.tryParse(url);
@@ -387,6 +408,15 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  InkWell(
+                    onTap: () => _openMaterialExternal(url),
+                    borderRadius: BorderRadius.circular(50),
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Icon(Icons.open_in_new, color: Colors.blue),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   InkWell(
                     onTap: () => _confirmAndDownload(url, "$subject.pdf"),
                     borderRadius: BorderRadius.circular(50),

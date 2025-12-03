@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:open_filex/open_filex.dart';
 import 'package:pdf/pdf.dart';
@@ -30,8 +31,24 @@ class _SemResultPageState extends State<SemResultPage> {
 
   @override
   void initState() {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
     super.initState();
     _reg.text = widget.profile["reg_no"];
+  }
+  @override
+  void dispose() {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    _reg.dispose();
+    _dob.dispose();
+    _search.dispose();
+    super.dispose();
   }
 
   Future<void> fetchResult() async {

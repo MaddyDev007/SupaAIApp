@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:smartclass/models/user_model.dart';
+import 'package:smartclass/screens/onboarding.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'secrets.dart';
 import 'screens/login_page.dart';
@@ -82,6 +83,9 @@ class MyApp extends StatelessWidget {
             return MaterialPageRoute(builder: (_) => const ResultPage());
           case '/chatbot':
             return MaterialPageRoute(builder: (_) => const ChatbotPage());
+          case '/onboarding':
+            return MaterialPageRoute(builder: (_) => const OnboardingScreen());
+           
           default:
             return null;
         }
@@ -139,7 +143,8 @@ class _SplashRedirectorState extends State<SplashRedirector>
       }
     } else {
       // ✅ Fallback to login if no local data
-      Navigator.pushReplacementNamed(context, '/login');
+      // Navigator.pushReplacementNamed(context, '/login');
+      Navigator.pushReplacementNamed(context, "/onboarding");
     }
   }
 

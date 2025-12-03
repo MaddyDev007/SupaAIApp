@@ -74,56 +74,59 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(14),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    /// 🔹 Summary Cards
-                    Row(
-                      children: [
-                        _buildStatCard(
-                          "Total Students",
-                          studentPerformance
-                              .map((e) => e['student_id'])
-                              .toSet()
-                              .length
-                              .toString(),
-                          Colors.blue,
-                          Icons.people,
-                        ),
-                        _buildStatCard(
-                          "Quizzes Taken",
-                          studentPerformance
-                              .map((e) => e['quiz_id'])
-                              .toSet()
-                              .length
-                              .toString(),
-                          Colors.green,
-                          Icons.assignment,
-                        ),
-                        _buildStatCard(
-                          "Avg Score",
-                          _calculateAverageScore().toStringAsFixed(1),
-                          Colors.orange,
-                          Icons.bar_chart,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-
-                    /// 🔹 Performance Chart
-                    _buildPerformanceChart(),
-
-                    const SizedBox(height: 24),
-
-                    /// 🔹 Detailed Table
-                    _buildDetailedTable(),
-                  ],
+          : RefreshIndicator(
+            onRefresh: _fetchAnalytics,
+            child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      /// 🔹 Summary Cards
+                      Row(
+                        children: [
+                          _buildStatCard(
+                            "Total Students",
+                            studentPerformance
+                                .map((e) => e['student_id'])
+                                .toSet()
+                                .length
+                                .toString(),
+                            Colors.blue,
+                            Icons.people,
+                          ),
+                          _buildStatCard(
+                            "Quizzes Taken",
+                            studentPerformance
+                                .map((e) => e['quiz_id'])
+                                .toSet()
+                                .length
+                                .toString(),
+                            Colors.green,
+                            Icons.assignment,
+                          ),
+                          _buildStatCard(
+                            "Avg Score",
+                            _calculateAverageScore().toStringAsFixed(1),
+                            Colors.orange,
+                            Icons.bar_chart,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+            
+                      /// 🔹 Performance Chart
+                      _buildPerformanceChart(),
+            
+                      const SizedBox(height: 24),
+            
+                      /// 🔹 Detailed Table
+                      _buildDetailedTable(),
+                    ],
+                  ),
                 ),
               ),
-            ),
+          ),
     );
   }
 
@@ -140,7 +143,7 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
             child: BarChart(
               BarChartData(
                 minY: 0,
-                maxY: 10,
+                maxY: 11.5,
                 gridData: FlGridData(show: false),
                 borderData: FlBorderData(show: false),
                 titlesData: FlTitlesData(

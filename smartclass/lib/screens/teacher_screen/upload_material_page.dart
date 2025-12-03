@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -18,6 +19,9 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
   bool uploading = false;
   bool generatingQuiz = false;
   bool generatingExam = false;
+  bool uploaded = false;
+  bool examGenerated = false;
+  bool quizGenerated = false;
 
   final List<String> _departments = ['CSE', 'EEE', 'ECE', 'Mech'];
   final List<String> _years = ['1st year', '2nd year', '3rd year', '4th year'];
@@ -31,8 +35,22 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
   String? uploadedFileUrl;
 
   @override
+  void initState() {
+    super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
+  }
+
+  @override
   void dispose() {
     subjectCtrl.dispose();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     super.dispose();
   }
 
@@ -56,20 +74,27 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         _selectedYear == null ||
         subjectCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('⚠️ Fill all fields and pick a PDF'),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),),
+        SnackBar(
+          content: const Text('⚠️ Fill all fields and pick a PDF'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
       );
       return;
     }
 
-    setState(() => uploading = true);
+    setState(() {
+      uploading = true;
+      uploaded = false; // reset before starting
+    });
+
     final filePath =
         '${DateTime.now().millisecondsSinceEpoch}_${selectedFile!.name}';
     final fileTitle = selectedFile!.name.replaceAll('.pdf', '');
     final bytes = await selectedFile!.readAsBytes();
+
     try {
       await supabase.storage
           .from('lessons')
@@ -98,42 +123,55 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       setState(() {
         uploadedMaterialId = insertRes['id'] as String;
         uploadedFileUrl = publicUrl;
+        uploaded = true; // ✅ mark as uploaded
+        uploading = false;
       });
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('✅ Material uploaded successfully'),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),),
+        SnackBar(
+          content: const Text('✅ Material uploaded successfully'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('❌ Upload Error: $e'),
-      behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),));
-    } finally {
-      if (mounted) setState(() => uploading = false);
+      setState(() => uploading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Upload Error: $e'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
     }
   }
 
   Future<void> generateExam() async {
-    if (uploadedFileUrl == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: const Text('⚠️ Upload material first'),
-      behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),));
+    if (uploadedMaterialId == null || uploadedFileUrl == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('⚠️ Upload material first'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
       return;
     }
 
-    setState(() => generatingExam = true);
+    setState(() {
+      generatingExam = true;
+      examGenerated = false; // reset before generation
+    });
+
     try {
       final payload = {
         'pdf_url': uploadedFileUrl,
@@ -157,42 +195,63 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         throw Exception('Backend failed: ${res.statusCode}');
       }
 
+      // Optional: read response to get exam PDF URL
       // final body = jsonDecode(res.body) as Map<String, dynamic>;
-      // final examPdfUrl = body['file_url'];
+      // final examPdfUrl = body['file_url'] as String?;
+
       if (!mounted) return;
+      setState(() {
+        generatingExam = false;
+        examGenerated = true; // ✅ only mark true on success
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('✅ Exam generated! Successfully'),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),),
+        SnackBar(
+          content: const Text('✅ Exam generated successfully'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('❌ Exam Generation Error: $e'),
-      behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),));
-    } finally {
-      if (mounted) setState(() => generatingExam = false);
+      if (!mounted) return;
+      setState(() {
+        generatingExam = false;
+        examGenerated = false; // keep disabled state OFF on error
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Exam Generation Error: $e'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
     }
   }
 
   Future<void> generateQuiz() async {
     if (uploadedMaterialId == null || uploadedFileUrl == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: const Text('⚠️ Upload material first'),
-      behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('⚠️ Upload material first'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
       return;
     }
 
-    setState(() => generatingQuiz = true);
+    setState(() {
+      generatingQuiz = true;
+      quizGenerated = false; // reset before generating
+    });
+
     try {
       final payload = {
         'pdf_url': uploadedFileUrl,
@@ -207,11 +266,9 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
 
       final uploadRes = await http.post(
         Uri.parse('https://supaaiapp-1.onrender.com/upload/'),
-        // Uri.parse('http://127.0.0.1:8000/upload/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(payload),
       );
-
       if (uploadRes.statusCode != 200) {
         throw Exception('Backend /upload failed: ${uploadRes.statusCode}');
       }
@@ -233,32 +290,43 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
 
       final storeRes = await http.post(
         Uri.parse('https://supaaiapp-1.onrender.com/quiz/store'),
-        // Uri.parse('http://127.0.0.1:8000/quiz/store'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(storePayload),
       );
-
       if (storeRes.statusCode != 200) {
         throw Exception('Backend /quiz/store failed: ${storeRes.statusCode}');
       }
+
       if (!mounted) return;
+      setState(() {
+        generatingQuiz = false;
+        quizGenerated = true; // ✅ show “Quiz Generated” & keep disabled
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: const Text('✅ Quiz generated successfully'),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),),
+        SnackBar(
+          content: const Text('✅ Quiz generated successfully'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
       );
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('❌ Quiz Generation Error: $e'),
-      behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),));
-    } finally {
-      if (mounted) setState(() => generatingQuiz = false);
+      if (!mounted) return;
+      setState(() {
+        generatingQuiz = false;
+        quizGenerated = false; // allow retry
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Quiz Generation Error: $e'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
     }
   }
 
@@ -419,49 +487,127 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
                   ),
                   const SizedBox(height: 20),
                   ElevatedButton.icon(
-                    onPressed: uploading ? null : uploadMaterialOnly,
-                    icon: const Icon(Icons.upload_file, color: Colors.white),
+                    onPressed: uploading || uploaded
+                        ? null
+                        : uploadMaterialOnly,
+                    icon: Icon(
+                      uploading ? Icons.hourglass_empty : uploaded ? Icons.check_circle : Icons.upload_file,
+                      color: Colors.white,
+                    ),
                     label: Text(
-                      uploading ? 'Uploading...' : 'Upload Material',
+                      uploading
+                          ? 'Uploading...'
+                          : uploaded
+                          ? 'Uploaded'
+                          : 'Upload Material',
                       style: const TextStyle(color: Colors.white),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: blue,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                    style: ButtonStyle(
+                      backgroundColor: WidgetStateProperty.resolveWith((
+                        states,
+                      ) {
+                        // Force green even when disabled
+                        if (states.contains(WidgetState.disabled)) {
+                          return uploaded ? Colors.green : blue;
+                        }
+                        return uploaded ? Colors.green : blue;
+                      }),
+                      foregroundColor: WidgetStateProperty.resolveWith((
+                        states,
+                      ) {
+                        return Colors
+                            .white; // keep text/icon white when disabled
+                      }),
+                      padding: WidgetStateProperty.all(
+                        const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      shape: WidgetStateProperty.all(
+                        RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
-                    onPressed: generatingQuiz ? null : generateQuiz,
-                    icon: const Icon(Icons.quiz, color: Colors.white),
+                    onPressed: generatingQuiz || quizGenerated
+                        ? null
+                        : generateQuiz,
+                    icon: Icon(
+                      generatingQuiz ? Icons.hourglass_empty : quizGenerated ? Icons.check_circle : Icons.quiz,
+                      color: Colors.white,
+                    ),
                     label: Text(
-                      generatingQuiz ? 'Generating Quiz...' : 'Generate Quiz',
+                      generatingQuiz
+                          ? 'Generating Quiz...'
+                          : quizGenerated
+                          ? 'Quiz Generated'
+                          : 'Generate Quiz',
                       style: const TextStyle(color: Colors.white),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: blue,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                    style: ButtonStyle(
+                      backgroundColor: WidgetStateProperty.resolveWith((
+                        states,
+                      ) {
+                        if (states.contains(WidgetState.disabled)) {
+                          return quizGenerated ? Colors.green : blue;
+                        }
+                        return quizGenerated ? Colors.green : blue;
+                      }),
+                      foregroundColor: WidgetStateProperty.all(Colors.white),
+                      padding: WidgetStateProperty.all(
+                        const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      shape: WidgetStateProperty.all(
+                        RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
-                    onPressed: generatingExam ? null : generateExam,
-                    icon: const Icon(Icons.description, color: Colors.white),
+                    onPressed: generatingExam || examGenerated
+                        ? null
+                        : generateExam,
+                    icon: Icon(
+                      generatingExam ? Icons.hourglass_empty :  examGenerated
+                          ? Icons.check_circle
+                          : Icons.description, // or any exam icon
+                      color: Colors.white,
+                    ),
                     label: Text(
-                      generatingExam ? 'Generating Exam...' : 'Generate Exam',
+                      generatingExam
+                          ? 'Generating Exam...'
+                          : examGenerated
+                          ? 'Exam Generated'
+                          : 'Generate Exam',
                       style: const TextStyle(color: Colors.white),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: blue,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                    style: ButtonStyle(
+                      backgroundColor: WidgetStateProperty.resolveWith((
+                        states,
+                      ) {
+                        if (states.contains(WidgetState.disabled)) {
+                          // when button is disabled
+                          return examGenerated ? Colors.green : blue;
+                        }
+                        // when button is enabled
+                        return examGenerated ? Colors.green : blue;
+                      }),
+                      foregroundColor: WidgetStateProperty.all(Colors.white),
+                      padding: WidgetStateProperty.all(
+                        const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                      shape: WidgetStateProperty.all(
+                        RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      overlayColor: WidgetStateProperty.all(
+                        Colors.transparent,
                       ),
                     ),
                   ),

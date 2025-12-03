@@ -185,186 +185,227 @@ class _NotesPageState extends State<NotesPage> {
         backgroundColor: Colors.blue,
         centerTitle: true,
       ),
-      body: FutureBuilder<List<Map<String, dynamic>>>(
-        future: _fetchNotes(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text("Error: ${snapshot.error}"));
-          }
+      body: RefreshIndicator(
+        onRefresh: _fetchNotes,
+        child: FutureBuilder<List<Map<String, dynamic>>>(
+          future: _fetchNotes(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(child: Text("Error: ${snapshot.error}"));
+            }
 
-          final notes = snapshot.data ?? [];
+            final notes = snapshot.data ?? [];
 
-          if (notes.isEmpty) {
-            return const Center(child: Text("No notes found. Add some!"));
-          }
+            if (notes.isEmpty) {
+              return const Center(child: Text("No notes found. Add some!"));
+            }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(12),
-            itemCount: notes.length,
-            itemBuilder: (context, index) {
-              final note = notes[index];
-              return Card(
-                color: note['color'] != null
-                    ? Color(int.parse(note['color']))
-                    : Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                child: InkWell(
-                  onTap: () {
-                    pushWithAnimation(
-                      context,
-                      ViewNotePage(
-                        title: note['title'],
-                        content: note['content'],
-                        imageUrl: note['image_url'],
-                        noteId: note['id'],
-                        color: note['color'] != null
-                            ? Color(int.parse(note['color']))
-                            : Colors.white,
-                        onEdit: () {
-                          Navigator.pop(context); // close detail page
-                          _openEditNotePage(note: note);
-                        },
-                        onDelete: () async {
-                          await _deleteNote(note['id']);
-                          Navigator.pop(context); // close after delete
-                        },
-                      ),
-                    );
-                  },
-                  splashColor: note['color'] != null
-                      ? Color(int.parse(note['color'])).withAlpha(128)
-                      : Colors.white.withAlpha(128),
+            return ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: notes.length,
+              itemBuilder: (context, index) {
+                final note = notes[index];
+                return Card(
+                  color: note['color'] != null
+                      ? Color(int.parse(note['color']))
+                      : Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  child: InkWell(
+                    onTap: () {
+                      pushWithAnimation(
+                        context,
+                        PortraitOnly(child: ViewNotePage(
+                          title: note['title'],
+                          content: note['content'],
+                          imageUrl: note['image_url'],
+                          noteId: note['id'],
+                          color: note['color'] != null
+                              ? Color(int.parse(note['color']))
+                              : Colors.white,
+                          onEdit: () {
+                            Navigator.pop(context); // close detail page
+                            _openEditNotePage(note: note);
+                          },
+                          onDelete: () async {
+                            await _deleteNote(note['id']);
+                            Navigator.pop(context); // close after delete
+                          },
+                        ),)
+                      );
+                    },
+                    splashColor: note['color'] != null
+                        ? Color(int.parse(note['color'])).withAlpha(128)
+                        : Colors.white.withAlpha(128),
 
-                  borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(16),
 
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 6),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    note['title'] ?? '',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 6),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      note['title'] ?? '',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    note['content'] ?? '',
-                                    style: TextStyle(color: Colors.grey[700]),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 8),
-
-                                  Text(
-                                    note['created_at'] != null
-                                        ? DateTime.parse(
-                                            note['created_at'],
-                                          ).toLocal().toString().split(' ')[0]
-                                        : '',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      note['content'] ?? '',
+                                      style: TextStyle(color: Colors.grey[700]),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                                    const SizedBox(height: 8),
 
-                            if (note['image_url'] != null && note['image_url'].toString().isNotEmpty) ...[
-                              const SizedBox(width: 10),
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.network(
-                                  note["image_url"],
-                                  height: 70,
-                                  width: 70,
-                                  fit: BoxFit.cover,
+                                    Text(
+                                      note['created_at'] != null
+                                          ? DateTime.parse(
+                                              note['created_at'],
+                                            ).toLocal().toString().split(' ')[0]
+                                          : '',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ],
-                          ],
-                        ),
 
-                        const Divider(),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            IconButton(
-                              icon: const Icon(
-                                Icons.remove_red_eye,
-                                color: Color.fromARGB(255, 102, 224, 224),
-                              ),
-                              onPressed: () {
-                                pushWithAnimation(
-                                  context,
-                                  ViewNotePage(
-                                    title: note['title'],
-                                    content: note['content'],
-                                    imageUrl: note['image_url'],
-                                    noteId: note['id'],
-                                    color: note['color'] != null
-                                        ? Color(int.parse(note['color']))
-                                        : Colors.white,
-                                    onEdit: () {
-                                      Navigator.pop(
-                                        context,
-                                      ); // close detail page
-                                      _openEditNotePage(note: note);
+                              if (note['image_url'] != null &&
+                                  note['image_url'].toString().isNotEmpty) ...[
+                                const SizedBox(width: 10),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.network(
+                                    note["image_url"],
+                                    height: 70,
+                                    width: 70,
+                                    fit: BoxFit.cover,
+                                    // While loading
+                                    loadingBuilder: (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return Container(
+                                        height: 70,
+                                        width: 70,
+                                        color: Colors.grey.shade200,
+                                        child: Center(
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.5,
+                                            value:
+                                                loadingProgress
+                                                        .expectedTotalBytes !=
+                                                    null
+                                                ? loadingProgress
+                                                          .cumulativeBytesLoaded /
+                                                      loadingProgress
+                                                          .expectedTotalBytes!
+                                                : null,
+                                          ),
+                                        ),
+                                      );
                                     },
-                                    onDelete: () async {
-                                      await _deleteNote(note['id']);
-                                      Navigator.pop(
-                                        context,
-                                      ); // close after delete
-                                    },
+                                    // If loading fails
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            Container(
+                                              height: 70,
+                                              width: 70,
+                                              color: Colors.grey.shade300,
+                                              child: const Icon(
+                                                Icons.broken_image,
+                                                color: Colors.grey,
+                                              ),
+                                            ),
                                   ),
-                                );
-                              },
-                            ),
+                                ),
+                              ],
+                            ],
+                          ),
 
-                            IconButton(
-                              icon: const Icon(
-                                Icons.edit,
-                                color: Colors.blueAccent,
+                          const Divider(),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.remove_red_eye,
+                                  color: Color.fromARGB(255, 102, 224, 224),
+                                ),
+                                onPressed: () {
+                                  pushWithAnimation(
+                                    context,
+                                    PortraitOnly(
+                                      child: ViewNotePage(
+                                        title: note['title'],
+                                        content: note['content'],
+                                        imageUrl: note['image_url'],
+                                        noteId: note['id'],
+                                        color: note['color'] != null
+                                            ? Color(int.parse(note['color']))
+                                            : Colors.white,
+                                        onEdit: () {
+                                          Navigator.pop(
+                                            context,
+                                          ); // close detail page
+                                          _openEditNotePage(note: note);
+                                        },
+                                        onDelete: () async {
+                                          await _deleteNote(note['id']);
+                                          Navigator.pop(
+                                            context,
+                                          ); // close after delete
+                                        },
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
-                              onPressed: () {
-                                _openEditNotePage(note: note);
-                              },
-                            ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.delete,
-                                color: Colors.redAccent,
+
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.edit,
+                                  color: Colors.blueAccent,
+                                ),
+                                onPressed: () {
+                                  _openEditNotePage(note: note);
+                                },
                               ),
-                              onPressed: () => _deleteNote(note['id']),
-                            ),
-                          ],
-                        ),
-                      ],
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.redAccent,
+                                ),
+                                onPressed: () => _deleteNote(note['id']),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
-          );
-        },
+                );
+              },
+            );
+          },
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.blue,
