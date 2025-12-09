@@ -109,6 +109,9 @@ class _ChatbotPageState extends State<ChatbotPage> {
         Uri.parse('https://supaaiapp-1.onrender.com/chatbot/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'question': question}),
+      ).timeout(
+        const Duration(seconds: 15), // ⏳ hard timeout
+        onTimeout: () => throw TimeoutException('Chat request timed out'),
       );
 
       if (!mounted) return;
@@ -224,7 +227,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
                     border: Border.all(color: Colors.blue, width: 1.3),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.15),
+                        color: Colors.black.withAlpha((0.15 * 255).toInt()),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -426,7 +429,7 @@ class _MessageInputBarState extends State<_MessageInputBar> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.25),
+              color: Colors.grey.withAlpha((0.25 * 255).toInt()),
               blurRadius: 6,
               offset: const Offset(0, -2),
             ),

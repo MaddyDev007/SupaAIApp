@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:smartclass/screens/student_screen/view_image.dart';
 
 class PortraitOnly extends StatefulWidget {
   final Widget child;
@@ -55,6 +56,28 @@ class ViewNotePage extends StatelessWidget {
     required this.onDelete,
   });
 
+  static const _curve = Cubic(0.22, 0.61, 0.36, 1.0);
+  static final _slideTween = Tween<Offset>(
+    begin: const Offset(1, 0),
+    end: Offset.zero,
+  );
+  void pushWithAnimation(BuildContext context, Widget page) {
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 350),
+        pageBuilder: (_, __, ___) => page,
+        transitionsBuilder: (_, animation, __, child) {
+          final curved = CurvedAnimation(parent: animation, curve: _curve);
+          return SlideTransition(
+            position: _slideTween.animate(curved),
+            child: child,
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -91,37 +114,45 @@ class ViewNotePage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (imageUrl != null)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      imageUrl!,
-                      height: 180,
-                      fit: BoxFit.cover,
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
+                  GestureDetector(
+                    onTap: () {
+                      pushWithAnimation(
+                        context,
+                        ViewImage(imageUrl: imageUrl),
+                      );
+                    },
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        imageUrl!,
+                        height: 180,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            height: 70,
+                            width: 70,
+                            color: Colors.grey.shade200,
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                          loadingProgress.expectedTotalBytes!
+                                    : null,
+                              ),
+                            ),
+                          );
+                        },
+                        // If loading fails
+                        errorBuilder: (context, error, stackTrace) => Container(
                           height: 70,
                           width: 70,
-                          color: Colors.grey.shade200,
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                        loadingProgress.expectedTotalBytes!
-                                  : null,
-                            ),
+                          color: Colors.grey.shade300,
+                          child: const Icon(
+                            Icons.broken_image,
+                            color: Colors.grey,
                           ),
-                        );
-                      },
-                      // If loading fails
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        height: 70,
-                        width: 70,
-                        color: Colors.grey.shade300,
-                        child: const Icon(
-                          Icons.broken_image,
-                          color: Colors.grey,
                         ),
                       ),
                     ),

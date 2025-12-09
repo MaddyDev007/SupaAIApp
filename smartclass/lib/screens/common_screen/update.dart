@@ -1,5 +1,9 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:http/http.dart' as http;
 import 'package:smartclass/models/user_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -77,7 +81,10 @@ class _UpdatePageState extends State<UpdatePage> {
             'year': _selectedYear,
             'reg_no': _regController.text.trim(),
           })
-          .eq('id', user.id);
+          .eq('id', user.id).timeout(
+          const Duration(seconds: 12),
+          onTimeout: () => throw TimeoutException('Profile update timed out'),
+        );
 
       // ✅ Update Hive offline storage
       final userBox = Hive.box<UserModel>('userBox');
@@ -96,7 +103,7 @@ class _UpdatePageState extends State<UpdatePage> {
 
       // ✅ Show success toast
       if (!mounted) return;
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -114,7 +121,6 @@ class _UpdatePageState extends State<UpdatePage> {
           ),
           elevation: 6,
           duration: const Duration(seconds: 3),
-          
         ),
       );
 
@@ -124,8 +130,25 @@ class _UpdatePageState extends State<UpdatePage> {
           : '/student-dashboard';
 
       Navigator.pushNamedAndRemoveUntil(context, route, (route) => false);
+    } on SocketException {
+      setState(
+        () => _errorMsg = "No internet connection. Please check and try again.",
+      );
+    } on TimeoutException {
+      setState(
+        () => _errorMsg = "Connection timed out. Please try again later.",
+      );
+    } on http.ClientException {
+      setState(() => _errorMsg = "Network error occurred. Try again shortly.");
+    } on PostgrestException catch (e) {
+      // 🔹 Supabase-specific error (invalid query or auth)
+      setState(() => _errorMsg = "Supabase error: ${e.message}");
+    } on HiveError catch (e) {
+      // 🔹 Local storage issue
+      setState(() => _errorMsg = "Local save error: ${e.message}");
     } catch (e) {
-      setState(() => _errorMsg = "Failed to update profile. Please try again.");
+      // 🔹 Fallback for unknown errors
+      setState(() => _errorMsg = "Unexpected error: $e");
     } finally {
       setState(() => _saving = false);
     }

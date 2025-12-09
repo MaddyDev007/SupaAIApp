@@ -1,6 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -20,6 +20,7 @@ class _SemResultPageState extends State<SemResultPage> {
   final _reg = TextEditingController();
   final _dob = TextEditingController();
   final _search = TextEditingController();
+  String? _err;
 
   bool _showSearch = false;
   bool _asc = true;
@@ -52,46 +53,114 @@ class _SemResultPageState extends State<SemResultPage> {
   }
 
   Future<void> fetchResult() async {
-    if (_reg.text.isEmpty || _dob.text.isEmpty) {
-      return _err("Fill inputs", "Please fill all fields.");
-    }
+  if (!mounted) return;
+  setState(() {
+    _loading = true;
+    _err = null;
+  });
 
-    setState(() => _loading = true);
+  final reg = _reg.text.trim();
+  final dob = _dob.text.trim().replaceAll("/", "-");
 
-    try {
-      final r = await http.post(
-        Uri.parse("https://supaaiapp-1.onrender.com/results/getResult"),
-        headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "register_number": _reg.text.trim(),
-          "dob": _dob.text.trim().replaceAll("/", "-"),
-        }),
-      );
-
-      if (r.statusCode == 200) {
-        final data = jsonDecode(r.body);
-        final subs = data["subjects"] as List?;
-
-        if (subs == null || subs.isEmpty) {
-          _err("No Result Found", "No results found.");
-        } else {
-          setState(() {
-            result = data;
-            _query = "";
-            _search.clear();
-          });
-        }
-      } else {
-        _err("No Result Found", "Invalid Register No or DOB.");
-      }
-    } catch (_) {
-      _err("Network Error", "Please check your Internet.");
-    }
-
-    if (mounted) setState(() => _loading = false);
+  if (reg.isEmpty || dob.isEmpty) {
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+      _err = "Please fill all fields.";
+    });
+    return;
   }
 
-  void _err(String t, String m) {
+  try {
+    final uri = Uri.parse("https://supaaiapp-1.onrender.com/results/getResult");
+    final r = await http
+        .post(
+          uri,
+          headers: {"Content-Type": "application/json"},
+          body: jsonEncode({"register_number": reg, "dob": dob}),
+        )
+        .timeout(
+          const Duration(seconds: 15),
+          onTimeout: () => throw TimeoutException('Request timed out'),
+        );
+
+    if (!mounted) return;
+
+    // success (2xx)
+    if (r.statusCode >= 200 && r.statusCode < 300) {
+      late final Map<String, dynamic> data;
+      try {
+        data = jsonDecode(r.body) as Map<String, dynamic>;
+      } on FormatException {
+        setState(() => _err = "Unexpected response format. Please try again.");
+        return;
+      }
+
+      final subs = data["subjects"];
+      if (subs is List && subs.isNotEmpty) {
+        setState(() {
+          result = data;
+          _query = "";
+          _search.clear();
+          _err = null;
+        });
+      } else {
+        setState(() => _err = "No results found.");
+      }
+      return;
+    }
+
+    // parse server detail if present
+    String? serverDetail;
+    try {
+      final m = jsonDecode(r.body);
+      if (m is Map && m["detail"] is String) {
+        serverDetail = m["detail"] as String;
+      }
+    } catch (_) {}
+
+    // non-2xx mapping — each branch RETURNS after setState
+    if (r.statusCode == 400 || r.statusCode == 404) {
+      setState(() => _err = serverDetail ?? "Invalid Register No or DOB.");
+      return;
+    }
+
+    if (r.statusCode == 401 || r.statusCode == 403) {
+      setState(() => _err = serverDetail ?? "Unauthorized. Please sign in again.");
+      return;
+    }
+
+    if (r.statusCode >= 500) {
+      setState(() => _err = serverDetail ?? "Server is busy. Please try again later.");
+      return;
+    }
+
+    setState(() => _err = "Error ${r.statusCode}: ${r.reasonPhrase ?? 'Request failed'}.");
+    return;
+
+  } on TimeoutException {
+    if (!mounted) return;
+    setState(() => _err = "Request timed out. Please try again.");
+    return;
+  } on SocketException {
+    if (!mounted) return;
+    setState(() => _err = "No internet connection. Check your network and retry.");
+    return;
+  } on http.ClientException catch (e) {
+    if (!mounted) return;
+    setState(() => _err = "Network error: ${e.message}");
+    return;
+  } catch (e) {
+    if (!mounted) return;
+    setState(() => _err = "Unexpected error: $e");
+    return;
+  } finally {
+    if (!mounted) return;
+    setState(() => _loading = false);
+  }
+}
+
+  /* void _err(String t, String m) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -106,7 +175,7 @@ class _SemResultPageState extends State<SemResultPage> {
         ],
       ),
     );
-  }
+  } */
 
   List _filterSort(List subs) {
     final q = _query;
@@ -382,7 +451,17 @@ class _SemResultPageState extends State<SemResultPage> {
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 10),
+
+            if (_err != null) ...[
+                const SizedBox(height: 12),
+                Center(
+                  child: Text(
+                    _err!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
+              ],
 
             if (data != null) _buildResult(data),
           ],

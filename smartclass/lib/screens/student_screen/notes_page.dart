@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:smartclass/screens/common_screen/error_page.dart';
 import 'package:smartclass/screens/student_screen/editnote.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'view_note_page.dart';
@@ -12,39 +15,41 @@ class NotesPage extends StatefulWidget {
 
 class _NotesPageState extends State<NotesPage> {
   final supabase = Supabase.instance.client;
+late Future<List<Map<String, dynamic>>> _notesFuture;
+  Object? _errorObj;
+  StackTrace? _errorStack;
 
+  @override
+  void initState() {
+    super.initState();
+    _notesFuture = _fetchNotes();
+  }
   String? imageUrl;
 
   Future<List<Map<String, dynamic>>> _fetchNotes() async {
     try {
       final user = supabase.auth.currentUser;
-      if (user == null) return [];
+       if (user == null) {
+        throw Exception('User not signed in'); // surface as error page
+      }
 
       final response = await supabase
           .from('notes')
           .select()
           .eq('user_id', user.id)
-          .order('created_at', ascending: false);
+          .order('created_at', ascending: false)
+          .timeout(
+          const Duration(seconds: 8),
+          onTimeout: () => throw TimeoutException('Notes fetch timed out'),
+        );
 
       // ✅ Make sure it's a valid list
       return List<Map<String, dynamic>>.from(response);
-    } catch (e) {
-      if (!mounted) return [];
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "⚠️ Failed to load notes: Check your internet connection.",
-          ),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
-
-      // ✅ Return empty list (not invalid data type)
-      return [];
+    } catch (e, st) {
+      // ❗ Let FutureBuilder show the error page
+      _errorObj = e;
+      _errorStack = st;
+      rethrow;
     }
   }
 
@@ -111,7 +116,7 @@ class _NotesPageState extends State<NotesPage> {
       await supabase.from('notes').delete().eq('id', id);
 
       if (mounted) {
-        setState(() {}); // Refresh UI
+        setState(() {_notesFuture = _fetchNotes();}); // Refresh UI
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text("Note deleted"),
@@ -166,7 +171,7 @@ class _NotesPageState extends State<NotesPage> {
     );
 
     if (result == true) {
-      setState(() {}); // refresh notes
+      setState(() {_notesFuture = _fetchNotes();}); // refresh notes
     }
   }
 
@@ -188,19 +193,33 @@ class _NotesPageState extends State<NotesPage> {
       body: RefreshIndicator(
         onRefresh: _fetchNotes,
         child: FutureBuilder<List<Map<String, dynamic>>>(
-          future: _fetchNotes(),
+          future: _notesFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
             if (snapshot.hasError) {
-              return Center(child: Text("Error: ${snapshot.error}"));
+              return SmartClassErrorPage(
+                type: SmartClassErrorPage.mapToType(_errorObj),
+                error: _errorObj,
+                stackTrace: _errorStack,
+                onRetry: () {
+                  setState(() {
+                    _notesFuture = _fetchNotes();
+                  });
+                },
+              );
             }
 
             final notes = snapshot.data ?? [];
 
             if (notes.isEmpty) {
-              return const Center(child: Text("No notes found. Add some!"));
+              return SmartClassErrorPage(
+                type: SmartErrorType.notFound,
+                title: 'No notes yet',
+                message: 'Tap + to add your first note.',
+                onRetry: () => setState(() => _notesFuture = _fetchNotes()),
+              );
             }
 
             return ListView.builder(

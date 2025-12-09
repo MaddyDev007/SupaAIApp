@@ -70,7 +70,9 @@ class _QuizPageState extends State<QuizPage> {
           .from('quizzes')
           .select('id, subject, questions')
           .eq('id', widget.quizId)
-          .maybeSingle();
+          .maybeSingle()
+          .timeout(const Duration(seconds: 12),
+          onTimeout: () => throw TimeoutException('Quiz fetch timed out'));
 
       if (res == null) throw Exception('Quiz not found');
 
@@ -453,7 +455,7 @@ class _OptionCard extends StatelessWidget {
     return Material(
       color: selected ? Colors.blue.shade100 : Colors.white,
       elevation: 2,
-      shadowColor: Colors.black.withOpacity(0.06),
+      shadowColor: Colors.black.withAlpha((0.06 * 255).toInt()),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
         side: BorderSide(

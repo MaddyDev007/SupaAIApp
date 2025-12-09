@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:smartclass/models/user_model.dart';
 import 'package:smartclass/screens/onboarding.dart';
@@ -18,10 +19,11 @@ late Box<UserModel> userBox;
 UserModel? userModel;
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   // ✅ Initialize Hive
-  await Hive.initFlutter();
+  await Hive.initFlutter(); // (see note below about the import)
   Hive.registerAdapter(UserModelAdapter());
   userBox = await Hive.openBox<UserModel>('userBox');
 
@@ -32,6 +34,11 @@ void main() async {
   );
 
   runApp(const MyApp());
+
+  // ✅ Hand-off from native splash to your Flutter UI safely
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    FlutterNativeSplash.remove();
+  });
 }
 
 class SplashRedirector extends StatefulWidget {
@@ -53,7 +60,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         textSelectionTheme: TextSelectionThemeData(
           cursorColor: Colors.blue, // Cursor color
-          selectionColor: Colors.blue.withOpacity(0.3), // Drag selection color
+          selectionColor: Colors.blue.withAlpha((0.3 * 255).toInt()), // Drag selection color
           selectionHandleColor: Colors.blue, // Handle color
         ),
       ),

@@ -75,11 +75,11 @@ class ProfilePage extends StatelessWidget {
           width: double.infinity,
           constraints: const BoxConstraints(maxWidth: 450),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.95),
+            color: Colors.white.withAlpha((0.95 * 255).toInt()),
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: Colors.blue.withOpacity(0.15),
+                color: Colors.blue.withAlpha((0.15 * 255).toInt()),
                 blurRadius: 15,
                 offset: const Offset(0, 8),
               ),
@@ -138,6 +138,7 @@ class ProfilePage extends StatelessWidget {
 
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  spacing: 10,
                   children: [
                     ElevatedButton.icon(
                       icon: const Icon(Icons.update, color: Colors.white),

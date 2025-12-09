@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:smartclass/screens/common_screen/error_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'quiz_page.dart';
 
@@ -6,11 +9,7 @@ class QuizListPage extends StatefulWidget {
   final String department;
   final String year;
 
-  const QuizListPage({
-    super.key,
-    required this.department,
-    required this.year,
-  });
+  const QuizListPage({super.key, required this.department, required this.year});
 
   @override
   State<QuizListPage> createState() => _QuizListPageState();
@@ -55,6 +54,28 @@ class _QuizListPageState extends State<QuizListPage>
     super.dispose();
   }
 
+  static const _curve = Cubic(0.22, 0.61, 0.36, 1.0);
+  static final _slideTween = Tween<Offset>(
+    begin: const Offset(1, 0),
+    end: Offset.zero,
+  );
+  Future<void> pushWithAnimation(BuildContext context, Widget page) {
+    return Navigator.push(
+      context,
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 350),
+        pageBuilder: (_, __, ___) => page,
+        transitionsBuilder: (_, animation, __, child) {
+          final curved = CurvedAnimation(parent: animation, curve: _curve);
+          return SlideTransition(
+            position: _slideTween.animate(curved),
+            child: child,
+          );
+        },
+      ),
+    );
+  }
+
   Future<List<Map<String, dynamic>>> _fetchQuizzes() async {
     try {
       final user = supabase.auth.currentUser;
@@ -66,14 +87,18 @@ class _QuizListPageState extends State<QuizListPage>
           .select('id, subject, created_at, department, year')
           .eq('department', widget.department)
           .eq('year', widget.year)
-          .order('created_at', ascending: false);
+          .order('created_at', ascending: false)
+          .timeout(const Duration(seconds: 12),
+          onTimeout: () => throw TimeoutException('Quiz fetch timed out'));
 
       // attempts for this user (keep latest by created_at if multiple)
       final attempts = await supabase
           .from('results')
           .select('quiz_id, score, created_at')
           .eq('student_id', user.id)
-          .order('created_at', ascending: false);
+          .order('created_at', ascending: false)
+          .timeout(const Duration(seconds: 12),
+          onTimeout: () => throw TimeoutException('Quiz fetch timed out'));
 
       // Build latest-attempt map
       final Map<dynamic, Map<String, dynamic>> latestAttemptByQuiz = {};
@@ -91,18 +116,8 @@ class _QuizListPageState extends State<QuizListPage>
       }
 
       return quizList;
-    } catch (e) {
-      if (!mounted) return [];
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text("Failed to load quizzes: Check your Internet."),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
-      return [];
+    }catch (e, str) {
+      rethrow;
     }
   }
 
@@ -123,10 +138,12 @@ class _QuizListPageState extends State<QuizListPage>
     if (dt == null) return 'Unknown';
     final local = dt.toLocal();
     // yyyy-mm-dd hh:mm (no milliseconds)
-    final date = "${local.year.toString().padLeft(4, '0')}-"
+    final date =
+        "${local.year.toString().padLeft(4, '0')}-"
         "${local.month.toString().padLeft(2, '0')}-"
         "${local.day.toString().padLeft(2, '0')}";
-    final time = "${local.hour.toString().padLeft(2, '0')}:"
+    final time =
+        "${local.hour.toString().padLeft(2, '0')}:"
         "${local.minute.toString().padLeft(2, '0')}";
     return "$date $time";
   }
@@ -170,7 +187,6 @@ class _QuizListPageState extends State<QuizListPage>
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: attempted ? Colors.grey.shade700 : Colors.black,
-                
               ),
             ),
             subtitle: Text(
@@ -184,15 +200,13 @@ class _QuizListPageState extends State<QuizListPage>
             onTap: attempted
                 ? null
                 : () {
-                    Navigator.push(
+                    pushWithAnimation(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => QuizPage(
-                          // ✅ Pass the quiz id so QuizPage knows what to load
-                          quizId: quiz['id'],
-                          department: widget.department,
-                          year: widget.year,
-                        ),
+                      QuizPage(
+                        // ✅ Pass the quiz id
+                        quizId: quiz['id'],
+                        department: widget.department,
+                        year: widget.year,
                       ),
                     ).then((_) {
                       // re-fetch and replay the list animation
@@ -239,20 +253,17 @@ class _QuizListPageState extends State<QuizListPage>
                 ),
                 const SizedBox(width: 12),
                 DropdownButton<String>(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   borderRadius: BorderRadius.circular(12),
                   dropdownColor: Colors.white,
-                  
+
                   elevation: 1,
                   focusColor: Colors.blue.shade50,
                   value: _filterOption,
                   items: _filterOptions
-                      .map((opt) => DropdownMenuItem(
-                            value: opt,
-                            child: Text(opt),
-                          ))
+                      .map(
+                        (opt) => DropdownMenuItem(value: opt, child: Text(opt)),
+                      )
                       .toList(),
                   onChanged: (val) {
                     if (val != null) {
@@ -272,13 +283,19 @@ class _QuizListPageState extends State<QuizListPage>
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                // Error
                 if (snapshot.hasError) {
-                  return Center(
-                    child: Text(
-                      'Error: ${snapshot.error}',
-                      style: const TextStyle(color: Colors.red),
-                    ),
+                  return SmartClassErrorPage(
+                    type: SmartClassErrorPage.mapToType(snapshot.error),
+                    error: snapshot.error,
+                    stackTrace: snapshot.stackTrace,
+                    onRetry: () {
+                      setState(() {
+                        _quizzesFuture = _fetchQuizzes().then((list) {
+                          if (mounted) _listController.forward(from: 0);
+                          return list;
+                        });
+                      });
+                    },
                   );
                 }
 

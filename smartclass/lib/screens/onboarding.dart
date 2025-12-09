@@ -1,7 +1,4 @@
-import 'dart:ffi';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
 import 'package:smartclass/screens/login_page.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
@@ -166,7 +163,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 controller: _controller,
                 count: pages.length,
                 effect: ExpandingDotsEffect(
-                  dotColor: Colors.white.withOpacity(0.4),
+                  dotColor: Colors.white.withAlpha((0.4 * 255).toInt()),
                   activeDotColor: Colors.white,
                   dotHeight: 8,
                   dotWidth: 8,
@@ -253,7 +250,7 @@ class _OnboardSlide extends StatelessWidget {
                       borderRadius: BorderRadius.circular(28),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
+                          color: Colors.black.withAlpha((0.08 * 255).toInt()),
                           blurRadius: 24,
                           offset: const Offset(0, 12),
                         ),
@@ -373,7 +370,7 @@ class _RoundIconButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
+                color: Colors.black.withAlpha((0.08 * 255).toInt()),
                 blurRadius: 20,
                 offset: const Offset(0, 8),
               ),

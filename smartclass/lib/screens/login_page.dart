@@ -63,7 +63,8 @@ class _LoginPageState extends State<LoginPage> {
           .from('profiles')
           .select()
           .eq('id', userId)
-          .single();
+          .single()
+          .timeout(const Duration(seconds: 10));
 
       // Save offline profile
       final box = Hive.box<UserModel>('userBox');

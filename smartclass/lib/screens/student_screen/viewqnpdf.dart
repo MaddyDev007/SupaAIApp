@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:open_filex/open_filex.dart';
+import 'package:smartclass/screens/common_screen/error_page.dart';
 import 'package:smartclass/screens/common_screen/pdf_view_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dio/dio.dart';
@@ -25,7 +27,9 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
   final supabase = Supabase.instance.client;
 
   bool _loading = true;
-  String? _errorMessage;
+  bool _hasError = false;
+  Object? _errorObj;
+  StackTrace? _errorStack;
   List<Map<String, dynamic>> _materials = [];
   List<Map<String, dynamic>> _filteredMaterials = [];
 
@@ -73,8 +77,10 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
   Future<void> _fetchMaterials() async {
     setState(() {
       _loading = true;
-      _errorMessage = null;
       _materials = [];
+      _hasError = false;     // ✅ reset
+    _errorObj = null;      // ✅ reset
+    _errorStack = null;
     });
 
     try {
@@ -83,7 +89,9 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
           .select('id, subject, file_url, department, year, created_at')
           .eq('department', widget.department)
           .eq('year', widget.year)
-          .order('created_at', ascending: false);
+          .order('created_at', ascending: false)
+          .timeout(const Duration(seconds: 12),
+          onTimeout: () => throw TimeoutException('Materials fetch timed out'));
 
       _materials = (data as List)
           .map((item) => Map<String, dynamic>.from(item))
@@ -92,17 +100,20 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
       _filteredMaterials = _materials; // initialize filtered list
 
       _listController.forward(from: 0); // start animation
-    } catch (e) {
+    } on TimeoutException catch (e, st) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Failed to load materials: Check your Internet."),
-          behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        ),
-      );
+      setState(() {
+        _hasError = true;
+        _errorObj = e;
+        _errorStack = st;
+      });
+    } catch (e, st) {
+      if (!mounted) return;
+      setState(() {
+        _hasError = true;
+        _errorObj = e;
+        _errorStack = st;
+      });
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -349,31 +360,56 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
   }
 
   Widget _buildContent() {
-    if (_loading) return const Center(child: CircularProgressIndicator());
+    // Always return a scrollable so RefreshIndicator works
+    if (_loading) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: const [
+          SizedBox(height: 160),
+          Center(child: CircularProgressIndicator()),
+          SizedBox(height: 300),
+        ],
+      );
+    }
 
-    if (_errorMessage != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(
-            _errorMessage!,
-            style: const TextStyle(color: Colors.red),
-            textAlign: TextAlign.center,
+    if (_hasError) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          // const SizedBox(height: 80),
+          SmartClassErrorPage(
+            standalone: false,
+            type: SmartClassErrorPage.mapToType(_errorObj),
+            error: _errorObj,
+            stackTrace: _errorStack,
+            onRetry: _fetchMaterials,
           ),
-        ),
+          // const SizedBox(height: 300),
+        ],
       );
     }
 
     if (_filteredMaterials.isEmpty) {
-      return const Center(
-        child: Text(
-          'No materials found for your department and year.',
-          style: TextStyle(fontSize: 16, color: Colors.grey),
-        ),
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          // SizedBox(height: 120),
+          // Use your SmartClass not-found preset
+          SmartClassErrorPage(
+            standalone: false,
+            type: SmartErrorType.notFound,
+            title: 'No Question Bank yet',
+            message: 'Try a different search or pull to refresh.',
+            onRetry: _fetchMaterials, 
+          ),
+          // const SizedBox(height: 300),
+        ],
       );
     }
 
+    // Data list
     return ListView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16),
       itemCount: _filteredMaterials.length,
       itemBuilder: (context, index) =>

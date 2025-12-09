@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:smartclass/screens/common_screen/error_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ResultPage extends StatefulWidget {
@@ -13,6 +16,9 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
   List<Map<String, dynamic>> results = [];
   List<Map<String, dynamic>> filteredResults = [];
   bool isLoading = true;
+  bool _hasError = false;
+  Object? _errorObj;
+  StackTrace? _errorStack;
 
   String searchQuery = '';
   String sortOption = 'Default';
@@ -60,37 +66,67 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
   }
 
   Future<void> fetchResults() async {
-    final teacherId = supabase.auth.currentUser!.id;
-
-    setState(() => isLoading = true);
-    try {
-      final query = supabase
-          .from('results')
-          .select(
-            'id, score, quiz_id, subject, student_id, profiles(name, email, department, year), quizzes!inner(created_by)',
-          )
-          .eq('quizzes.created_by', teacherId)
-          .order('created_at', ascending: false);
-
-      final response = await query;
-
-      results = List<Map<String, dynamic>>.from(response);
-      filteredResults = List.from(results);
-      _listController.forward(from: 0);
-      applyFilters();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Failed to load results: Check your Internet."),
-      behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),));
-    } finally {
-      if (mounted) setState(() => isLoading = false);
-    }
+  final user = supabase.auth.currentUser;
+  if (user == null) {
+    if (!mounted) return;
+    setState(() {
+      isLoading = false;
+      _hasError = true;
+      _errorObj = Exception('Not signed in');
+      _errorStack = StackTrace.current;
+    });
+    return;
   }
+
+  final teacherId = user.id;
+
+  if (!mounted) return;
+  setState(() {
+    isLoading = true;
+    _hasError = false;   // reset
+    _errorObj = null;    // reset
+    _errorStack = null;  // reset
+  });
+
+  try {
+    final response = await supabase
+        .from('results')
+        .select(
+          'id, score, quiz_id, subject, student_id, created_at, ' // ← include created_at
+          'profiles(name, email, department, year), '
+          'quizzes!inner(created_by)',
+        )
+        .eq('quizzes.created_by', teacherId)
+        .order('created_at', ascending: false)
+        .timeout(
+          const Duration(seconds: 12),
+          onTimeout: () => throw TimeoutException('Results fetch timed out'),
+        );
+
+    results = List<Map<String, dynamic>>.from(response);
+    filteredResults = List.from(results);
+
+    _listController.forward(from: 0);
+    applyFilters(); // will call setState inside applySort()
+  } on TimeoutException catch (e, st) {
+    if (!mounted) return;
+    setState(() {
+      _hasError = true;
+      _errorObj = e;
+      _errorStack = st;
+    });
+  } catch (e, st) {
+    if (!mounted) return;
+    setState(() {
+      _hasError = true;
+      _errorObj = e;
+      _errorStack = st;
+    });
+  } finally {
+    setState(() => isLoading = false);
+  }
+}
+
 
   void applyFilters() {
     filteredResults = results.where((result) {
@@ -188,6 +224,63 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
     );
   }
 
+  Widget _buildContent() {
+    // Always return a scrollable so RefreshIndicator works
+    if (isLoading) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: const [
+          SizedBox(height: 160),
+          Center(child: CircularProgressIndicator()),
+          SizedBox(height: 300),
+        ],
+      );
+    }
+
+    if (_hasError) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          // const SizedBox(height: 80),
+          SmartClassErrorPage(
+            standalone: false,
+            type: SmartClassErrorPage.mapToType(_errorObj),
+            error: _errorObj,
+            stackTrace: _errorStack,
+            onRetry: fetchResults,
+          ),
+          // const SizedBox(height: 300),
+        ],
+      );
+    }
+
+    if (filteredResults.isEmpty) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          // SizedBox(height: 120),
+          // Use your SmartClass not-found preset
+          SmartClassErrorPage(
+            standalone: false,
+            type: SmartErrorType.notFound,
+            title: 'No materials yet',
+            message: 'Try a different search or pull to refresh.',
+          ),
+          // const SizedBox(height: 300),
+        ],
+      );
+    }
+
+    // Data list
+    return ListView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(16),
+      itemCount: filteredResults.length,
+      itemBuilder: (context, index) =>
+          _buildResultCard(filteredResults[index], index),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final blue = Colors.blue;
@@ -237,10 +330,10 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
                 },
                 decoration: InputDecoration(
                   hintText: "Search by name",
-                  prefixIcon: const Icon(Icons.search, color: Colors.grey,),
+                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
                   suffixIcon: searchQuery.isNotEmpty
                       ? IconButton(
-                          icon: const Icon(Icons.clear, color: Colors.grey,),
+                          icon: const Icon(Icons.clear, color: Colors.grey),
                           onPressed: () {
                             searchQuery = '';
                             applyFilters();
@@ -345,26 +438,14 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
               ),
             ),
             // Results List
-            Expanded(
-              child: isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : filteredResults.isEmpty
-                  ? const Center(
-                      child: Text(
-                        "No results found",
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
-                      ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: fetchResults,
-                      color: blue,
-                      child: ListView.builder(
-                        itemCount: filteredResults.length,
-                        itemBuilder: (context, index) =>
-                            _buildResultCard(filteredResults[index], index),
-                      ),
-                    ),
+            const SizedBox(height: 8),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: fetchResults,
+              color: blue,
+              child: _buildContent(),
             ),
+          ),
           ],
         ),
       ),

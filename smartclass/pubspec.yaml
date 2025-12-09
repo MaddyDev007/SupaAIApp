@@ -36,6 +36,19 @@ dependencies:
   # image_picker: ^1.0.7
   lottie: ^3.1.2
   smooth_page_indicator: ^1.1.0
+  flutter_native_splash: ^2.4.7
+
+flutter_native_splash:
+  color: "#001838"        # background color (white)
+  image: assets/images/icon.png  # your splash image path
+
+  android_12:
+    image: assets/images/icon.png
+    icon_background_color: "#001838"
+  
+  web: false # set to true if you want splash for web too
+
+  fullscreen: true
   
 
 dev_dependencies:

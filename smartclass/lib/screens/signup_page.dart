@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:smartclass/models/user_model.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -79,6 +81,19 @@ class _SignupPageState extends State<SignupPage> {
         'reg_no': regNo,
       });
 
+      final box = Hive.box<UserModel>('userBox');
+      await box.put(
+        'profile',
+        UserModel(
+          name: name,
+          email: email,
+          department: _selectedDept ?? "",
+          year: _selectedYear ?? "",
+          role: role,
+          regNo: regNo,
+        ),
+      );
+
       if (!context.mounted) return;
 
       final route = role == 'teacher'
@@ -116,7 +131,7 @@ class _SignupPageState extends State<SignupPage> {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.blue.shade100, width: 1.5,),
+          borderSide: BorderSide(color: Colors.blue.shade100, width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -127,7 +142,7 @@ class _SignupPageState extends State<SignupPage> {
         ),
         prefixIcon: Icon(icon, color: Colors.grey),
         suffixIcon: suffixIcon,
-        suffixIconColor: Colors.grey
+        suffixIconColor: Colors.grey,
       ),
       validator: validator,
     );
@@ -211,9 +226,8 @@ class _SignupPageState extends State<SignupPage> {
                   label: 'Register Number',
                   icon: Icons.confirmation_number,
                   controller: _regController,
-                  validator: (value) => value == null
-                      ? 'Register Number is required'
-                      : null,
+                  validator: (value) =>
+                      value == null ? 'Register Number is required' : null,
                 ),
                 const SizedBox(height: 16),
                 _buildTextFormField(

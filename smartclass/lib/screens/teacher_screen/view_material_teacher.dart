@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:smartclass/screens/common_screen/error_page.dart';
 import 'package:smartclass/screens/common_screen/pdf_view_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dio/dio.dart';
@@ -21,7 +23,9 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
   final supabase = Supabase.instance.client;
 
   bool _loading = true;
-  String? _errorMessage;
+  bool _hasError = false;
+  Object? _errorObj;
+  StackTrace? _errorStack;
   List<Map<String, dynamic>> _materials = [];
   List<Map<String, dynamic>> _filteredMaterials = [];
 
@@ -148,7 +152,10 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
   Future<void> _fetchMaterials() async {
     setState(() {
       _loading = true;
-      _errorMessage = null;
+      
+      _hasError = false;
+      _errorObj = null;
+      _errorStack = null;
       _materials = [];
     });
 
@@ -160,21 +167,31 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
           .from('materials')
           .select('id, subject, file_url, department, year, created_at')
           .eq('teacher_id', user.id)
-          .order('created_at', ascending: false);
+          .order('created_at', ascending: false)
+          .timeout(
+            const Duration(seconds: 12),
+            onTimeout: () =>
+                throw TimeoutException('Materials fetch timed out'),
+          );
 
       _materials = List<Map<String, dynamic>>.from(data);
       _filteredMaterials = _materials;
 
       _listController.forward(from: 0);
-    } catch (e) {
+    } on TimeoutException catch (e, st) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to load results: Check your Internet."),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),),
-      );
+      setState(() {
+        _hasError = true;
+        _errorObj = e;
+        _errorStack = st;
+      });
+    } catch (e, st) {
+      if (!mounted) return;
+      setState(() {
+        _hasError = true;
+        _errorObj = e;
+        _errorStack = st;
+      });
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -444,29 +461,56 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
   }
 
   Widget _buildContent() {
-    if (_loading) return const Center(child: CircularProgressIndicator());
-    if (_errorMessage != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(
-            _errorMessage!,
-            style: const TextStyle(color: Colors.red),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
-    }
-    if (_filteredMaterials.isEmpty) {
-      return const Center(
-        child: Text(
-          'No materials found.',
-          style: TextStyle(fontSize: 16, color: Colors.grey),
-        ),
+    // Always return a scrollable so RefreshIndicator works
+    if (_loading) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: const [
+          SizedBox(height: 160),
+          Center(child: CircularProgressIndicator()),
+          SizedBox(height: 300),
+        ],
       );
     }
 
+    if (_hasError) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          // const SizedBox(height: 80),
+          SmartClassErrorPage(
+            standalone: false,
+            type: SmartClassErrorPage.mapToType(_errorObj),
+            error: _errorObj,
+            stackTrace: _errorStack,
+            onRetry: _fetchMaterials,
+          ),
+          // const SizedBox(height: 300),
+        ],
+      );
+    }
+
+    if (_filteredMaterials.isEmpty) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          // SizedBox(height: 120),
+          // Use your SmartClass not-found preset
+          SmartClassErrorPage(
+            standalone: false,
+            type: SmartErrorType.notFound,
+            title: 'No materials yet',
+            message: 'Try a different search or pull to refresh.',
+            onRetry: _fetchMaterials, 
+          ),
+          // const SizedBox(height: 300),
+        ],
+      );
+    }
+
+    // Data list
     return ListView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16),
       itemCount: _filteredMaterials.length,
       itemBuilder: (context, index) =>

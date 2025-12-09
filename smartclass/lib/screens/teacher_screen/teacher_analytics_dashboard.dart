@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:smartclass/screens/common_screen/error_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
@@ -14,6 +17,9 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
   final supabase = Supabase.instance.client;
   List<Map<String, dynamic>> studentPerformance = [];
   bool _isLoading = true;
+  Object? _errorObj; // 👈 add
+  StackTrace? _errorStack; // 👈 add
+  bool _hasError = false;
 
   @override
   void initState() {
@@ -22,31 +28,43 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
   }
 
   Future<void> _fetchAnalytics() async {
-    final teacherId = supabase.auth.currentUser!.id;
-    try{
+    final user = supabase.auth.currentUser;
+    if (user == null) {
+      setState(() {
+        _hasError = true;
+        _errorObj = Exception('Not signed in');
+        _errorStack = StackTrace.current;
+        _isLoading = false;
+      });
+      return;
+    }
+    final teacherId = user.id;
+    try {
       final data = await supabase
-        .from('results')
-        .select(
-          'score, student_id, subject, quiz_id, created_at, quizzes!inner(created_by), profiles!inner(name)',
-        )
-        .eq('quizzes.created_by', teacherId);
+          .from('results')
+          .select(
+            'score, student_id, subject, quiz_id, created_at, quizzes!inner(created_by), profiles!inner(name)',
+          )
+          .eq('quizzes.created_by', teacherId)
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout: () =>
+                throw TimeoutException('Analytics fetch timed out'),
+          );
 
-    setState(() {
-      studentPerformance = List<Map<String, dynamic>>.from(data);
-      _isLoading = false;
-    });
-    }
-    catch(e){
+      setState(() {
+        studentPerformance = List<Map<String, dynamic>>.from(data);
+        _isLoading = false;
+      });
+    } catch (e, st) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Failed to load analytics: Check your Internet."),
-      behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),));
+      setState(() {
+        _isLoading = false;
+        _hasError = true;
+        _errorObj = e;
+        _errorStack = st;
+      });
     }
-    
   }
 
   double _calculateAverageScore() {
@@ -60,6 +78,78 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
 
   @override
   Widget build(BuildContext context) {
+    Widget bodyChild;
+    if (_isLoading) {
+      bodyChild = const Center(child: CircularProgressIndicator());
+    } else if (_hasError) {
+      bodyChild = SmartClassErrorPage(
+        type: SmartClassErrorPage.mapToType(_errorObj),
+        error: _errorObj,
+        stackTrace: _errorStack,
+        onRetry: _fetchAnalytics,
+      );
+    } else if (studentPerformance.isEmpty) {
+      bodyChild = SmartClassErrorPage(
+        type: SmartErrorType.notFound,
+        title: 'No results yet',
+        message: 'Students didnot take any quizzes yet.',
+        onRetry: _fetchAnalytics,
+      );
+    } else {
+      bodyChild = RefreshIndicator(
+        onRefresh: _fetchAnalytics,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                /// 🔹 Summary Cards
+                Row(
+                  children: [
+                    _buildStatCard(
+                      "Total Students",
+                      studentPerformance
+                          .map((e) => e['student_id'])
+                          .toSet()
+                          .length
+                          .toString(),
+                      Colors.blue,
+                      Icons.people,
+                    ),
+                    _buildStatCard(
+                      "Quizzes Taken",
+                      studentPerformance
+                          .map((e) => e['quiz_id'])
+                          .toSet()
+                          .length
+                          .toString(),
+                      Colors.green,
+                      Icons.assignment,
+                    ),
+                    _buildStatCard(
+                      "Avg Score",
+                      _calculateAverageScore().toStringAsFixed(1),
+                      Colors.orange,
+                      Icons.bar_chart,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                /// 🔹 Performance Chart
+                _buildPerformanceChart(),
+
+                const SizedBox(height: 24),
+
+                /// 🔹 Detailed Table
+                _buildDetailedTable(),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: Colors.blue.shade50,
       appBar: AppBar(
@@ -72,61 +162,7 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
         backgroundColor: Colors.blue[600],
         foregroundColor: Colors.white,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-            onRefresh: _fetchAnalytics,
-            child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      /// 🔹 Summary Cards
-                      Row(
-                        children: [
-                          _buildStatCard(
-                            "Total Students",
-                            studentPerformance
-                                .map((e) => e['student_id'])
-                                .toSet()
-                                .length
-                                .toString(),
-                            Colors.blue,
-                            Icons.people,
-                          ),
-                          _buildStatCard(
-                            "Quizzes Taken",
-                            studentPerformance
-                                .map((e) => e['quiz_id'])
-                                .toSet()
-                                .length
-                                .toString(),
-                            Colors.green,
-                            Icons.assignment,
-                          ),
-                          _buildStatCard(
-                            "Avg Score",
-                            _calculateAverageScore().toStringAsFixed(1),
-                            Colors.orange,
-                            Icons.bar_chart,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-            
-                      /// 🔹 Performance Chart
-                      _buildPerformanceChart(),
-            
-                      const SizedBox(height: 24),
-            
-                      /// 🔹 Detailed Table
-                      _buildDetailedTable(),
-                    ],
-                  ),
-                ),
-              ),
-          ),
+      body: bodyChild,
     );
   }
 
@@ -215,7 +251,7 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
                     getTooltipItem: (group, groupIndex, rod, rodIndex) {
                       return BarTooltipItem(
                         "${rod.toY.toInt()} / 10 \n ${studentPerformance[group.x]['subject'] ?? "-"}",
-                        
+
                         const TextStyle(
                           fontWeight: FontWeight.w500,
                           fontSize: 10,

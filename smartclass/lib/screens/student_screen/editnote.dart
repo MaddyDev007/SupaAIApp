@@ -1,8 +1,9 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:smartclass/screens/common_screen/error_page.dart';
 // import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -60,31 +61,175 @@ class _EditNotePageState extends State<EditNotePage> {
 
   // ✅ Upload image to Supabase Storage
   Future<void> pickImage() async {
-    final XFile? file = await picker.pickImage(source: ImageSource.gallery);
+    try {
+      final XFile? file = await picker.pickImage(source: ImageSource.gallery);
+      if (file == null) return;
 
-    if (file == null) return;
+      final bytes = await File(file.path).readAsBytes();
+      final filename = "note_${DateTime.now().millisecondsSinceEpoch}.jpg";
 
-    final bytes = await File(file.path).readAsBytes();
-    final filename = "note_${DateTime.now().millisecondsSinceEpoch}.jpg";
+      await supabase.storage
+          .from('notes')
+          .uploadBinary(filename, bytes)
+          .timeout(
+            const Duration(seconds: 10),
+            onTimeout: () => throw TimeoutException('Image upload timed out'),
+          );
 
-    await supabase.storage.from('notes').uploadBinary(filename, bytes);
+      final publicUrl = supabase.storage.from('notes').getPublicUrl(filename);
+      if (!mounted) return;
+      setState(() => imageUrl = publicUrl);
 
-    final publicUrl = supabase.storage.from('notes').getPublicUrl(filename);
-
-    setState(() => imageUrl = publicUrl);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 10),
+              Text("Image uploaded successfully!"),
+            ],
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    } on TimeoutException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("Image upload timed out. Please try again."),
+          backgroundColor: Colors.orangeAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    } on SocketException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("No internet connection. Try again later."),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    } on StorageException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Storage error: ${e.message}"),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error uploading image: $e"),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
   }
 
+  // DELETE
   Future<void> deleteImage() async {
     if (imageUrl == null || imageUrl!.isEmpty) return;
 
-    // Extract filename from URL
-    final fileName = imageUrl!.split('/').last;
+    try {
+      final fileName = imageUrl!.split('/').last;
 
-    await supabase.storage.from('notes').remove([fileName]);
+      await supabase.storage
+          .from('notes')
+          .remove([fileName])
+          .timeout(
+            const Duration(seconds: 15),
+            onTimeout: () => throw TimeoutException('Image delete timed out'),
+          );
 
-    setState(() {
-      imageUrl = null;
-    });
+      if (!mounted) return;
+      setState(() => imageUrl = null);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 10),
+              Text("Image deleted successfully!"),
+            ],
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    } on TimeoutException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("Image delete timed out. Please try again."),
+          backgroundColor: Colors.orangeAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    } on SocketException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("No internet connection. Try again later."),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    } on StorageException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Storage error: ${e.message}"),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error deleting image: $e"),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
   }
 
   /*// ✅ Start listening
@@ -109,18 +254,45 @@ class _EditNotePageState extends State<EditNotePage> {
   } */
 
   Future<void> _saveNote() async {
+    if (!mounted) return;
+
+    final user = supabase.auth.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("Session expired. Please log in again."),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+      return;
+    }
+
+    final title = titleController.text.trim();
+    final content = noteController.text.trim();
+
+    if (title.isEmpty || content.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("Please fill in both title and content."),
+          backgroundColor: Colors.orange.shade700,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+      return;
+    }
+
     try {
-      final user = supabase.auth.currentUser;
-      if (user == null) return;
-
-      final title = titleController.text.trim();
-      final content = noteController.text.trim();
-
-      if (title.isEmpty || content.isEmpty) return;
-
       final colorValue = selectedColor.value.toString();
 
       if (widget.note == null) {
+        // 🟢 Insert new note
         await supabase.from('notes').insert({
           'user_id': user.id,
           'title': title,
@@ -129,6 +301,7 @@ class _EditNotePageState extends State<EditNotePage> {
           'image_url': imageUrl,
         });
       } else {
+        // 🔵 Update existing note
         await supabase
             .from('notes')
             .update({
@@ -141,12 +314,58 @@ class _EditNotePageState extends State<EditNotePage> {
       }
 
       if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 10),
+              Text("Note saved successfully!"),
+            ],
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+
       Navigator.pop(context, true);
-    } catch (e) {
+    } on SocketException {
+      // 🌐 No internet
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Failed to save note: Check your Internet."),
+          content: const Text("No internet connection. Try again later."),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    } on TimeoutException {
+      // ⏳ Timeout
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("Request timed out. Please retry."),
+          backgroundColor: Colors.orangeAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    } catch (e) {
+      // ❌ Generic failure
+      if (!mounted) return;
+      debugPrint("❌ Note save error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed to save note: ${e.toString()}"),
+          backgroundColor: Colors.redAccent,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
