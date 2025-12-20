@@ -14,9 +14,7 @@ class _PortraitOnlyState extends State<PortraitOnly> {
   @override
   void initState() {
     super.initState();
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   }
 
   @override
@@ -34,6 +32,7 @@ class _PortraitOnlyState extends State<PortraitOnly> {
   @override
   Widget build(BuildContext context) => widget.child;
 }
+
 class ViewNotePage extends StatelessWidget {
   final String title;
   final String content;
@@ -44,7 +43,7 @@ class ViewNotePage extends StatelessWidget {
   final dynamic color;
 
   final dynamic imageUrl;
- 
+
   const ViewNotePage({
     super.key,
     required this.title,
@@ -116,43 +115,50 @@ class ViewNotePage extends StatelessWidget {
                 if (imageUrl != null)
                   GestureDetector(
                     onTap: () {
-                      pushWithAnimation(
+                      Navigator.push(
                         context,
-                        ViewImage(imageUrl: imageUrl),
+                        MaterialPageRoute(
+                          builder: (context) => ViewImage(imageUrl: imageUrl),
+                        ),
                       );
                     },
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        imageUrl!,
-                        height: 180,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Container(
-                            height: 70,
-                            width: 70,
-                            color: Colors.grey.shade200,
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                value: loadingProgress.expectedTotalBytes != null
-                                    ? loadingProgress.cumulativeBytesLoaded /
-                                          loadingProgress.expectedTotalBytes!
-                                    : null,
+                      child: Hero(
+                        tag: 'note_image_$imageUrl',
+                        child: Image.network(
+                          imageUrl!,
+                          height: 180,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              height: 70,
+                              width: 70,
+                              color: Colors.grey.shade200,
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  value:
+                                      loadingProgress.expectedTotalBytes != null
+                                      ? loadingProgress.cumulativeBytesLoaded /
+                                            loadingProgress.expectedTotalBytes!
+                                      : null,
+                                ),
                               ),
-                            ),
-                          );
-                        },
-                        // If loading fails
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          height: 70,
-                          width: 70,
-                          color: Colors.grey.shade300,
-                          child: const Icon(
-                            Icons.broken_image,
-                            color: Colors.grey,
-                          ),
+                            );
+                          },
+                          // If loading fails
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(
+                                height: 70,
+                                width: 70,
+                                color: Colors.grey.shade300,
+                                child: const Icon(
+                                  Icons.broken_image,
+                                  color: Colors.grey,
+                                ),
+                              ),
                         ),
                       ),
                     ),
