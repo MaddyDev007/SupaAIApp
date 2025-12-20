@@ -41,10 +41,10 @@ dependencies:
 
 flutter_native_splash:
   color: "#001838"        # background color (white)
-  image: assets/images/icon.png  # your splash image path
+  image: assets/images/icon1.png  # your splash image path
 
   android_12:
-    image: assets/images/icon.png
+    image: assets/images/icon1.png
     icon_background_color: "#001838"
   
   web: false # set to true if you want splash for web too
