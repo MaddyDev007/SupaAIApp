@@ -116,7 +116,7 @@ class _QuizListPageState extends State<QuizListPage>
       }
 
       return quizList;
-    }catch (e, str) {
+    }catch (e) {
       rethrow;
     }
   }

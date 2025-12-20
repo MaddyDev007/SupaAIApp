@@ -261,7 +261,7 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
     if (confirm) await _downloadMaterial(url, filename);
   }
 
-  Future<void> _downloadMaterial(String url, String filename) async {
+  /* Future<void> _downloadMaterial(String url, String filename) async {
     try {
       // 📂 Get the user's Downloads folder
       final downloadsDir = Directory('/storage/emulated/0/Download');
@@ -305,6 +305,161 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Download failed: $e'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
+  }
+ */
+
+  Future<void> _downloadMaterial(String url, String filename) async {
+    final progress = ValueNotifier<double?>(
+      0.0,
+    ); // 0..1 or null (indeterminate)
+    final cancelToken = CancelToken();
+
+    Future<void> showProgressDialog() async {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => WillPopScope(
+          onWillPop: () async => false,
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Text('Downloading…'),
+            content: ValueListenableBuilder<double?>(
+              valueListenable: progress,
+              builder: (_, p, __) {
+                final pct = p == null
+                    ? null
+                    : ((p * 100).clamp(0, 100)).toStringAsFixed(0);
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    LinearProgressIndicator(
+                      value: p, // null → indeterminate
+                      color: Colors.blue,
+                      backgroundColor: Colors.blue.shade100,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(pct == null ? 'Starting…' : '$pct%'),
+                  ],
+                );
+              },
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => cancelToken.cancel('Cancelled by user'),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.blue),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    try {
+      // 📂 Get the Downloads folder
+      final downloadsDir = Directory('/storage/emulated/0/Download');
+      if (!await downloadsDir.exists()) {
+        await downloadsDir.create(recursive: true);
+      }
+
+      String savePath = "${downloadsDir.path}/$filename";
+
+      // 🧠 Auto-rename if file already exists
+      int counter = 1;
+      while (await File(savePath).exists()) {
+        final dot = filename.lastIndexOf('.');
+        final base = dot > 0 ? filename.substring(0, dot) : filename;
+        final ext = dot > 0 ? filename.substring(dot) : '';
+        savePath = "${downloadsDir.path}/$base ($counter)$ext";
+        counter++;
+      }
+
+      // 🚀 Show dialog (don’t await so it runs in parallel)
+      progress.value = 0.0;
+      showProgressDialog();
+
+      // 📥 Download with progress + cancel
+      await Dio().download(
+        url,
+        savePath,
+        cancelToken: cancelToken,
+        onReceiveProgress: (received, total) {
+          if (total <= 0) {
+            progress.value = null; // indeterminate
+          } else {
+            progress.value = received / total;
+          }
+        },
+      );
+
+      // ✅ Close dialog
+      if (Navigator.of(context, rootNavigator: true).canPop()) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✅ Downloaded to: $savePath'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+
+      // 📂 Open after download
+      await OpenFilex.open(savePath);
+    } on DioException catch (e) {
+      // Close dialog
+      if (Navigator.of(context, rootNavigator: true).canPop()) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
+      if (!mounted) return;
+      if (CancelToken.isCancel(e)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('⛔ Download cancelled'),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Download failed: ${e.message}'),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      // Close dialog if open
+      if (Navigator.of(context, rootNavigator: true).canPop()) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Download failed: $e'),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -426,7 +581,7 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
             type: SmartErrorType.notFound,
             title: 'No materials yet',
             message: 'Try a different search or pull to refresh.',
-            onRetry: _fetchMaterials, 
+            onRetry: _fetchMaterials,
           ),
           // const SizedBox(height: 300),
         ],

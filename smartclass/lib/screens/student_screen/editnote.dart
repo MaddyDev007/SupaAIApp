@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:smartclass/screens/common_screen/error_page.dart';
 // import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:supabase_flutter/supabase_flutter.dart';
 

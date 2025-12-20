@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:supabase_progress_uploads/supabase_progress_uploads.dart';
 
 class UploadMaterialPage extends StatefulWidget {
   const UploadMaterialPage({super.key});
@@ -34,12 +35,14 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
   String? uploadedMaterialId;
   String? uploadedFileUrl;
 
+  double uploadProgress = 0; // 0.0 to 100.0
+
+  final ValueNotifier<double> _uploadProgress = ValueNotifier(0); // 0..100
+
   @override
   void initState() {
     super.initState();
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   }
 
   @override
@@ -68,7 +71,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
     }
   }
 
-  Future<void> uploadMaterialOnly() async {
+  /* Future<void> uploadMaterialOnly() async {
     if (selectedFile == null ||
         _selectedDept == null ||
         _selectedYear == null ||
@@ -140,6 +143,135 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
     } catch (e) {
       if (!mounted) return;
       setState(() => uploading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Upload Error: $e'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
+  }
+ */
+
+  Future<void> _showUploadingDialog() async {
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => WillPopScope(
+        onWillPop: () async => false,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text('Uploading material...'),
+          content: ValueListenableBuilder<double>(
+            valueListenable: _uploadProgress,
+            builder: (_, p, __) {
+              final v = (p.clamp(0, 100)) / 100;
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  LinearProgressIndicator(value: p == 0 ? null : v),
+                  const SizedBox(height: 12),
+                  Text('${p.toStringAsFixed(0)}%'),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> uploadMaterialOnly() async {
+    if (selectedFile == null ||
+        _selectedDept == null ||
+        _selectedYear == null ||
+        subjectCtrl.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('⚠️ Fill all fields and pick a PDF'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      uploading = true;
+      uploaded = false;
+    });
+    _uploadProgress.value = 0;
+    _showUploadingDialog();
+
+    final supa = Supabase.instance.client;
+    final fileTitle = selectedFile!.name.replaceAll('.pdf', '');
+
+    try {
+      // Optionally set a folder here with rootPath:
+      final uploadService = SupabaseUploadService(
+        supa,
+        'lessons',
+        // e.g., materials/IT/2025  (folders only; file name is auto)
+        rootPath: 'materials/$_selectedDept/$_selectedYear',
+      );
+
+      // ⬇️ Correct call: only file + progress callback
+      final publicUrl = await uploadService.uploadFile(
+        selectedFile!,
+        onUploadProgress: (progress) =>
+            _uploadProgress.value = progress, // 0..100
+      );
+
+      final insertRes = await supa
+          .from('materials')
+          .insert({
+            'title': fileTitle,
+            'file_url': publicUrl,
+            'subject': subjectCtrl.text.trim(),
+            'department': _selectedDept,
+            'year': _selectedYear,
+            'teacher_id': supa.auth.currentUser!.id,
+            'created_at': DateTime.now().toIso8601String(),
+          })
+          .select('id')
+          .single();
+
+      if (!mounted) return;
+      uploadedMaterialId = insertRes['id'] as String;
+      uploadedFileUrl = publicUrl;
+      setState(() {
+        uploaded = true;
+        uploading = false;
+      });
+      _uploadProgress.value = 100;
+
+      if (Navigator.of(context, rootNavigator: true).canPop()) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('✅ Material uploaded successfully'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => uploading = false);
+      if (Navigator.of(context, rootNavigator: true).canPop()) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('❌ Upload Error: $e'),
@@ -491,7 +623,11 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
                         ? null
                         : uploadMaterialOnly,
                     icon: Icon(
-                      uploading ? Icons.hourglass_empty : uploaded ? Icons.check_circle : Icons.upload_file,
+                      uploading
+                          ? Icons.hourglass_empty
+                          : uploaded
+                          ? Icons.check_circle
+                          : Icons.upload_file_rounded,
                       color: Colors.white,
                     ),
                     label: Text(
@@ -534,10 +670,19 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
                     onPressed: generatingQuiz || quizGenerated
                         ? null
                         : generateQuiz,
-                    icon: Icon(
-                      generatingQuiz ? Icons.hourglass_empty : quizGenerated ? Icons.check_circle : Icons.quiz,
-                      color: Colors.white,
-                    ),
+                    icon: generatingQuiz
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Icon(
+                            quizGenerated ? Icons.check_circle : Icons.quiz,
+                            color: Colors.white,
+                          ),
                     label: Text(
                       generatingQuiz
                           ? 'Generating Quiz...'
@@ -572,12 +717,21 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
                     onPressed: generatingExam || examGenerated
                         ? null
                         : generateExam,
-                    icon: Icon(
-                      generatingExam ? Icons.hourglass_empty :  examGenerated
-                          ? Icons.check_circle
-                          : Icons.description, // or any exam icon
-                      color: Colors.white,
-                    ),
+                    icon: generatingExam
+                        ? SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: const CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Icon(
+                            examGenerated
+                                ? Icons.check_circle
+                                : Icons.description,
+                            color: Colors.white,
+                          ),
                     label: Text(
                       generatingExam
                           ? 'Generating Exam...'
@@ -606,9 +760,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      overlayColor: WidgetStateProperty.all(
-                        Colors.transparent,
-                      ),
+                      overlayColor: WidgetStateProperty.all(Colors.transparent),
                     ),
                   ),
                 ],

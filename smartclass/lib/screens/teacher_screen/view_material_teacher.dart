@@ -130,13 +130,15 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
 
     if (uri == null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: const Text('Invalid material link'),
-      behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Invalid material link'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
       return;
     }
 
@@ -152,7 +154,7 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
   Future<void> _fetchMaterials() async {
     setState(() {
       _loading = true;
-      
+
       _hasError = false;
       _errorObj = null;
       _errorStack = null;
@@ -301,21 +303,23 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
           SnackBar(
             content: Text("Material & Questions deleted successfully."),
             behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error deleting material: $e"),
-      behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Error deleting material: $e"),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
     }
   }
 
@@ -331,7 +335,7 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
     if (confirm) await _downloadMaterial(url, filename);
   }
 
-  Future<void> _downloadMaterial(String url, String filename) async {
+  /* Future<void> _downloadMaterial(String url, String filename) async {
     try {
       // 📂 Get the user's Downloads folder
       final downloadsDir = Directory('/storage/emulated/0/Download');
@@ -379,8 +383,171 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
         ),));
     }
   }
+ */
 
+   Future<void> _downloadMaterial(String url, String filename) async {
+    final progress = ValueNotifier<double?>(
+      0.0,
+    ); // 0..1, or null = indeterminate
+    final cancelToken = CancelToken();
+
+    Future<void> showProgressDialog() async {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => WillPopScope(
+          onWillPop: () async => false,
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Text('Downloading…'),
+            content: ValueListenableBuilder<double?>(
+              valueListenable: progress,
+              builder: (_, p, __) {
+                final v = p; // CircularProgressIndicator takes 0..1 or null
+                final pct = p == null
+                    ? null
+                    : ((p * 100).clamp(0, 100)).toStringAsFixed(0);
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    LinearProgressIndicator(
+                      value: v,
+                      color: Colors.blue,
+                      backgroundColor: Colors.blue.shade100,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(pct == null ? 'Starting…' : '$pct%'),
+                  ],
+                );
+              },
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  cancelToken.cancel('Cancelled by user');
+                },
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.blue),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    try {
+      // 📂 Prepare save path
+      final downloadsDir = Directory('/storage/emulated/0/Download');
+      if (!await downloadsDir.exists()) {
+        await downloadsDir.create(recursive: true);
+      }
+
+      String savePath = "${downloadsDir.path}/$filename";
+
+      // 🧠 Auto-rename if file exists
+      int counter = 1;
+      while (await File(savePath).exists()) {
+        final nameWithoutExt = filename.contains('.')
+            ? filename.substring(0, filename.lastIndexOf('.'))
+            : filename;
+        final ext = filename.contains('.')
+            ? filename.substring(filename.lastIndexOf('.'))
+            : '';
+        savePath = "${downloadsDir.path}/$nameWithoutExt ($counter)$ext";
+        counter++;
+      }
+
+      // 🚀 Show dialog
+      progress.value = 0.0;
+      showProgressDialog();
+
+      // 📥 Download with progress + cancel support
+      await Dio().download(
+        url,
+        savePath,
+        cancelToken: cancelToken,
+        onReceiveProgress: (received, total) {
+          if (total <= 0) {
+            // unknown total size -> indeterminate spinner
+            progress.value = null;
+          } else {
+            progress.value = received / total;
+          }
+        },
+      );
+
+      // ✅ Close dialog
+      if (Navigator.of(context, rootNavigator: true).canPop()) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✅ Downloaded to: $savePath'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+
+      // 📂 Open file
+      await OpenFilex.open(savePath);
+    } on DioException catch (e) {
+      // close dialog if open
+      if (Navigator.of(context, rootNavigator: true).canPop()) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+      if (!mounted) return;
+
+      if (CancelToken.isCancel(e)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('⛔ Download cancelled'),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Download failed: ${e.message}'),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (Navigator.of(context, rootNavigator: true).canPop()) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Download failed: $e'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
+  }
+ 
+  
+  
   Widget _buildMaterialCard(Map<String, dynamic> material, int index) {
+
     final subject = material['subject'] ?? 'Untitled';
     final url = material['file_url'] as String;
     final id = material['id'] as String;
@@ -501,7 +668,7 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
             type: SmartErrorType.notFound,
             title: 'No materials yet',
             message: 'Try a different search or pull to refresh.',
-            onRetry: _fetchMaterials, 
+            onRetry: _fetchMaterials,
           ),
           // const SizedBox(height: 300),
         ],
