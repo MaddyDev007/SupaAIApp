@@ -140,19 +140,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         const SizedBox(width: 8),
                         Text(
                           'TechClass',
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
+                          style: TextStyle(color: Theme.of(context).textTheme.titleMedium?.color),
                         ),
                       ],
                     ),
                     TextButton(
                       onPressed: _finish,
-                      child: const Text(
+                      child:  Text(
                         'Skip',
-                        style: TextStyle(color: Colors.white),
+                        style: TextStyle(color: Theme.of(context).textTheme.titleMedium?.color),
                       ),
                     ),
                   ],
@@ -178,8 +174,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 controller: _controller,
                 count: pages.length,
                 effect: ExpandingDotsEffect(
-                  dotColor: Colors.white.withAlpha((0.4 * 255).toInt()),
-                  activeDotColor: Colors.white,
+                  dotColor: Theme.of(context).cardColor.withAlpha((0.4 * 255).toInt()),
+                  activeDotColor: Theme.of(context).cardColor,
                   dotHeight: 8,
                   dotWidth: 8,
                   expansionFactor: 4,
@@ -191,12 +187,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
               // Bottom controls
               Padding(
+                
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                 child: Row(
                   children: [
                     // Prev
                     _RoundIconButton(
-                      icon: Icons.chevron_left_rounded,
+                      icon:  Icons.chevron_left_rounded,
                       onTap: _index == 0
                           ? null
                           : () => _controller.previousPage(
@@ -209,8 +206,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     Expanded(
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.black87,
+                          backgroundColor: Theme.of(context).cardColor,
+                          foregroundColor: Theme.of(context).textTheme.titleLarge?.color,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
@@ -261,7 +258,7 @@ class _OnboardSlide extends StatelessWidget {
                   // Card container
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(  context).cardColor,
                       borderRadius: BorderRadius.circular(28),
                       boxShadow: [
                         BoxShadow(
@@ -291,9 +288,8 @@ class _OnboardSlide extends StatelessWidget {
                         Text(
                           data.title,
                           textAlign: TextAlign.center,
-                          style: textTheme.headlineSmall?.copyWith(
+                          style: textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w800,
-                            color: const Color(0xFF0F172A),
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -301,8 +297,8 @@ class _OnboardSlide extends StatelessWidget {
                         Text(
                           data.subtitle,
                           textAlign: TextAlign.center,
-                          style: textTheme.bodyMedium?.copyWith(
-                            color: const Color(0xFF334155),
+                          style: textTheme.bodySmall?.copyWith(
+                            // color: const Color(0xFF334155),
                             height: 1.5,
                           ),
                         ),
@@ -381,7 +377,7 @@ class _RoundIconButton extends StatelessWidget {
           height: 56,
           width: 56,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(  context).cardColor,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
@@ -391,7 +387,7 @@ class _RoundIconButton extends StatelessWidget {
               ),
             ],
           ),
-          child: Icon(icon, color: const Color(0xFF0F172A)),
+          child: Icon(icon, color: Theme.of(  context).textTheme.titleLarge?.color),
         ),
       ),
     );
@@ -404,12 +400,13 @@ class _AppBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 30,
-      width: 30,
+      height: 40,
+      width: 40,
       padding: const EdgeInsets.only(bottom: 2.5),
       child: Image.asset(
         'assets/images/icon1.png',
-        color: const Color.fromARGB(255, 255, 255, 255),
+        scale: 1.5,
+        color: Theme.of(context).cardColor,
       ),
     );
   }

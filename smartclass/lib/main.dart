@@ -3,6 +3,8 @@ import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:smartclass/models/user_model.dart';
 import 'package:smartclass/screens/onboarding.dart';
+import 'package:smartclass/screens/theme/dark_theme.dart';
+import 'package:smartclass/screens/theme/light_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'secrets.dart';
 import 'screens/login_page.dart';
@@ -32,8 +34,8 @@ void main() async {
     url: AppSecrets.supabaseUrl,
     anonKey: AppSecrets.supabaseAnonKey,
     authOptions: const FlutterAuthClientOptions(
-    authFlowType: AuthFlowType.pkce,   // ✅ important
-  ),
+      authFlowType: AuthFlowType.pkce, // ✅ important
+    ),
   );
 
   runApp(const MyApp());
@@ -60,13 +62,9 @@ class MyApp extends StatelessWidget {
       title: 'Smart Classroom',
       debugShowCheckedModeBanner: false,
       // theme: ThemeData(primarySwatch: Colors.blue),
-      theme: ThemeData(
-        textSelectionTheme: TextSelectionThemeData(
-          cursorColor: Colors.blue, // Cursor color
-          selectionColor: Colors.blue.withAlpha((0.3 * 255).toInt()), // Drag selection color
-          selectionHandleColor: Colors.blue, // Handle color
-        ),
-      ),
+      theme: lightTheme, // Light Mode
+      darkTheme: darkTheme, // Dark Mode
+      themeMode: ThemeMode.system,
       home: const SplashRedirector(),
 
       onGenerateRoute: (settings) {
@@ -86,8 +84,11 @@ class MyApp extends StatelessWidget {
           case '/quiz':
             final args = settings.arguments as Map<String, dynamic>;
             return MaterialPageRoute(
-              builder: (_) =>
-                  QuizPage(department: args['department'], year: args['year'],quizId: args['quizId'],),
+              builder: (_) => QuizPage(
+                department: args['department'],
+                year: args['year'],
+                quizId: args['quizId'],
+              ),
             );
           case '/results':
             return MaterialPageRoute(builder: (_) => const ResultPage());
@@ -95,7 +96,7 @@ class MyApp extends StatelessWidget {
             return MaterialPageRoute(builder: (_) => const ChatbotPage());
           case '/onboarding':
             return MaterialPageRoute(builder: (_) => const OnboardingScreen());
-           
+
           default:
             return null;
         }

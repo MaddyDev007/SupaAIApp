@@ -201,7 +201,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue.shade50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor, 
       appBar: _buildAppBar(),
 
       body: Stack(
@@ -232,9 +232,9 @@ class _ChatbotPageState extends State<ChatbotPage> {
                   height: 50,
                   width: 50,
                   decoration: BoxDecoration(
-                    color: Colors.blue,
+                    color: Theme.of(context).primaryColor,
                     borderRadius: BorderRadius.circular(30),
-                    border: Border.all(color: Colors.blue, width: 1.3),
+                    border: Border.all(color: Theme.of(context).primaryColor, width: 1.3),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withAlpha((0.15 * 255).toInt()),
@@ -261,7 +261,6 @@ class _ChatbotPageState extends State<ChatbotPage> {
     return AppBar(
       centerTitle: true,
       elevation: 0,
-      backgroundColor: Colors.blue,
       iconTheme: const IconThemeData(color: Colors.white),
       title: const Text(
         'AI Chatbot',
@@ -339,7 +338,7 @@ class _MessageBubble extends StatelessWidget {
           margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: isUser ? Colors.blue.shade100 : Colors.white,
+            color: isUser ? Theme.of(context).canvasColor : Theme.of(context).cardColor,
             borderRadius: BorderRadius.only(
               topLeft: const Radius.circular(16),
               topRight: const Radius.circular(16),
@@ -369,7 +368,7 @@ class _TypingIndicator extends StatelessWidget {
         margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.grey.shade200,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),
@@ -387,8 +386,8 @@ class _TypingIndicator extends StatelessWidget {
                 margin: const EdgeInsets.symmetric(horizontal: 2),
                 width: 6,
                 height: 6,
-                decoration: const BoxDecoration(
-                  color: Colors.black54,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).textTheme.bodySmall!.color,
                   shape: BoxShape.circle
                 ),
               ),
@@ -436,7 +435,7 @@ class _MessageInputBarState extends State<_MessageInputBar> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           boxShadow: [
             BoxShadow(
               color: Colors.grey.withAlpha((0.25 * 255).toInt()),
@@ -450,18 +449,13 @@ class _MessageInputBarState extends State<_MessageInputBar> {
             Expanded(
               child: TextField(
                 enabled: !widget.isLoading,
-                cursorColor: Colors.blue,
+                cursorColor: Theme.of(context).primaryColor,
                 controller: widget.controller,
                 decoration: InputDecoration(
                   hintText: widget.isLoading
                       ? "Bot is responding..."
                       : "Ask something...",
                   filled: true,
-                  fillColor: Colors.grey.shade100,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide.none,
-                  ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                 ),
               ),
@@ -469,8 +463,8 @@ class _MessageInputBarState extends State<_MessageInputBar> {
             const SizedBox(width: 8),
             CircleAvatar(
               backgroundColor: blocked
-                  ? Colors.grey.shade300
-                  : Colors.blue.shade600,
+                  ? Theme.of(context).textTheme.bodySmall!.color!.withAlpha(100)
+                  : Theme.of(context).primaryColor,
               radius: 24,
               child: IconButton(
                 icon: Icon(
@@ -561,7 +555,7 @@ class _TypingMessageBubbleState extends State<_TypingMessageBubble> {
         margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(16),
             topRight: const Radius.circular(16),

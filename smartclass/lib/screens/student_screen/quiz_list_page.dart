@@ -88,8 +88,10 @@ class _QuizListPageState extends State<QuizListPage>
           .eq('department', widget.department)
           .eq('year', widget.year)
           .order('created_at', ascending: false)
-          .timeout(const Duration(seconds: 12),
-          onTimeout: () => throw TimeoutException('Quiz fetch timed out'));
+          .timeout(
+            const Duration(seconds: 12),
+            onTimeout: () => throw TimeoutException('Quiz fetch timed out'),
+          );
 
       // attempts for this user (keep latest by created_at if multiple)
       final attempts = await supabase
@@ -97,8 +99,10 @@ class _QuizListPageState extends State<QuizListPage>
           .select('quiz_id, score, created_at')
           .eq('student_id', user.id)
           .order('created_at', ascending: false)
-          .timeout(const Duration(seconds: 12),
-          onTimeout: () => throw TimeoutException('Quiz fetch timed out'));
+          .timeout(
+            const Duration(seconds: 12),
+            onTimeout: () => throw TimeoutException('Quiz fetch timed out'),
+          );
 
       // Build latest-attempt map
       final Map<dynamic, Map<String, dynamic>> latestAttemptByQuiz = {};
@@ -116,7 +120,7 @@ class _QuizListPageState extends State<QuizListPage>
       }
 
       return quizList;
-    }catch (e) {
+    } catch (e) {
       rethrow;
     }
   }
@@ -172,7 +176,9 @@ class _QuizListPageState extends State<QuizListPage>
               width: 1.5,
             ),
           ),
-          color: attempted ? Colors.grey[100] : Colors.white,
+          color: attempted
+              ? Theme.of(context).disabledColor
+              : Theme.of(context).cardColor,
           child: ListTile(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
@@ -186,7 +192,9 @@ class _QuizListPageState extends State<QuizListPage>
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: attempted ? Colors.grey.shade700 : Colors.black,
+                color: attempted
+                    ? Theme.of(context).textTheme.bodySmall?.color
+                    : Theme.of(context).textTheme.bodyMedium?.color,
               ),
             ),
             subtitle: Text(
@@ -196,7 +204,7 @@ class _QuizListPageState extends State<QuizListPage>
             ),
             trailing: attempted
                 ? const Icon(Icons.check_circle, color: Colors.green)
-                : const Icon(Icons.arrow_forward_ios, color: Colors.blue),
+                :  Icon(Icons.arrow_forward_ios, color: Theme.of(context).primaryColor,),
             onTap: attempted
                 ? null
                 : () {
@@ -226,17 +234,15 @@ class _QuizListPageState extends State<QuizListPage>
 
   @override
   Widget build(BuildContext context) {
-    final blue = Colors.blue;
 
     return Scaffold(
-      backgroundColor: blue.shade50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           "Available Quizzes",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
         ),
         centerTitle: true,
-        backgroundColor: blue,
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
       ),
@@ -255,8 +261,12 @@ class _QuizListPageState extends State<QuizListPage>
                 DropdownButton<String>(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   borderRadius: BorderRadius.circular(12),
-                  dropdownColor: Colors.white,
-
+                  dropdownColor: Theme.of(context).cardColor,
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  
                   elevation: 1,
                   focusColor: Colors.blue.shade50,
                   value: _filterOption,
@@ -280,7 +290,11 @@ class _QuizListPageState extends State<QuizListPage>
               builder: (context, snapshot) {
                 // Loading
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return Center(
+                    child: CircularProgressIndicator(
+                      color: Theme.of(context).primaryColor,
+                    ),
+                  );
                 }
 
                 if (snapshot.hasError) {
@@ -307,10 +321,13 @@ class _QuizListPageState extends State<QuizListPage>
                 final quizzes = _applyFilter(snapshot.data!);
 
                 if (quizzes.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Text(
                       "No quizzes available for this filter.",
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Theme.of(context).textTheme.bodySmall?.color,
+                      ),
                     ),
                   );
                 }
@@ -324,7 +341,7 @@ class _QuizListPageState extends State<QuizListPage>
                       _listController.forward(from: 0);
                     });
                   },
-                  color: blue,
+                  color: Theme.of(context).primaryColor,
                   child: ListView.builder(
                     physics: const AlwaysScrollableScrollPhysics(),
                     itemCount: quizzes.length,

@@ -73,7 +73,7 @@ class SmartClassErrorPage extends StatelessWidget {
               resolvedTitle,
               style: theme.textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: Colors.black87,
+                color: Theme.of(context).textTheme.bodyMedium?.color,
               ),
               textAlign: TextAlign.center,
             ),
@@ -81,7 +81,7 @@ class SmartClassErrorPage extends StatelessWidget {
             Text(
               resolvedMessage,
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.black54,
+                color: Theme.of(context).textTheme.bodySmall?.color,
                 height: 1.4,
               ),
               textAlign: TextAlign.center,
@@ -92,7 +92,7 @@ class SmartClassErrorPage extends StatelessWidget {
               icon: const Icon(Icons.refresh_rounded, color: Colors.white),
               label: const Text('Retry', style: TextStyle(color: Colors.white)),
               style: FilledButton.styleFrom(
-                backgroundColor: Colors.blue,
+                backgroundColor: Theme.of(context).primaryColor,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -117,7 +117,7 @@ class SmartClassErrorPage extends StatelessWidget {
 
     // STANDALONE PAGE MODE (original behavior)
     return Scaffold(
-      backgroundColor: Colors.blue.shade50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
@@ -181,12 +181,12 @@ class _HeroMark extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Colors.blue.withOpacity(0.1),
-        border: Border.all(color: Colors.blue.withOpacity(0.25), width: 1.2),
+        color: Theme.of(context).primaryColor.withOpacity(0.1),
+        border: Border.all(color: Theme.of(context).primaryColor.withOpacity(0.25), width: 1.2),
       ),
       child: emoji != null
           ? Text(emoji!, style: const TextStyle(fontSize: 40))
-          : Icon(icon ?? Icons.error_outline, size: 48, color: Colors.blue),
+          : Icon(icon ?? Icons.error_outline, size: 48, color: Theme.of(context).primaryColor),
     );
   }
 }
@@ -212,15 +212,15 @@ class _DetailsState extends State<_Details> {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         InkWell(
-          splashColor: Colors.blue.withOpacity(0.1),
+          splashColor: Theme.of(context).primaryColor.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
           onTap: () => setState(() => expanded = !expanded),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(expanded ? Icons.expand_less : Icons.expand_more, color: Colors.blue),
+              Icon(expanded ? Icons.expand_less : Icons.expand_more, color: Theme.of(context).primaryColor),
               const SizedBox(width: 6),
-              const Text('Technical details', style: TextStyle(color: Colors.blue)),
+               Text('Technical details', style: TextStyle(color: Theme.of(context).primaryColor)),
             ],
           ),
         ),
@@ -232,7 +232,7 @@ class _DetailsState extends State<_Details> {
                   margin: const EdgeInsets.only(top: 12),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: SingleChildScrollView(

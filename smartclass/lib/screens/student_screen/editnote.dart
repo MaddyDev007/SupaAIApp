@@ -379,9 +379,8 @@ class _EditNotePageState extends State<EditNotePage> {
     final themeColor = Colors.blue;
 
     return Scaffold(
-      backgroundColor: Colors.blue[50],
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: themeColor,
         title: const Text("Edit Note", style: TextStyle(color: Colors.white)),
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -419,7 +418,7 @@ class _EditNotePageState extends State<EditNotePage> {
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: isSelected
-                              ? const Color.fromARGB(148, 0, 0, 0)
+                              ? Theme.of( context).highlightColor
                               : Colors.transparent,
                           width: 2,
                         ),
@@ -457,6 +456,7 @@ class _EditNotePageState extends State<EditNotePage> {
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
+                          color: Colors.black
                         ),
                       ),
                       IconButton(
@@ -537,12 +537,13 @@ class _EditNotePageState extends State<EditNotePage> {
                   const SizedBox(height: 20),
                   const Text(
                     "Title",
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 6),
 
                   TextField(
                     controller: titleController,
+                    style: const TextStyle(color: Colors.black),
                     cursorColor: themeColor,
                     decoration: InputDecoration(
                       filled: true,
@@ -568,7 +569,7 @@ class _EditNotePageState extends State<EditNotePage> {
 
                   const Text(
                     "Note",
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 6),
 
@@ -576,6 +577,7 @@ class _EditNotePageState extends State<EditNotePage> {
                     controller: noteController,
                     maxLines: 8,
                     cursorColor: themeColor,
+                    style: const TextStyle(color: Colors.black),
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: Colors.blue[50],
@@ -616,7 +618,7 @@ class _EditNotePageState extends State<EditNotePage> {
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: themeColor,
+                  backgroundColor: Theme.of(context).primaryColor,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),

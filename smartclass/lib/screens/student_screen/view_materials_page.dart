@@ -173,7 +173,8 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Invalid material link'),
+           backgroundColor: Theme.of(context).cardColor,
+          content: Text('Invalid material link',style: TextStyle(color: Theme.of(context).highlightColor)),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -196,7 +197,6 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
     required String title,
     required String message,
     required String confirmText,
-    Color confirmColor = Colors.blue,
   }) async {
     final theme = Theme.of(context);
     return (await showDialog<bool>(
@@ -207,16 +207,11 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
             ),
             title: Text(
               title,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
+              style: theme.textTheme.titleLarge
             ),
             content: Text(
               message,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.black54,
-              ),
+             
             ),
             actionsPadding: const EdgeInsets.symmetric(
               horizontal: 12,
@@ -235,9 +230,7 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
               ),
               FilledButton(
                 style: FilledButton.styleFrom(
-                  backgroundColor: confirmColor,
-                  /* shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)), */
+                  backgroundColor: Theme.of(context).primaryColor,
                 ),
                 onPressed: () => Navigator.pop(context, true),
                 child: Text(
@@ -412,7 +405,8 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('✅ Downloaded to: $savePath'),
+           backgroundColor: Theme.of(context).cardColor,
+          content: Text('✅ Downloaded to: $savePath',style: TextStyle(color: Theme.of(context).highlightColor)),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -432,7 +426,8 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
       if (CancelToken.isCancel(e)) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('⛔ Download cancelled'),
+             backgroundColor: Theme.of(context).cardColor,
+            content: Text('⛔ Download cancelled',style: TextStyle(color: Theme.of(context).highlightColor)),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -442,7 +437,8 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ Download failed: ${e.message}'),
+             backgroundColor: Theme.of(context).cardColor,
+            content: Text('❌ Download failed: ${e.message}',style: TextStyle(color: Theme.of(context).highlightColor)),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -459,7 +455,8 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('❌ Download failed: $e'),
+           backgroundColor: Theme.of(context).cardColor,
+          content: Text('❌ Download failed: $e',style: TextStyle(color: Theme.of(context).highlightColor)),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -470,7 +467,7 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
   }
 
   Widget _buildMaterialCard(Map<String, dynamic> material, int index) {
-    final blue = Colors.blue;
+    // final blue = Colors.blue;
     final subject = material['subject'] ?? 'Untitled';
     final url = material['file_url'] as String;
 
@@ -484,7 +481,7 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
       child: SlideTransition(
         position: _listAnimation.drive(slideTween),
         child: Card(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           elevation: 3,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -519,7 +516,7 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
                     borderRadius: BorderRadius.circular(50),
                     child: Padding(
                       padding: const EdgeInsets.all(6),
-                      child: Icon(Icons.open_in_new, color: blue),
+                      child: Icon(Icons.open_in_new, color:Theme.of(context).primaryColor),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -528,7 +525,7 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
                     borderRadius: BorderRadius.circular(50),
                     child: Padding(
                       padding: const EdgeInsets.all(6),
-                      child: Icon(Icons.download, color: blue),
+                      child: Icon(Icons.download, color: Theme.of(context).primaryColor),
                     ),
                   ),
                 ],
@@ -545,9 +542,11 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
     if (_loading) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        children: const [
+        children:  [
           SizedBox(height: 160),
-          Center(child: CircularProgressIndicator()),
+          Center(child: CircularProgressIndicator(
+            color: Theme.of(context).primaryColor,
+          )),
           SizedBox(height: 300),
         ],
       );
@@ -600,55 +599,38 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
 
   @override
   Widget build(BuildContext context) {
-    final blue = Colors.blue;
 
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           'Materials',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
         ),
         centerTitle: true,
-        backgroundColor: blue,
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
       ),
       body: SafeArea(
         child: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [blue.shade50, Colors.white],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
+            color: Theme.of(context).scaffoldBackgroundColor,
           ),
           child: RefreshIndicator(
             onRefresh: _fetchMaterials,
-            color: blue,
+            color: Theme.of(context).primaryColor,
             child: Column(
               children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                   child: TextField(
                     controller: _searchController,
-                    cursorColor: Colors.blueAccent,
+                    // cursorColor: Colors.blueAccent,
                     decoration: InputDecoration(
                       hintText: 'Search by subject name...',
                       prefixIcon: const Icon(Icons.search, color: Colors.grey),
                       filled: true,
-                      fillColor: Colors.white,
                       contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.blue.shade100),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: Colors.blue.shade300,
-                          width: 1.5,
-                        ),
-                      ),
                     ),
                   ),
                 ),

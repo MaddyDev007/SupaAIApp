@@ -121,25 +121,9 @@ class _SignupPageState extends State<SignupPage> {
     return TextFormField(
       controller: controller,
       obscureText: obscure,
-      cursorColor: Colors.blue,
       decoration: InputDecoration(
-        filled: true,
-        fillColor: Colors.white,
         labelText: label,
-        floatingLabelStyle: TextStyle(
-          color: Colors.blueAccent, // 👈 Change label text color here
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.blue.shade100, width: 1.5),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: Colors.blue.shade300, // Color when focused
-            width: 2,
-          ),
-        ),
+        
         prefixIcon: Icon(icon, color: Colors.grey),
         suffixIcon: suffixIcon,
         suffixIconColor: Colors.grey,
@@ -155,25 +139,17 @@ class _SignupPageState extends State<SignupPage> {
     required void Function(String?) onChanged,
   }) {
     return DropdownButtonFormField<String>(
+      
       decoration: InputDecoration(
-        floatingLabelStyle: TextStyle(
-          color: Colors.blueAccent, // 👈 Change label text color here
-        ),
+        
         suffixIconColor: Colors.grey,
         labelText: label,
-        filled: true,
-        fillColor: Colors.white,
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.blue.shade100),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: Colors.blue.shade300, // Color when focused
-            width: 2,
-          ),
-        ),
+        
+      ),
+      dropdownColor: Theme.of(context).cardColor,
+      style: TextStyle(
+        color: Theme.of(context).textTheme.bodyMedium?.color,
+        fontWeight: FontWeight.w500,
       ),
       value: value,
       onChanged: onChanged,
@@ -187,7 +163,7 @@ class _SignupPageState extends State<SignupPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue.shade50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           'Create Account',
@@ -197,7 +173,6 @@ class _SignupPageState extends State<SignupPage> {
             fontSize: 30,
           ),
         ),
-        backgroundColor: Colors.blue,
         elevation: 0,
         centerTitle: true,
         iconTheme: IconThemeData(
@@ -318,7 +293,7 @@ class _SignupPageState extends State<SignupPage> {
                   width: double.infinity,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
+                      backgroundColor: Theme.of(context).primaryColor,
                       padding: const EdgeInsets.symmetric(vertical: 20),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -355,9 +330,9 @@ class _SignupPageState extends State<SignupPage> {
                 TextButton(
                   onPressed: () =>
                       Navigator.pushReplacementNamed(context, '/login'),
-                  child: const Text(
+                  child: Text(
                     "Already have an account? Login",
-                    style: TextStyle(color: Colors.blue),
+                    style: TextStyle(color: Theme.of(context).primaryColor),
                   ),
                 ),
               ],

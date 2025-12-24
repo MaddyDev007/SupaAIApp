@@ -221,12 +221,16 @@ class _QuizPageState extends State<QuizPage> {
         title: const Text('🎉 Quiz Completed'),
         content: Text('Your score: $score/${questions.length}'),
         actions: [
-          TextButton(
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+            ),
             onPressed: () {
               Navigator.of(context).pop(); // close dialog
               Navigator.of(context).pop(); // go back
             },
-            child: const Text('Close', style: TextStyle(color: Colors.blue)),
+            child: Text('Close', style: TextStyle(color: Colors.white,),
+          ),
           ),
         ],
       ),
@@ -244,7 +248,9 @@ class _QuizPageState extends State<QuizPage> {
   @override
   Widget build(BuildContext context) {
     if (loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return  Scaffold(body: Center(child: CircularProgressIndicator(
+        color: Theme.of(context).primaryColor,
+      )));
     }
 
     final q = questions[currentIndex];
@@ -253,7 +259,7 @@ class _QuizPageState extends State<QuizPage> {
         seconds.clamp(0, _totalQuizSeconds) / _totalQuizSeconds;
 
     return Scaffold(
-      backgroundColor: Colors.blue.shade50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           "$subject Quiz",
@@ -263,7 +269,6 @@ class _QuizPageState extends State<QuizPage> {
           ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.blue,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -287,9 +292,9 @@ class _QuizPageState extends State<QuizPage> {
                           child: LinearProgressIndicator(
                             value: timeProgress.clamp(0.0, 1.0),
                             minHeight: 6,
-                            backgroundColor: Colors.blue.shade100,
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                              Colors.blue,
+                            backgroundColor: Colors.blue.shade100.withAlpha((0.86 * 255).toInt()),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Theme.of( context).primaryColor,
                             ),
                           ),
                         ),
@@ -303,14 +308,14 @@ class _QuizPageState extends State<QuizPage> {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
+                            color: Theme.of(context).scaffoldBackgroundColor,
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Text(
                             _formatMMSS(seconds),
-                            style: const TextStyle(
+                            style:  TextStyle(
                               fontWeight: FontWeight.w600,
-                              color: Colors.black87,
+                              color: Theme.of(context).textTheme.bodyMedium?.color,
                             ),
                           ),
                         ),
@@ -320,11 +325,11 @@ class _QuizPageState extends State<QuizPage> {
                   const SizedBox(height: 16),
                   Text(
                     q['question'].toString(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 22,
                       height: 1.3,
                       fontWeight: FontWeight.w700,
-                      color: Colors.black87,
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
                     ),
                   ),
                 ],
@@ -353,8 +358,7 @@ class _QuizPageState extends State<QuizPage> {
             // Bottom bar
             Container(
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                // border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                color: Theme.of(context).scaffoldBackgroundColor,
               ),
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
               child: Column(
@@ -364,10 +368,10 @@ class _QuizPageState extends State<QuizPage> {
                     child: LinearProgressIndicator(
                       value: (currentIndex + 1) / questions.length,
                       minHeight: 6,
-                      backgroundColor: Colors.blue.shade100,
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        Colors.blue,
-                      ),
+                      backgroundColor: Colors.blue.shade100.withAlpha((0.86 * 255).toInt()),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Theme.of( context).primaryColor,
+                            ),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -375,8 +379,8 @@ class _QuizPageState extends State<QuizPage> {
                     children: [
                       Text(
                         'Q ${currentIndex + 1} of ${questions.length}',
-                        style: const TextStyle(
-                          color: Colors.black87,
+                        style:  TextStyle(
+                          color:Theme.of(context).textTheme.bodyMedium?.color,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -393,7 +397,7 @@ class _QuizPageState extends State<QuizPage> {
                               : Colors.black87,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(color: Colors.grey.shade300),
+                            side: BorderSide(color: Colors.grey),
                           ),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -408,7 +412,7 @@ class _QuizPageState extends State<QuizPage> {
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           elevation: 0,
-                          backgroundColor: Colors.blue,
+                          backgroundColor: Theme.of(context).primaryColor,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -453,13 +457,13 @@ class _OptionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected ? Colors.blue.shade100 : Colors.white,
+      color: selected ? Theme.of(context).splashColor.withAlpha((0.25 * 255).toInt()) : Theme.of(context).cardColor,
       elevation: 2,
       shadowColor: Colors.black.withAlpha((0.06 * 255).toInt()),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
         side: BorderSide(
-          color: selected ? Colors.blue : Colors.transparent,
+          color: selected ? Theme.of(context).primaryColor : Colors.transparent,
           width: 2,
         ),
       ),
@@ -474,15 +478,15 @@ class _OptionCard extends StatelessWidget {
                 value: true,
                 groupValue: selected,
                 onChanged: (_) => onTap(),
-                activeColor: Colors.blue,
+                activeColor: Theme.of(context).primaryColor,
               ),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
-                    color: Colors.black87,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
                     height: 1.2,
                   ),
                 ),

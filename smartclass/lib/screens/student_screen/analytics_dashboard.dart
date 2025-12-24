@@ -88,7 +88,9 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
   Widget build(BuildContext context) {
     Widget bodyChild;
     if (_isLoading) {
-      bodyChild = const Center(child: CircularProgressIndicator());
+      bodyChild =  Center(child: CircularProgressIndicator(
+        color: Theme.of(context).primaryColor,
+      ));
     } else if (_hasError) {
       bodyChild = SmartClassErrorPage(
         type: SmartClassErrorPage.mapToType(_errorObj),
@@ -105,6 +107,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
       );
     } else {
       bodyChild = RefreshIndicator(
+        color: Theme.of(context).primaryColor,
         onRefresh: _fetchResults,
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -143,7 +146,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
@@ -280,7 +283,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).cardColor,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
@@ -306,7 +309,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                           scrollDirection: Axis.horizontal,
                           child: DataTable(
                             headingRowColor: WidgetStateProperty.all(
-                              Colors.blue.shade50,
+                              Theme.of(context).scaffoldBackgroundColor,
                             ),
                             border: TableBorder.all(
                               color: Colors.grey.shade200,
@@ -349,7 +352,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.blue.shade50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           "Performance Analytics",
@@ -357,8 +360,6 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
         ),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: Colors.blue[600],
-        foregroundColor: Colors.white,
       ),
       body: bodyChild,
     );

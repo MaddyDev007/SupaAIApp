@@ -10,13 +10,13 @@ class ViewImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue.shade50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           'View Image',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
         ),
-        backgroundColor: Colors.blue,
+      
         iconTheme: IconThemeData(
           color: Colors.white, // <-- change back arrow color here
         ),
@@ -39,6 +39,8 @@ class ViewImage extends StatelessWidget {
                     color: Colors.grey.shade200,
                     child: Center(
                       child: CircularProgressIndicator(
+                        color: Theme.of(context).primaryColor,
+                        
                         strokeWidth: 2.5,
                         value: loadingProgress.expectedTotalBytes != null
                             ? loadingProgress.cumulativeBytesLoaded /

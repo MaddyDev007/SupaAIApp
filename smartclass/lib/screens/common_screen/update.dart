@@ -161,6 +161,11 @@ class _UpdatePageState extends State<UpdatePage> {
     required Function(String?) onChanged,
   }) {
     return DropdownButtonFormField<String>(
+      dropdownColor: Theme.of(context).cardColor,
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                    fontWeight: FontWeight.w500,
+                  ),
       value: value,
       items: items
           .map((item) => DropdownMenuItem(value: item, child: Text(item)))
@@ -174,24 +179,13 @@ class _UpdatePageState extends State<UpdatePage> {
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
-      filled: true,
-      fillColor: Colors.white,
-      floatingLabelStyle: const TextStyle(color: Colors.blueAccent),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.blue.shade100, width: 1.5),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.blue.shade400, width: 2),
-      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue.shade50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           "Update Profile",
@@ -201,7 +195,6 @@ class _UpdatePageState extends State<UpdatePage> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        backgroundColor: Colors.blue,
         centerTitle: true,
         iconTheme: const IconThemeData(
           color: Colors.white, // <-- change back arrow color here
@@ -251,7 +244,7 @@ class _UpdatePageState extends State<UpdatePage> {
                 child: ElevatedButton(
                   onPressed: _saving ? null : _updateProfile,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: Theme.of(context).primaryColor,
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),

@@ -30,17 +30,32 @@ class _StudentDashboardState extends State<StudentDashboard> {
   int a70 = (0.70 * 255).round();
   int a60 = (0.60 * 255).round();
 
-  late final List<Widget> allCards;
+  // late final List<Widget> allCards;
 
   @override
   void initState() {
     super.initState();
     userBox = Hive.box<UserModel>('userBox');
     userModel = userBox.get('profile');
+  }
+
+  void _onNavTapped(int index) {
+    if (index == 4) {
+      return pushWithAnimation(
+        context,
+        SemResultPage(profile: {"reg_no": userModel?.regNo}),
+      );
+    }
+    if (_selectedIndex != index) {
+      setState(() => _selectedIndex = index);
+    }
+  }
+
+  List<Widget> _buildAllCards() {
     final department = userModel?.department ?? "";
     final year = userModel?.year ?? "";
 
-    allCards = [
+    return [
       _dashboardCard(
         title: 'Start Quiz',
         subtitle: 'Test your knowledge',
@@ -95,18 +110,6 @@ class _StudentDashboardState extends State<StudentDashboard> {
     ];
   }
 
-  void _onNavTapped(int index) {
-    if (index == 4) {
-      return pushWithAnimation(
-        context,
-        SemResultPage(profile: {"reg_no": userModel?.regNo}),
-      );
-    }
-    if (_selectedIndex != index) {
-      setState(() => _selectedIndex = index);
-    }
-  }
-
   Widget _dashboardCard({
     required String title,
     required String subtitle,
@@ -119,7 +122,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         decoration: BoxDecoration(
-          color: Colors.white.withAlpha(a85),
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
@@ -143,16 +146,16 @@ class _StudentDashboardState extends State<StudentDashboard> {
               const SizedBox(height: 16),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 subtitle,
-                style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                style: TextStyle(fontSize: 14, color: Theme.of( context).textTheme.bodySmall?.color),
               ),
             ],
           ),
@@ -199,16 +202,12 @@ class _StudentDashboardState extends State<StudentDashboard> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FB),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(60),
         child: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF2196F3), Color(0xFF42A5F5)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+          decoration: BoxDecoration(
+            color: Theme.of(context).primaryColor,
             borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
           ),
           child: AppBar(
@@ -252,6 +251,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
       body: Builder(
         builder: (context) {
           final name = userModel?.name ?? "Student";
+          final allCards = _buildAllCards();
           final visibleCards = _getVisibleCards(allCards);
 
           return SingleChildScrollView(
@@ -267,10 +267,10 @@ class _StudentDashboardState extends State<StudentDashboard> {
               children: [
                 Text(
                   "Welcome $name 👋",
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w500,
-                    color: Colors.black87,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -316,14 +316,14 @@ class _StudentDashboardState extends State<StudentDashboard> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: Colors.white.withAlpha(a85),
+          color: Theme.of(context).scaffoldBackgroundColor.withAlpha(a85),
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(25),
             topRight: Radius.circular(25),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withAlpha(a05),
+              color: Theme.of(context).shadowColor.withAlpha(a05),
               blurRadius: 10,
               offset: const Offset(0, -3),
             ),
@@ -336,39 +336,54 @@ class _StudentDashboardState extends State<StudentDashboard> {
           ),
           child: NavigationBar(
             height: 70,
-            backgroundColor: Colors.white.withAlpha(a70),
-            indicatorColor: Colors.blue.shade100.withAlpha(a60),
+            backgroundColor: Theme.of(context).cardColor.withAlpha(a70),
+            indicatorColor: Theme.of(context).primaryColor.withAlpha(a25),
             selectedIndex: _selectedIndex,
             onDestinationSelected: _onNavTapped,
             labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
             labelTextStyle: WidgetStateProperty.all(
-              const TextStyle(color: Colors.blue),
+              TextStyle(color: Theme.of(context).primaryColor),
             ),
             destinations: [
               NavigationDestination(
                 icon: Icon(Icons.home_outlined),
                 label: "Home",
-                selectedIcon: Icon(Icons.home, color: Colors.blue),
+                selectedIcon: Icon(
+                  Icons.home,
+                  color: Theme.of(context).primaryColor,
+                ),
               ),
               NavigationDestination(
                 icon: Icon(Icons.picture_as_pdf_outlined),
                 label: "Materials",
-                selectedIcon: Icon(Icons.picture_as_pdf, color: Colors.blue),
+                selectedIcon: Icon(
+                  Icons.picture_as_pdf,
+                  color: Theme.of(context).primaryColor,
+                ),
               ),
               NavigationDestination(
                 icon: Icon(Icons.quiz_outlined),
                 label: "Quiz",
-                selectedIcon: Icon(Icons.quiz, color: Colors.blue),
+                selectedIcon: Icon(
+                  Icons.quiz,
+                  color: Theme.of(context).primaryColor,
+                ),
               ),
               NavigationDestination(
                 icon: Icon(Icons.chat_outlined),
                 label: "Chat",
-                selectedIcon: Icon(Icons.chat, color: Colors.blue),
+                selectedIcon: Icon(
+                  Icons.chat,
+                  color: Theme.of(context).primaryColor,
+                ),
               ),
               NavigationDestination(
                 icon: Icon(Icons.web_outlined),
                 label: "Sem Result",
-                selectedIcon: Icon(Icons.web_asset, color: Colors.blue),
+                selectedIcon: Icon(
+                  Icons.web_asset,
+                  color: Theme.of(context).primaryColor,
+                ),
               ),
             ],
           ),

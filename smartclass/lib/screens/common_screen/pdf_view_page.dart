@@ -17,7 +17,7 @@ class PDFViewerPage extends StatefulWidget {
 }
 
 class _PDFViewerPageState extends State<PDFViewerPage> {
-  late final PdfControllerPinch _pdfController;
+  PdfControllerPinch? _pdfController;
   bool _isLoading = true;
   bool _hasError = false;
   int _currentPage = 0;
@@ -29,48 +29,53 @@ class _PDFViewerPageState extends State<PDFViewerPage> {
     _initPdf();
   }
 
-  /// Downloads and opens the PDF efficiently.
+  /// Downloads and opens the PDF safely.
   Future<void> _initPdf() async {
     setState(() {
       _isLoading = true;
       _hasError = false;
+      _currentPage = 0;
+      _totalPages = 0;
     });
 
     try {
       final uri = Uri.tryParse(widget.pdfUrl);
-      if (uri == null) throw Exception('Invalid PDF URL.');
+      if (uri == null) throw Exception('Invalid PDF URL');
 
       final bytes = await http.readBytes(uri);
-
       final document = await PdfDocument.openData(bytes);
+
+      // Dispose previous controller if any
+      _pdfController?.dispose();
+
+      // Create new controller
       _pdfController = PdfControllerPinch(document: Future.value(document));
 
       if (!mounted) return;
       setState(() => _isLoading = false);
     } catch (e) {
+      debugPrint('❌ PDF load error: $e');
       if (!mounted) return;
       setState(() {
         _isLoading = false;
         _hasError = true;
       });
-      debugPrint('❌ PDF load error: $e');
     }
   }
 
   @override
   void dispose() {
-    _pdfController.dispose();
+    _pdfController?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue.shade50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(widget.title, style: const TextStyle(color: Colors.white)),
         centerTitle: true,
-        backgroundColor: Colors.blue,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
@@ -83,7 +88,11 @@ class _PDFViewerPageState extends State<PDFViewerPage> {
       body: AnimatedSwitcher(
         duration: const Duration(milliseconds: 250),
         child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ? Center(
+                child: CircularProgressIndicator(
+                  color: Theme.of(context).primaryColor,
+                ),
+              )
             : _hasError
                 ? _buildErrorView()
                 : _buildPdfView(),
@@ -91,7 +100,7 @@ class _PDFViewerPageState extends State<PDFViewerPage> {
     );
   }
 
-  /// Displays error message with retry option.
+  /// Error view with retry button
   Widget _buildErrorView() {
     return Center(
       child: Column(
@@ -109,7 +118,7 @@ class _PDFViewerPageState extends State<PDFViewerPage> {
             icon: const Icon(Icons.refresh),
             label: const Text('Retry'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
+              backgroundColor: Theme.of(context).primaryColor,
               foregroundColor: Colors.white,
             ),
           ),
@@ -118,13 +127,15 @@ class _PDFViewerPageState extends State<PDFViewerPage> {
     );
   }
 
-  /// Displays the loaded PDF with navigation controls.
+  /// PDF view with navigation controls
   Widget _buildPdfView() {
+    if (_pdfController == null) return const SizedBox();
+
     return Column(
       children: [
         Expanded(
           child: PdfViewPinch(
-            controller: _pdfController,
+            controller: _pdfController!,
             onDocumentLoaded: (details) {
               setState(() {
                 _totalPages = details.pagesCount;
@@ -136,7 +147,6 @@ class _PDFViewerPageState extends State<PDFViewerPage> {
             },
           ),
         ),
-
         // Bottom toolbar
         Container(
           color: Colors.white,
@@ -147,7 +157,7 @@ class _PDFViewerPageState extends State<PDFViewerPage> {
               IconButton(
                 icon: const Icon(Icons.chevron_left),
                 onPressed: _currentPage > 1
-                    ? () => _pdfController.previousPage(
+                    ? () => _pdfController!.previousPage(
                           curve: Curves.ease,
                           duration: const Duration(milliseconds: 200),
                         )
@@ -160,7 +170,7 @@ class _PDFViewerPageState extends State<PDFViewerPage> {
               IconButton(
                 icon: const Icon(Icons.chevron_right),
                 onPressed: _currentPage < _totalPages
-                    ? () => _pdfController.nextPage(
+                    ? () => _pdfController!.nextPage(
                           curve: Curves.ease,
                           duration: const Duration(milliseconds: 200),
                         )

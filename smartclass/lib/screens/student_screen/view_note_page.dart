@@ -80,13 +80,12 @@ class ViewNotePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue.shade50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           "View Note",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
         ),
-        backgroundColor: Colors.blue,
         iconTheme: IconThemeData(
           color: Colors.white, // <-- change back arrow color here
         ),
@@ -138,6 +137,7 @@ class ViewNotePage extends StatelessWidget {
                               color: Colors.grey.shade200,
                               child: Center(
                                 child: CircularProgressIndicator(
+                                  color: Theme.of(context).primaryColor,
                                   strokeWidth: 2.5,
                                   value:
                                       loadingProgress.expectedTotalBytes != null
@@ -199,9 +199,9 @@ class ViewNotePage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton.icon(
-                      icon: const Icon(Icons.edit, color: Colors.blue),
+                      icon:  Icon(Icons.edit, color: Theme.of(context).primaryColor),
                       label: const Text("Edit"),
-                      style: TextButton.styleFrom(foregroundColor: Colors.blue),
+                      style: TextButton.styleFrom(foregroundColor: Theme.of(context).primaryColor),
                       onPressed: onEdit,
                     ),
                     const SizedBox(width: 8),

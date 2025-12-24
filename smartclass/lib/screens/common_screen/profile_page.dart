@@ -16,10 +16,9 @@ class ProfilePage extends StatelessWidget {
     final student = profile;
 
     return Scaffold(
-      backgroundColor: const Color(0xfff5f7fb),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.blue,
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
           "My Profile",
@@ -44,9 +43,10 @@ class ProfilePage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text(
+          Text(
             'No profile found.',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500,
+            color: Theme.of(context).textTheme.bodySmall?.color,),
           ),
           const SizedBox(height: 20),
 
@@ -75,11 +75,11 @@ class ProfilePage extends StatelessWidget {
           width: double.infinity,
           constraints: const BoxConstraints(maxWidth: 450),
           decoration: BoxDecoration(
-            color: Colors.white.withAlpha((0.95 * 255).toInt()),
+            color: Theme.of(context).cardColor.withAlpha((0.95 * 255).toInt()),
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: Colors.blue.withAlpha((0.15 * 255).toInt()),
+                color: Theme.of(context).primaryColor.withAlpha((0.15 * 255).toInt()),
                 blurRadius: 15,
                 offset: const Offset(0, 8),
               ),
@@ -91,8 +91,8 @@ class ProfilePage extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 48,
-                  backgroundColor: Colors.blue.shade100,
-                  child: const Icon(Icons.person, size: 55, color: Colors.blue),
+                  backgroundColor: Theme.of(context).splashColor,
+                  child:Icon(Icons.person, size: 55, color: Theme.of(context).primaryColor),
                 ),
 
                 const SizedBox(height: 18),
@@ -109,24 +109,23 @@ class ProfilePage extends StatelessWidget {
                   student['email'] ?? "No Email",
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey.shade700,
+                    color: Theme.of(context).textTheme.bodySmall?.color,
                   ),
                 ),
 
                 const Divider(height: 30),
 
                 if (student['reg_no'] != null && student['reg_no'] != "")
-                  _infoTile(Icons.confirmation_number, "Register Number",
+                  _infoTile(context, Icons.confirmation_number, "Register Number",
                       student['reg_no']),
 
                 const SizedBox(height: 14),
-                _infoTile(Icons.school, "Department", student['department']),
+                _infoTile(context, Icons.school, "Department", student['department']),
+                const SizedBox(height: 14),
+                _infoTile(context, Icons.calendar_today, "Year", student['year']),
 
                 const SizedBox(height: 14),
-                _infoTile(Icons.calendar_today, "Year", student['year']),
-
-                const SizedBox(height: 14),
-                _infoTile(
+                _infoTile(context,
                   Icons.badge,
                   "Role",
                   student['role'].toString().contains("teacher")
@@ -144,7 +143,7 @@ class ProfilePage extends StatelessWidget {
                       icon: const Icon(Icons.update, color: Colors.white),
                       label: const Text("Update Profile", style: TextStyle(color: Colors.white),),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
+                        backgroundColor: Theme.of(context).primaryColor,
                       ),
                       onPressed: () => _pushAnimation(context, UpdatePage(
                         profile: student,
@@ -177,7 +176,7 @@ class ProfilePage extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: const [
-            Icon(Icons.logout_rounded, color: Colors.redAccent),
+            Icon(Icons.logout_rounded, color: Color(0xFFFF5252)),
             SizedBox(width: 10),
             Text('Confirm Logout'),
           ],
@@ -189,7 +188,7 @@ class ProfilePage extends StatelessWidget {
             onPressed: () => Navigator.pop(ctx, false),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: ElevatedButton.styleFrom(backgroundColor: Color(0xFFFF5252)),
             child: const Text('Yes, Logout', style: TextStyle(color: Colors.white),),
             onPressed: () => Navigator.pop(ctx, true),
           ),
@@ -240,16 +239,16 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _infoTile(IconData icon, String label, dynamic value) {
+  Widget _infoTile(BuildContext context,IconData icon, String label, dynamic value) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
+        color: Theme.of(context).scaffoldBackgroundColor,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          Icon(icon, color: Colors.blue.shade600, size: 22),
+          Icon(icon, color: Theme.of(context).primaryColor, size: 22),
           const SizedBox(width: 12),
           Expanded(
             child: Text(

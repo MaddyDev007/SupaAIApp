@@ -72,9 +72,9 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
   Future<void> _fetchMaterials() async {
     setState(() {
       _loading = true;
-      _hasError = false;     // ✅ reset
-    _errorObj = null;      // ✅ reset
-    _errorStack = null;
+      _hasError = false; // ✅ reset
+      _errorObj = null; // ✅ reset
+      _errorStack = null;
     });
 
     try {
@@ -109,7 +109,7 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
         _errorObj = e;
         _errorStack = st;
       });
-    }finally {
+    } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -144,19 +144,8 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-            title: Text(
-              title,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            content: Text(
-              message,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.black54,
-              ),
-            ),
+            title: Text(title, style: theme.textTheme.titleLarge),
+            content: Text(message),
             actionsPadding: const EdgeInsets.symmetric(
               horizontal: 12,
               vertical: 8,
@@ -173,7 +162,9 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
                 ),
               ),
               FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: confirmColor),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(context).primaryColor,
+                ),
                 onPressed: () => Navigator.pop(context, true),
                 child: Text(
                   confirmText,
@@ -218,21 +209,30 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
       // 🔄 Step 4: Refresh list
       await _fetchMaterials();
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text("File deleted successfully."),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+      if (!mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Theme.of(context).cardColor,
+            content: Text(
+              "File deleted successfully.",
+              style: TextStyle(color: Theme.of(context).highlightColor),
+            ),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
-        ),
-      );
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Failed to delete: $e"),
+          backgroundColor: Theme.of(context).cardColor,
+          content: Text(
+            "Failed to delete: $e",
+            style: TextStyle(color: Theme.of(context).highlightColor),
+          ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -248,9 +248,19 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
 
     if (uri == null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Invalid URL.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Theme.of(context).cardColor,
+          content: Text(
+            'Invalid URL.',
+            style: TextStyle(color: Theme.of(context).highlightColor),
+          ),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
       return;
     }
 
@@ -263,17 +273,38 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
 
       if (!launched && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open the material.')),
+          SnackBar(
+            backgroundColor: Theme.of(context).cardColor,
+            content: Text(
+              'Could not open the material.',
+              style: TextStyle(color: Theme.of(context).highlightColor),
+            ),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error opening material: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Theme.of(context).cardColor,
+            content: Text(
+              'Error opening material: $e',
+              style: TextStyle(color: Theme.of(context).highlightColor),
+            ),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
       }
     }
   }
+
   Future<void> _openMaterial(String url, String title) async {
     final uri = Uri.tryParse(url);
 
@@ -281,7 +312,8 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Invalid material link'),
+          backgroundColor: Theme.of(context).cardColor,
+          content: Text('Invalid material link', style: TextStyle(color: Theme.of(context).highlightColor)),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -365,142 +397,161 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
   }*/
 
   Future<void> _downloadMaterial(String url, String filename) async {
-  final progress = ValueNotifier<double?>(0.0); // 0..1 or null (indeterminate)
-  final cancelToken = CancelToken();
+    final progress = ValueNotifier<double?>(
+      0.0,
+    ); // 0..1 or null (indeterminate)
+    final cancelToken = CancelToken();
 
-  Future<void> showProgressDialog() async {
-    
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => WillPopScope(
-        onWillPop: () async => false,
-        child: AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Downloading…'),
-          content: ValueListenableBuilder<double?>(
-            valueListenable: progress,
-            builder: (_, p, __) {
-              final pct = p == null
-                  ? null
-                  : ((p * 100).clamp(0, 100)).toStringAsFixed(0);
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  LinearProgressIndicator(
-                    value: p, // null → indeterminate
-                    color: Colors.blue,
-                    backgroundColor: Colors.blue.shade100,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(pct == null ? 'Starting…' : '$pct%'),
-                ],
-              );
-            },
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => cancelToken.cancel('Cancelled by user'),
-              child: const Text('Cancel', style: TextStyle(color: Colors.blue)),
+    Future<void> showProgressDialog() async {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => WillPopScope(
+          onWillPop: () async => false,
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  try {
-    // 📂 Get the Downloads folder
-    final downloadsDir = Directory('/storage/emulated/0/Download');
-    if (!await downloadsDir.exists()) await downloadsDir.create(recursive: true);
-
-    String savePath = "${downloadsDir.path}/$filename";
-
-    // 🧠 Auto-rename if file already exists
-    int counter = 1;
-    while (await File(savePath).exists()) {
-      final dot = filename.lastIndexOf('.');
-      final base = dot > 0 ? filename.substring(0, dot) : filename;
-      final ext = dot > 0 ? filename.substring(dot) : '';
-      savePath = "${downloadsDir.path}/$base ($counter)$ext";
-      counter++;
-    }
-
-    // 🚀 Show dialog (don’t await so it runs in parallel)
-    progress.value = 0.0;
-    showProgressDialog();
-
-    // 📥 Download with progress + cancel
-    await Dio().download(
-      url,
-      savePath,
-      cancelToken: cancelToken,
-      onReceiveProgress: (received, total) {
-        if (total <= 0) {
-          progress.value = null; // indeterminate
-        } else {
-          progress.value = received / total;
-        }
-      },
-    );
-
-    // ✅ Close dialog
-    if (Navigator.of(context, rootNavigator: true).canPop()) {
-      Navigator.of(context, rootNavigator: true).pop();
-    }
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('✅ Downloaded to: $savePath'),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
-
-    // 📂 Open after download
-    await OpenFilex.open(savePath);
-  } on DioException catch (e) {
-    // Close dialog
-    if (Navigator.of(context, rootNavigator: true).canPop()) {
-      Navigator.of(context, rootNavigator: true).pop();
-    }
-
-    if (!mounted) return;
-    if (CancelToken.isCancel(e)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('⛔ Download cancelled'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('❌ Download failed: ${e.message}'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            title: const Text('Downloading…'),
+            content: ValueListenableBuilder<double?>(
+              valueListenable: progress,
+              builder: (_, p, __) {
+                final pct = p == null
+                    ? null
+                    : ((p * 100).clamp(0, 100)).toStringAsFixed(0);
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    LinearProgressIndicator(
+                      value: p, // null → indeterminate
+                      color: Theme.of(context).primaryColor,
+                      backgroundColor: Colors.blue.shade100,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(pct == null ? 'Starting…' : '$pct%'),
+                  ],
+                );
+              },
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => cancelToken.cancel('Cancelled by user'),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.blue),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
-  } catch (e) {
-    // Close dialog if open
-    if (Navigator.of(context, rootNavigator: true).canPop()) {
-      Navigator.of(context, rootNavigator: true).pop();
-    }
 
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('❌ Download failed: $e'),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+    try {
+      // 📂 Get the Downloads folder
+      final downloadsDir = Directory('/storage/emulated/0/Download');
+      if (!await downloadsDir.exists())
+        await downloadsDir.create(recursive: true);
+
+      String savePath = "${downloadsDir.path}/$filename";
+
+      // 🧠 Auto-rename if file already exists
+      int counter = 1;
+      while (await File(savePath).exists()) {
+        final dot = filename.lastIndexOf('.');
+        final base = dot > 0 ? filename.substring(0, dot) : filename;
+        final ext = dot > 0 ? filename.substring(dot) : '';
+        savePath = "${downloadsDir.path}/$base ($counter)$ext";
+        counter++;
+      }
+
+      // 🚀 Show dialog (don’t await so it runs in parallel)
+      progress.value = 0.0;
+      showProgressDialog();
+
+      // 📥 Download with progress + cancel
+      await Dio().download(
+        url,
+        savePath,
+        cancelToken: cancelToken,
+        onReceiveProgress: (received, total) {
+          if (total <= 0) {
+            progress.value = null; // indeterminate
+          } else {
+            progress.value = received / total;
+          }
+        },
+      );
+
+      // ✅ Close dialog
+      if (Navigator.of(context, rootNavigator: true).canPop()) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Theme.of(context).cardColor,
+          content: Text('✅ Downloaded to: $savePath', style: TextStyle(color: Theme.of(context).highlightColor)),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+
+      // 📂 Open after download
+      await OpenFilex.open(savePath);
+    } on DioException catch (e) {
+      // Close dialog
+      if (Navigator.of(context, rootNavigator: true).canPop()) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
+      if (!mounted) return;
+      if (CancelToken.isCancel(e)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Theme.of(context).cardColor,
+            content: Text('⛔ Download cancelled', style: TextStyle(color: Theme.of(context).highlightColor)),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Theme.of(context).cardColor,
+            content: Text('❌ Download failed: ${e.message}', style: TextStyle(color: Theme.of(context).highlightColor)),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      // Close dialog if open
+      if (Navigator.of(context, rootNavigator: true).canPop()) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Theme.of(context).cardColor,
+          content: Text('❌ Download failed: $e', style: TextStyle(color: Theme.of(context).highlightColor)),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
   }
-}
 
   Widget _buildMaterialCard(Map<String, dynamic> material, int index) {
     /* final blue = Colors.blue; */
@@ -518,7 +569,7 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
       child: SlideTransition(
         position: _listAnimation.drive(slideTween),
         child: Card(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           elevation: 3,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -553,16 +604,16 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
                     borderRadius: BorderRadius.circular(50),
                     child: Padding(
                       padding: const EdgeInsets.all(6),
-                      child: Icon(Icons.open_in_new, color: Colors.blue),
+                      child: Icon(Icons.open_in_new, color: Theme.of(context).primaryColor),
                     ),
                   ),
                   const SizedBox(width: 8),
                   InkWell(
                     onTap: () => _confirmAndDownload(url, "$subject.pdf"),
                     borderRadius: BorderRadius.circular(50),
-                    child: const Padding(
+                    child:  Padding(
                       padding: EdgeInsets.all(6),
-                      child: Icon(Icons.download, color: Colors.blue),
+                      child: Icon(Icons.download, color: Theme.of(context).primaryColor),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -588,9 +639,11 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
     if (_loading) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        children: const [
+        children:  [
           SizedBox(height: 160),
-          Center(child: CircularProgressIndicator()),
+          Center(child: CircularProgressIndicator(
+            color: Theme.of(context).primaryColor,
+          )),
           SizedBox(height: 300),
         ],
       );
@@ -624,7 +677,7 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
             type: SmartErrorType.notFound,
             title: 'No Question Bank yet',
             message: 'Try a different search or pull to refresh.',
-            onRetry: _fetchMaterials, 
+            onRetry: _fetchMaterials,
           ),
           // const SizedBox(height: 300),
         ],
@@ -643,31 +696,25 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
 
   @override
   Widget build(BuildContext context) {
-    final blue = Colors.blue;
     return Scaffold(
-      backgroundColor: blue.shade50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           'My Uploaded QN Banks',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
         ),
         centerTitle: true,
-        backgroundColor: blue,
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
       ),
       body: SafeArea(
         child: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [blue.shade50, Colors.white],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
+            color: Theme.of(context).scaffoldBackgroundColor,
           ),
           child: RefreshIndicator(
             onRefresh: _fetchMaterials,
-            color: blue,
+            color: Theme.of(context).primaryColor,
             child: Column(
               children: [
                 Padding(
@@ -680,20 +727,9 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
                     decoration: InputDecoration(
                       hintText: 'Search by subject...',
                       prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                      filled: true,
-                      fillColor: Colors.white,
+                    
                       contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.blue.shade100),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: Colors.blue.shade300,
-                          width: 1.5,
-                        ),
-                      ),
+                      
                     ),
                   ),
                 ),
@@ -704,6 +740,11 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
+                          dropdownColor: Theme.of(context).cardColor,
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                    fontWeight: FontWeight.w500,
+                  ),
                           value: _selectedDepartment,
                           items: _departments
                               .map(
@@ -723,6 +764,11 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
                       const SizedBox(width: 10),
                       Expanded(
                         child: DropdownButtonFormField<String>(
+                          dropdownColor: Theme.of(context).cardColor,
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                    fontWeight: FontWeight.w500,
+                  ),
                           value: _selectedYear,
                           items: _years
                               .map(
@@ -755,17 +801,9 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
   InputDecoration _dropdownDecoration(String hint) {
     return InputDecoration(
       hintText: hint,
-      filled: true,
-      fillColor: Colors.white,
+     
       contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.blue.shade100),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.blue.shade300, width: 1.5),
-      ),
+      
     );
   }
 }

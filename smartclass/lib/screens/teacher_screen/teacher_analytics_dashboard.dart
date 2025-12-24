@@ -80,7 +80,9 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
   Widget build(BuildContext context) {
     Widget bodyChild;
     if (_isLoading) {
-      bodyChild = const Center(child: CircularProgressIndicator());
+      bodyChild = Center(child: CircularProgressIndicator(
+         color: Theme.of(context).primaryColor,
+      ));
     } else if (_hasError) {
       bodyChild = SmartClassErrorPage(
         type: SmartClassErrorPage.mapToType(_errorObj),
@@ -97,6 +99,7 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
       );
     } else {
       bodyChild = RefreshIndicator(
+        color: Theme.of(context).primaryColor,
         onRefresh: _fetchAnalytics,
         child: Padding(
           padding: const EdgeInsets.all(14),
@@ -151,7 +154,7 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
       );
     }
     return Scaffold(
-      backgroundColor: Colors.blue.shade50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           "Teacher Analytics Dashboard",
@@ -159,8 +162,6 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
         ),
         centerTitle: true,
         elevation: 0,
-        backgroundColor: Colors.blue[600],
-        foregroundColor: Colors.white,
       ),
       body: bodyChild,
     );
@@ -276,7 +277,7 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: DataTable(
-            headingRowColor: WidgetStateProperty.all(Colors.blue.shade50),
+            headingRowColor: WidgetStateProperty.all(Theme.of(context).scaffoldBackgroundColor),
             border: TableBorder.all(color: Colors.grey.shade200),
             columns: const [
               DataColumn(label: Text("Student")),
@@ -313,7 +314,7 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(

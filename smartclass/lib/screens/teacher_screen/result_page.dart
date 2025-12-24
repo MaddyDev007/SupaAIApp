@@ -181,8 +181,8 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
       child: SlideTransition(
         position: _listAnimation.drive(slideTween),
         child: Card(
-          color: Colors.white,
-          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          color: Theme.of(context).cardColor,
+          margin: const EdgeInsets.symmetric(vertical: 8,),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
@@ -192,8 +192,8 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
               horizontal: 16,
               vertical: 12,
             ),
-            leading: const CircleAvatar(
-              backgroundColor: Colors.blue,
+            leading:  CircleAvatar(
+              backgroundColor: Theme.of(context).primaryColor,
               child: Icon(Icons.person, color: Colors.white),
             ),
             title: Text(
@@ -207,14 +207,14 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
             trailing: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.blue.shade100,
+                color: Theme.of(context).primaryColor.withAlpha((0.2 * 255).toInt()),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 "Score: ${result['score']}",
-                style: const TextStyle(
+                style:  TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue,
+                  color: Theme.of(context).primaryColor,
                 ),
               ),
             ),
@@ -229,9 +229,11 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
     if (isLoading) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        children: const [
+        children:  [
           SizedBox(height: 160),
-          Center(child: CircularProgressIndicator()),
+          Center(child: CircularProgressIndicator(
+            color: Theme.of(context).primaryColor,
+          )),
           SizedBox(height: 300),
         ],
       );
@@ -283,17 +285,15 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final blue = Colors.blue;
 
     return Scaffold(
-      backgroundColor: blue.shade50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           "Quiz Results",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
         ),
         centerTitle: true,
-        backgroundColor: blue,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
@@ -310,144 +310,93 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
           ),
         ],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [blue.shade50, Colors.white],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+      body: Column(
+        children: [
+          // Search + Clear
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: TextField(
+              onChanged: (val) {
+                searchQuery = val;
+                applyFilters();
+              },
+              decoration: InputDecoration(
+                hintText: "Search by name",
+                prefixIcon: const Icon(Icons.search, color: Colors.grey),  
+              ),
+            ),
           ),
-        ),
-        child: Column(
-          children: [
-            // Search + Clear
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: TextField(
-                onChanged: (val) {
-                  searchQuery = val;
-                  applyFilters();
-                },
-                decoration: InputDecoration(
-                  hintText: "Search by name",
-                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                  suffixIcon: searchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear, color: Colors.grey),
-                          onPressed: () {
-                            searchQuery = '';
-                            applyFilters();
-                          },
+          // Department & Year Dropdowns
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    dropdownColor: Theme.of(context).cardColor,
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                    fontWeight: FontWeight.w500,
+                  ),
+                    value: selectedDepartment,
+                    items: departmentOptions
+                        .map(
+                          (opt) =>
+                              DropdownMenuItem(value: opt, child: Text(opt)),
                         )
-                      : null,
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.blue.shade100),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: Colors.blue.shade300,
-                      width: 1.5,
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        selectedDepartment = val;
+                        applyFilters();
+                      }
+                    },
+                    decoration: InputDecoration(
+                      labelText: "Department",
+                      labelStyle: TextStyle(color: Theme.of(context).primaryColor),
                     ),
                   ),
                 ),
-              ),
-            ),
-            // Department & Year Dropdowns
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: selectedDepartment,
-                      items: departmentOptions
-                          .map(
-                            (opt) =>
-                                DropdownMenuItem(value: opt, child: Text(opt)),
-                          )
-                          .toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          selectedDepartment = val;
-                          applyFilters();
-                        }
-                      },
-                      decoration: InputDecoration(
-                        labelText: "Department",
-                        labelStyle: TextStyle(color: Colors.blue),
-                        filled: true,
-                        fillColor: Colors.white,
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.blue.shade100),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: Colors.blue.shade300,
-                            width: 1.5,
-                          ),
-                        ),
-                      ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    dropdownColor: Theme.of(context).cardColor,
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                    fontWeight: FontWeight.w500,
+                  ),
+                    value: selectedYear,
+                    items: yearOptions
+                        .map(
+                          (opt) =>
+                              DropdownMenuItem(value: opt, child: Text(opt)),
+                        )
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        selectedYear = val;
+                        applyFilters();
+                      }
+                    },
+                    decoration: InputDecoration(
+                      labelText: "Year",
+                      labelStyle: TextStyle(color: Theme.of(context).primaryColor),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: DropdownButtonFormField<String>(
-                      value: selectedYear,
-                      items: yearOptions
-                          .map(
-                            (opt) =>
-                                DropdownMenuItem(value: opt, child: Text(opt)),
-                          )
-                          .toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          selectedYear = val;
-                          applyFilters();
-                        }
-                      },
-                      decoration: InputDecoration(
-                        labelText: "Year",
-                        labelStyle: TextStyle(color: Colors.blue),
-                        filled: true,
-                        fillColor: Colors.white,
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.blue.shade100),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: Colors.blue.shade300,
-                            width: 1.5,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Results List
-            const SizedBox(height: 8),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: fetchResults,
-              color: blue,
-              child: _buildContent(),
+                ),
+              ],
             ),
           ),
-          ],
+          // Results List
+          const SizedBox(height: 8),
+        Expanded(
+          child: RefreshIndicator(
+            color: Theme.of(context).primaryColor,
+            onRefresh: fetchResults,
+            child: _buildContent(),
+          ),
         ),
+        ],
       ),
     );
   }

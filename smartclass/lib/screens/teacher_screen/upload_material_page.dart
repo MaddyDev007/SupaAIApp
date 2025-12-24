@@ -194,7 +194,11 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
         subjectCtrl.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('⚠️ Fill all fields and pick a PDF'),
+          backgroundColor: Theme.of(context).cardColor,
+          content: Text(
+            '⚠️ Fill all fields and pick a PDF',
+            style: TextStyle(color: Theme.of(context).highlightColor),
+          ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -259,7 +263,11 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('✅ Material uploaded successfully'),
+          backgroundColor: Theme.of(context).cardColor,
+          content: Text(
+            '✅ Material uploaded successfully',
+            style: TextStyle(color: Theme.of(context).highlightColor),
+          ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -274,7 +282,11 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('❌ Upload Error: $e'),
+          backgroundColor: Theme.of(context).cardColor,
+          content: Text(
+            '❌ Upload Error: $e',
+            style: TextStyle(color: Theme.of(context).highlightColor),
+          ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -289,7 +301,11 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('⚠️ Upload material first'),
+          backgroundColor: Theme.of(context).cardColor,
+          content: Text(
+            '⚠️ Upload material first',
+            style: TextStyle(color: Theme.of(context).highlightColor),
+          ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -339,7 +355,11 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('✅ Exam generated successfully'),
+          backgroundColor: Theme.of(context).cardColor,
+          content: Text(
+            '✅ Exam generated successfully',
+            style: TextStyle(color: Theme.of(context).highlightColor),
+          ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -354,7 +374,11 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('❌ Exam Generation Error: $e'),
+          backgroundColor: Theme.of(context).cardColor,
+          content: Text(
+            '❌ Exam Generation Error: $e',
+            style: TextStyle(color: Theme.of(context).highlightColor),
+          ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -369,7 +393,11 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('⚠️ Upload material first'),
+          backgroundColor: Theme.of(context).cardColor,
+          content: Text(
+            '⚠️ Upload material first',
+            style: TextStyle(color: Theme.of(context).highlightColor),
+          ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -437,7 +465,11 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('✅ Quiz generated successfully'),
+          backgroundColor: Theme.of(context).cardColor,
+          content: Text(
+            '✅ Quiz generated successfully',
+            style: TextStyle(color: Theme.of(context).highlightColor),
+          ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -452,7 +484,11 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('❌ Quiz Generation Error: $e'),
+          backgroundColor: Theme.of(context).cardColor,
+          content: Text(
+            '❌ Quiz Generation Error: $e',
+            style: TextStyle(color: Theme.of(context).highlightColor),
+          ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -464,10 +500,10 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
 
   @override
   Widget build(BuildContext context) {
-    final blue = Colors.blue;
+    final blue = Theme.of(context).primaryColor;
 
     return Scaffold(
-      backgroundColor: Colors.blue.shade50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           'Upload & Generate',
@@ -477,294 +513,219 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           color: Colors.white, // <-- change back arrow color here
         ),
         centerTitle: true,
-        backgroundColor: blue,
         elevation: 0,
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [blue.shade50, blue.shade50],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Card(
+          color: Theme.of(context).cardColor,
+          elevation: 6,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-        ),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Card(
-            color: Colors.white,
-            elevation: 6,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  DropdownButtonFormField<String>(
-                    value: _selectedDept,
-                    decoration: InputDecoration(
-                      labelText: 'Department',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      floatingLabelStyle: TextStyle(
-                        color: Colors
-                            .blueAccent, // 👈 Change label text color here
-                      ),
-                      suffixIconColor: Colors.grey,
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: Colors.blue.shade100,
-                          width: 1.5,
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: Colors.blue.shade300, // Color when focused
-                          width: 2,
-                        ),
-                      ),
-                    ),
-                    items: _departments
-                        .map((d) => DropdownMenuItem(value: d, child: Text(d)))
-                        .toList(),
-                    onChanged: (v) => setState(() => _selectedDept = v),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                DropdownButtonFormField<String>(
+                  value: _selectedDept,
+                  dropdownColor: Theme.of(context).cardColor,
+                  decoration: InputDecoration(
+                    labelText: 'Department',
+
+                    suffixIconColor: Colors.grey,
                   ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    value: _selectedYear,
-                    decoration: InputDecoration(
-                      labelText: 'Year',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      floatingLabelStyle: TextStyle(
-                        color: Colors
-                            .blueAccent, // 👈 Change label text color here
-                      ),
-                      suffixIconColor: Colors.grey,
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: Colors.blue.shade100,
-                          width: 1.5,
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: Colors.blue.shade300, // Color when focused
-                          width: 2,
-                        ),
-                      ),
-                    ),
-                    items: _years
-                        .map((y) => DropdownMenuItem(value: y, child: Text(y)))
-                        .toList(),
-                    onChanged: (v) => setState(() => _selectedYear = v),
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                    fontWeight: FontWeight.w500,
                   ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: subjectCtrl,
-                    decoration: InputDecoration(
-                      labelText: 'Subject',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      floatingLabelStyle: TextStyle(
-                        color: Colors
-                            .blueAccent, // 👈 Change label text color here
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: Colors.blue.shade100,
-                          width: 1.5,
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: Colors.blue.shade300, // Color when focused
-                          width: 2,
-                        ),
-                      ),
+                  items: _departments
+                      .map((d) => DropdownMenuItem(value: d, child: Text(d)))
+                      .toList(),
+                  onChanged: (v) => setState(() => _selectedDept = v),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: _selectedYear,
+                  decoration: InputDecoration(
+                    labelText: 'Year',
+                    suffixIconColor: Colors.grey,
+                  ),
+                  dropdownColor: Theme.of(context).cardColor,
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  items: _years
+                      .map((y) => DropdownMenuItem(value: y, child: Text(y)))
+                      .toList(),
+                  onChanged: (v) => setState(() => _selectedYear = v),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: subjectCtrl,
+                  decoration: InputDecoration(labelText: 'Subject'),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: pickPDF,
+                  icon: const Icon(Icons.attach_file, color: Colors.white),
+                  label: const Text(
+                    'Pick PDF',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).primaryColor,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  ElevatedButton.icon(
-                    onPressed: pickPDF,
-                    icon: const Icon(Icons.attach_file, color: Colors.white),
-                    label: const Text(
-                      'Pick PDF',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: blue,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
+                ),
+                const SizedBox(height: 10),
+                Center(
+                  child: Text(
+                    selectedFile?.name ?? 'No file selected',
+                    style: const TextStyle(fontStyle: FontStyle.italic),
                   ),
-                  const SizedBox(height: 10),
-                  Center(
-                    child: Text(
-                      selectedFile?.name ?? 'No file selected',
-                      style: const TextStyle(fontStyle: FontStyle.italic),
-                    ),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: uploading || uploaded ? null : uploadMaterialOnly,
+                  icon: Icon(
+                    uploading
+                        ? Icons.hourglass_empty
+                        : uploaded
+                        ? Icons.check_circle
+                        : Icons.upload_file_rounded,
+                    color: Colors.white,
                   ),
-                  const SizedBox(height: 20),
-                  ElevatedButton.icon(
-                    onPressed: uploading || uploaded
-                        ? null
-                        : uploadMaterialOnly,
-                    icon: Icon(
-                      uploading
-                          ? Icons.hourglass_empty
-                          : uploaded
-                          ? Icons.check_circle
-                          : Icons.upload_file_rounded,
-                      color: Colors.white,
-                    ),
-                    label: Text(
-                      uploading
-                          ? 'Uploading...'
-                          : uploaded
-                          ? 'Uploaded'
-                          : 'Upload Material',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                    style: ButtonStyle(
-                      backgroundColor: WidgetStateProperty.resolveWith((
-                        states,
-                      ) {
-                        // Force green even when disabled
-                        if (states.contains(WidgetState.disabled)) {
-                          return uploaded ? Colors.green : blue;
-                        }
+                  label: Text(
+                    uploading
+                        ? 'Uploading...'
+                        : uploaded
+                        ? 'Uploaded'
+                        : 'Upload Material',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  style: ButtonStyle(
+                    backgroundColor: WidgetStateProperty.resolveWith((states) {
+                      // Force green even when disabled
+                      if (states.contains(WidgetState.disabled)) {
                         return uploaded ? Colors.green : blue;
-                      }),
-                      foregroundColor: WidgetStateProperty.resolveWith((
-                        states,
-                      ) {
-                        return Colors
-                            .white; // keep text/icon white when disabled
-                      }),
-                      padding: WidgetStateProperty.all(
-                        const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      shape: WidgetStateProperty.all(
-                        RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                      }
+                      return uploaded ? Colors.green : blue;
+                    }),
+                    foregroundColor: WidgetStateProperty.resolveWith((states) {
+                      return Colors.white; // keep text/icon white when disabled
+                    }),
+                    padding: WidgetStateProperty.all(
+                      const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    shape: WidgetStateProperty.all(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                   ),
+                ),
 
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: generatingQuiz || quizGenerated
-                        ? null
-                        : generateQuiz,
-                    icon: generatingQuiz
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: Colors.white,
-                            ),
-                          )
-                        : Icon(
-                            quizGenerated ? Icons.check_circle : Icons.quiz,
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: generatingQuiz || quizGenerated
+                      ? null
+                      : generateQuiz,
+                  icon: generatingQuiz
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
                             color: Colors.white,
                           ),
-                    label: Text(
-                      generatingQuiz
-                          ? 'Generating Quiz...'
-                          : quizGenerated
-                          ? 'Quiz Generated'
-                          : 'Generate Quiz',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                    style: ButtonStyle(
-                      backgroundColor: WidgetStateProperty.resolveWith((
-                        states,
-                      ) {
-                        if (states.contains(WidgetState.disabled)) {
-                          return quizGenerated ? Colors.green : blue;
-                        }
+                        )
+                      : Icon(
+                          quizGenerated ? Icons.check_circle : Icons.quiz,
+                          color: Colors.white,
+                        ),
+                  label: Text(
+                    generatingQuiz
+                        ? 'Generating Quiz...'
+                        : quizGenerated
+                        ? 'Quiz Generated'
+                        : 'Generate Quiz',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                  style: ButtonStyle(
+                    backgroundColor: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.disabled)) {
                         return quizGenerated ? Colors.green : blue;
-                      }),
-                      foregroundColor: WidgetStateProperty.all(Colors.white),
-                      padding: WidgetStateProperty.all(
-                        const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      shape: WidgetStateProperty.all(
-                        RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                      }
+                      return quizGenerated ? Colors.green : blue;
+                    }),
+                    foregroundColor: WidgetStateProperty.all(Colors.white),
+                    padding: WidgetStateProperty.all(
+                      const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    shape: WidgetStateProperty.all(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                   ),
+                ),
 
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: generatingExam || examGenerated
-                        ? null
-                        : generateExam,
-                    icon: generatingExam
-                        ? SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: const CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: Colors.white,
-                            ),
-                          )
-                        : Icon(
-                            examGenerated
-                                ? Icons.check_circle
-                                : Icons.description,
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: generatingExam || examGenerated
+                      ? null
+                      : generateExam,
+                  icon: generatingExam
+                      ? SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: const CircularProgressIndicator(
+                            strokeWidth: 2.5,
                             color: Colors.white,
                           ),
-                    label: Text(
-                      generatingExam
-                          ? 'Generating Exam...'
-                          : examGenerated
-                          ? 'Exam Generated'
-                          : 'Generate Exam',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                    style: ButtonStyle(
-                      backgroundColor: WidgetStateProperty.resolveWith((
-                        states,
-                      ) {
-                        if (states.contains(WidgetState.disabled)) {
-                          // when button is disabled
-                          return examGenerated ? Colors.green : blue;
-                        }
-                        // when button is enabled
-                        return examGenerated ? Colors.green : blue;
-                      }),
-                      foregroundColor: WidgetStateProperty.all(Colors.white),
-                      padding: WidgetStateProperty.all(
-                        const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      shape: WidgetStateProperty.all(
-                        RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                        )
+                      : Icon(
+                          examGenerated
+                              ? Icons.check_circle
+                              : Icons.description,
+                          color: Colors.white,
                         ),
-                      ),
-                      overlayColor: WidgetStateProperty.all(Colors.transparent),
-                    ),
+                  label: Text(
+                    generatingExam
+                        ? 'Generating Exam...'
+                        : examGenerated
+                        ? 'Exam Generated'
+                        : 'Generate Exam',
+                    style: const TextStyle(color: Colors.white),
                   ),
-                ],
-              ),
+                  style: ButtonStyle(
+                    backgroundColor: WidgetStateProperty.resolveWith((states) {
+                      if (states.contains(WidgetState.disabled)) {
+                        // when button is disabled
+                        return examGenerated ? Colors.green : blue;
+                      }
+                      // when button is enabled
+                      return examGenerated ? Colors.green : blue;
+                    }),
+                    foregroundColor: WidgetStateProperty.all(Colors.white),
+                    padding: WidgetStateProperty.all(
+                      const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    shape: WidgetStateProperty.all(
+                      RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    overlayColor: WidgetStateProperty.all(Colors.transparent),
+                  ),
+                ),
+              ],
             ),
           ),
         ),

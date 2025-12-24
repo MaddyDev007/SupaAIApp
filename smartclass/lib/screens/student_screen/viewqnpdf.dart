@@ -161,7 +161,8 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Invalid material link'),
+           backgroundColor: Theme.of(context).cardColor,
+          content: Text('Invalid material link',style: TextStyle(color: Theme.of(context).highlightColor)),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -184,7 +185,7 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
     required String title,
     required String message,
     required String confirmText,
-    Color confirmColor = Colors.blue,
+    // Color confirmColor = Colors.blue,
   }) async {
     final theme = Theme.of(context);
     return (await showDialog<bool>(
@@ -195,16 +196,11 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
             ),
             title: Text(
               title,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
+              style: theme.textTheme.titleLarge
             ),
             content: Text(
               message,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.black54,
-              ),
+              
             ),
             actionsPadding: const EdgeInsets.symmetric(
               horizontal: 12,
@@ -222,7 +218,7 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
                 ),
               ),
               FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: confirmColor),
+                style: FilledButton.styleFrom(backgroundColor: Theme.of(context).primaryColor),
                 onPressed: () => Navigator.pop(context, true),
                 child: Text(
                   confirmText,
@@ -324,8 +320,8 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
                   children: [
                     LinearProgressIndicator(
                       value: p, // null → indeterminate
-                      color: Colors.blue,
-                      backgroundColor: Colors.blue.shade100,
+                      color: Theme.of(context).primaryColor,
+                      backgroundColor: Colors.blue.shade100.withAlpha((0.86 * 255).toInt()),
                     ),
                     const SizedBox(height: 12),
                     Text(pct == null ? 'Starting…' : '$pct%'),
@@ -392,7 +388,8 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('✅ Downloaded to: $savePath'),
+           backgroundColor: Theme.of(context).cardColor,
+          content: Text('✅ Downloaded to: $savePath',style: TextStyle(color: Theme.of(context).highlightColor)),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -412,7 +409,8 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
       if (CancelToken.isCancel(e)) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('⛔ Download cancelled'),
+             backgroundColor: Theme.of(context).cardColor,
+            content: Text('⛔ Download cancelled',style: TextStyle(color: Theme.of(context).highlightColor)),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -422,7 +420,8 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ Download failed: ${e.message}'),
+             backgroundColor: Theme.of(context).cardColor,
+            content: Text('❌ Download failed: ${e.message}',style: TextStyle(color: Theme.of(context).highlightColor)),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -439,7 +438,8 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('❌ Download failed: $e'),
+           backgroundColor: Theme.of(context).cardColor,
+          content: Text('❌ Download failed: $e',style: TextStyle(color: Theme.of(context).highlightColor)),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -450,7 +450,6 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
   }
 
   Widget _buildMaterialCard(Map<String, dynamic> material, int index) {
-    final blue = Colors.blue;
     final subject = material['subject'] ?? 'Untitled';
     final url = material['file_url'] as String;
 
@@ -464,7 +463,7 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
       child: SlideTransition(
         position: _listAnimation.drive(slideTween),
         child: Card(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           elevation: 3,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -499,7 +498,7 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
                     borderRadius: BorderRadius.circular(50),
                     child: Padding(
                       padding: const EdgeInsets.all(6),
-                      child: Icon(Icons.open_in_new, color: blue),
+                      child: Icon(Icons.open_in_new, color: Theme.of(context).primaryColor),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -508,7 +507,7 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
                     borderRadius: BorderRadius.circular(50),
                     child: Padding(
                       padding: const EdgeInsets.all(6),
-                      child: Icon(Icons.download, color: blue),
+                      child: Icon(Icons.download, color: Theme.of(context).primaryColor),
                     ),
                   ),
                 ],
@@ -525,9 +524,11 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
     if (_loading) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        children: const [
+        children: [
           SizedBox(height: 160),
-          Center(child: CircularProgressIndicator()),
+          Center(child: CircularProgressIndicator(
+            color: Theme.of(context).primaryColor,
+          )),
           SizedBox(height: 300),
         ],
       );
@@ -583,7 +584,7 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
     final blue = Colors.blue;
 
     return Scaffold(
-      backgroundColor: blue.shade50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           'Question Bank',
@@ -591,7 +592,6 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
         ),
         centerTitle: true,
         iconTheme: const IconThemeData(color: Colors.white),
-        backgroundColor: blue,
         elevation: 0,
       ),
       body: Column(
@@ -604,19 +604,9 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
                 hintText: 'Search by subject name...',
                 prefixIcon: const Icon(Icons.search, color: Colors.grey),
                 filled: true,
-                fillColor: Colors.white,
+                
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.blue.shade100),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: Colors.blue.shade300,
-                    width: 1.5,
-                  ),
-                ),
+                
               ),
             ),
           ),
@@ -624,7 +614,7 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
           Expanded(
             child: RefreshIndicator(
               onRefresh: _fetchMaterials,
-              color: blue,
+              color: Theme.of(context).primaryColor,
               child: _buildContent(),
             ),
           ),

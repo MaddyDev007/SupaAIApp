@@ -178,7 +178,7 @@ late Future<List<Map<String, dynamic>>> _notesFuture;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue.shade50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           "Notes",
@@ -187,16 +187,18 @@ late Future<List<Map<String, dynamic>>> _notesFuture;
         iconTheme: IconThemeData(
           color: Colors.white, // <-- change back arrow color here
         ),
-        backgroundColor: Colors.blue,
         centerTitle: true,
       ),
       body: RefreshIndicator(
+        color: Theme.of(context).primaryColor,
         onRefresh: _fetchNotes,
         child: FutureBuilder<List<Map<String, dynamic>>>(
           future: _notesFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return const Center(child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+              ));
             }
             if (snapshot.hasError) {
               return SmartClassErrorPage(
@@ -280,6 +282,7 @@ late Future<List<Map<String, dynamic>>> _notesFuture;
                                     Text(
                                       note['title'] ?? '',
                                       style: const TextStyle(
+                                        color: Colors.black87,
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -327,6 +330,7 @@ late Future<List<Map<String, dynamic>>> _notesFuture;
                                         color: Colors.grey.shade200,
                                         child: Center(
                                           child: CircularProgressIndicator(
+                                            color: Theme.of(context).primaryColor,
                                             strokeWidth: 2.5,
                                             value:
                                                 loadingProgress
@@ -427,7 +431,7 @@ late Future<List<Map<String, dynamic>>> _notesFuture;
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.blue,
+        backgroundColor: Theme.of(context).primaryColor,
         child: const Icon(Icons.add, color: Colors.white),
         onPressed: () => _openEditNotePage(),
       ),

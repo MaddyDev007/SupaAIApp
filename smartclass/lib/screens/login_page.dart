@@ -121,26 +121,17 @@ class _LoginPageState extends State<LoginPage> {
     return TextFormField(
       controller: controller,
       obscureText: obscure,
-      cursorColor: Colors.blue,
+      
       validator: validator,
       decoration: InputDecoration(
         labelText: label,
-        filled: true,
-        fillColor: Colors.white,
-        floatingLabelStyle: const TextStyle(color: Colors.blueAccent),
+       
         prefixIcon: Icon(
           label == "Email" ? Icons.email_outlined : Icons.lock_outline,
           color: Colors.grey,
         ),
         suffixIcon: suffixIcon,
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.blue.shade100, width: 1.5),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.blue.shade300, width: 2),
-        ),
+        
       ),
     );
   }
@@ -149,7 +140,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue.shade50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -157,14 +148,14 @@ class _LoginPageState extends State<LoginPage> {
             key: _formKey,
             child: Column(
               children: [
-                const Icon(Icons.school, size: 80, color: Colors.blue),
+                 Icon(Icons.school, size: 80, color: Theme.of(context).primaryColor),
                 const SizedBox(height: 20),
 
                 Text(
                   "Welcome Back",
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue,
+                        color: Theme.of(context).primaryColor,
                       ),
                 ),
 
@@ -217,7 +208,7 @@ class _LoginPageState extends State<LoginPage> {
                     onPressed: _isLoading ? null : _loginUser,
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 18),
-                      backgroundColor: Colors.blue,
+                      backgroundColor: Theme.of(context).primaryColor,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -273,10 +264,10 @@ class _LoginPageState extends State<LoginPage> {
                         context,
                         '/signup',
                       ),
-                      child: const Text(
+                      child: Text(
                         "Sign up",
                         style: TextStyle(
-                            fontWeight: FontWeight.bold, color: Colors.blue),
+                            fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor),
                       ),
                     ),
                   ],

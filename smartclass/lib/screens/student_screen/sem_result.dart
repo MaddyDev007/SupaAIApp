@@ -204,20 +204,10 @@ class _SemResultPageState extends State<SemResultPage> {
 
   Widget _txt(String t, TextEditingController c) => TextField(
     controller: c,
-    cursorColor: Colors.blue,
+    
     decoration: InputDecoration(
-      filled: true,
-      fillColor: Colors.white,
       labelText: t,
-      floatingLabelStyle: const TextStyle(color: Colors.blueAccent),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.blue.shade100, width: 1.5),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.blue.shade300, width: 2),
-      ),
+     
     ),
   );
 
@@ -276,7 +266,6 @@ class _SemResultPageState extends State<SemResultPage> {
     required String title,
     required String message,
     required String confirmText,
-    Color confirmColor = Colors.blue,
   }) async {
     final theme = Theme.of(context);
     return (await showDialog<bool>(
@@ -287,16 +276,11 @@ class _SemResultPageState extends State<SemResultPage> {
             ),
             title: Text(
               title,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
+              style: theme.textTheme.titleLarge
             ),
             content: Text(
               message,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: Colors.black54,
-              ),
+              
             ),
             actionsPadding: const EdgeInsets.symmetric(
               horizontal: 12,
@@ -315,7 +299,7 @@ class _SemResultPageState extends State<SemResultPage> {
               ),
               FilledButton(
                 style: FilledButton.styleFrom(
-                  backgroundColor: confirmColor,
+                  backgroundColor: Theme.of(context).primaryColor,
                 ),
                 onPressed: () => Navigator.pop(context, true),
                 child: Text(
@@ -389,7 +373,7 @@ class _SemResultPageState extends State<SemResultPage> {
     final data = result;
 
     return Scaffold(
-      backgroundColor: Colors.blue.shade50,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
           "Semester Results",
@@ -397,7 +381,6 @@ class _SemResultPageState extends State<SemResultPage> {
         ),
         iconTheme: const IconThemeData(color: Colors.white),
         centerTitle: true,
-        backgroundColor: Colors.blue,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -414,7 +397,7 @@ class _SemResultPageState extends State<SemResultPage> {
                 onPressed: _loading ? null : fetchResult,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 17),
-                  backgroundColor: Colors.blue,
+                  backgroundColor: Theme.of(context).primaryColor,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -544,8 +527,8 @@ class _SemResultPageState extends State<SemResultPage> {
                   children: [
                     _badge(
                       "Total: ${subs.length}",
-                      Colors.blue.shade100,
-                      Colors.blue,
+                      Theme.of(context).splashColor,
+                      Theme.of(context).primaryColor,
                     ),
                     const SizedBox(width: 8),
                     _badge("Pass: $pass", Colors.green.shade100, Colors.green),
@@ -568,7 +551,7 @@ class _SemResultPageState extends State<SemResultPage> {
                     
                     _btn(
                       () => _confirmAndDownload(data),
-                      Colors.blue,
+                      Theme.of(context).primaryColor,
                       Icons.download,
                       "Download",
                     ),
@@ -641,26 +624,11 @@ class _SemResultPageState extends State<SemResultPage> {
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: TextField(
                     controller: _search,
-                    autofocus: true,
+                    // autofocus: true,
                     decoration: InputDecoration(
                       prefixIcon: const Icon(Icons.search),
-                      filled: true,
-                      fillColor: Colors.white,
                       hintText: "Search name / code",
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: Colors.blue.shade100,
-                          width: 1.5,
-                        ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                          color: Colors.blue.shade300,
-                          width: 2,
-                        ),
-                      ),
+                      
                     ),
                     onChanged: (v) => setState(() => _query = v.toLowerCase()),
                   ),
