@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lottie/lottie.dart';
+import 'package:smartclass/screens/continueWithGoogle.dart';
 import 'package:smartclass/screens/login_page.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
@@ -105,7 +106,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       widget.onFinished!();
     } else {
       // Default action: replace with your route
-      replaceWithAnimation(context, const LoginPage());
+      replaceWithAnimation(context, const ContinueWithGoogle());
     }
   }
 

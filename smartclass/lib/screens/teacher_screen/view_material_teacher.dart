@@ -11,7 +11,8 @@ import 'package:url_launcher/url_launcher.dart';
 // import 'package:url_launcher/url_launcher.dart';
 
 class ViewMaterialsTeacherPage extends StatefulWidget {
-  const ViewMaterialsTeacherPage({super.key});
+  final String classId;
+  const ViewMaterialsTeacherPage({super.key, required this.classId});
 
   @override
   State<ViewMaterialsTeacherPage> createState() =>
@@ -31,24 +32,6 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
 
   final TextEditingController _searchController = TextEditingController();
 
-  String? _selectedDepartment = "All";
-  String? _selectedYear = "All";
-
-  final List<String> _departments = [
-    "All",
-    "CSE",
-    "ECE",
-    "EEE",
-    "MECH",
-    "CIVIL",
-  ];
-  final List<String> _years = [
-    "All",
-    "1st year",
-    "2nd year",
-    "3rd year",
-    "4th year",
-  ];
 
   late final AnimationController _listController;
   late final Animation<double> _listAnimation;
@@ -65,7 +48,7 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
       curve: Curves.easeOut,
     );
     _fetchMaterials();
-    _searchController.addListener(_applyFilters);
+    _searchController.addListener(_applySearch);
   }
 
   @override
@@ -75,21 +58,16 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
     super.dispose();
   }
 
-  void _applyFilters() {
+  void _applySearch() {
     final query = _searchController.text.toLowerCase();
     setState(() {
-      _filteredMaterials = _materials.where((mat) {
-        final subject = (mat['subject'] ?? '').toString().toLowerCase();
-        final dept = mat['department'];
-        final year = mat['year'];
-
-        final matchesSearch = subject.contains(query);
-        final matchesDept =
-            _selectedDepartment == "All" || _selectedDepartment == dept;
-        final matchesYear = _selectedYear == "All" || _selectedYear == year;
-
-        return matchesSearch && matchesDept && matchesYear;
-      }).toList();
+      _filteredMaterials = _materials
+          .where((m) =>
+              (m['subject'] ?? '')
+                  .toString()
+                  .toLowerCase()
+                  .contains(query))
+          .toList();
     });
   }
 
@@ -168,14 +146,16 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
 
       final data = await supabase
           .from('materials')
-          .select('id, subject, file_url, department, year, created_at')
-          .eq('teacher_id', user.id)
+          .select('id, subject, file_url, created_at')
+          .eq('class_id', widget.classId) // ✅ KEY CHANGE
+          .eq('uploaded_by', user.id)     // ✅ only creator
           .order('created_at', ascending: false)
           .timeout(
             const Duration(seconds: 12),
             onTimeout: () =>
                 throw TimeoutException('Materials fetch timed out'),
           );
+
 
       _materials = List<Map<String, dynamic>>.from(data);
       _filteredMaterials = _materials;
@@ -271,14 +251,15 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
       // 2️⃣ Fetch All Questions Linked to This Material
       final questions = await supabase
           .from('questions')
-          .select('id, file_url')
+          .select('file_url')
           .eq('material_id', id);
 
       // 3️⃣ Delete Each Question FILE From "questions" Bucket
       for (final q in questions) {
-        if (q['file_url'] != null && q['file_url'].toString().isNotEmpty) {
-          final fileName = q['file_url'].split('/questions/').last;
-          await supabase.storage.from('questions').remove([fileName]);
+        final file = q['file_url'];
+        if (file != null && file.toString().isNotEmpty) {
+          final name = file.split('/questions/').last;
+          await supabase.storage.from('questions').remove([name]);
         }
       }
 
@@ -332,56 +313,6 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
 
     if (confirm) await _downloadMaterial(url, filename);
   }
-
-  /* Future<void> _downloadMaterial(String url, String filename) async {
-    try {
-      // 📂 Get the user's Downloads folder
-      final downloadsDir = Directory('/storage/emulated/0/Download');
-
-      // Ensure the directory exists
-      if (!await downloadsDir.exists()) {
-        await downloadsDir.create(recursive: true);
-      }
-
-      String savePath = "${downloadsDir.path}/$filename";
-
-      // 🧠 Auto-rename if file already exists
-      int counter = 1;
-      while (await File(savePath).exists()) {
-        final nameWithoutExt = filename.split('.').first;
-        final ext = filename.contains('.')
-            ? '.${filename.split('.').last}'
-            : '';
-        savePath = "${downloadsDir.path}/$nameWithoutExt ($counter)$ext";
-        counter++;
-      }
-
-      // 📥 Download the file
-      await Dio().download(url, savePath);
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Downloaded to: $savePath'),
-      behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),));
-
-      // 📂 Open after download
-      await OpenFilex.open(savePath);
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Download failed: $e'),
-      behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),));
-    }
-  }
- */
 
    Future<void> _downloadMaterial(String url, String filename) async {
     final progress = ValueNotifier<double?>(
@@ -587,10 +518,6 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
                   fontSize: 16,
                 ),
               ),
-              subtitle: Text(
-                '${material['department']} • ${material['year']}',
-                style: const TextStyle(color: Colors.grey),
-              ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -725,61 +652,7 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        dropdownColor: Theme.of(context).cardColor,
-                  style: TextStyle(
-                    color: Theme.of(context).textTheme.bodyMedium?.color,
-                    fontWeight: FontWeight.w500,
-                  ),
-                        value: _selectedDepartment,
-                        items: _departments
-                            .map(
-                              (dept) => DropdownMenuItem(
-                                value: dept,
-                                child: Text(dept),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() => _selectedDepartment = value);
-                          _applyFilters();
-                        },
-                        decoration: _dropdownDecoration("Department"),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        dropdownColor: Theme.of(context).cardColor,
-                  style: TextStyle(
-                    color: Theme.of(context).textTheme.bodyMedium?.color,
-                    fontWeight: FontWeight.w500,
-                  ),
-                        value: _selectedYear,
-                        items: _years
-                            .map(
-                              (year) => DropdownMenuItem(
-                                value: year,
-                                child: Text(year),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() => _selectedYear = value);
-                          _applyFilters();
-                        },
-                        decoration: _dropdownDecoration("Year"),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              
               const SizedBox(height: 8),
               Expanded(child: _buildContent()),
             ],
@@ -789,12 +662,4 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
     );
   }
 
-  InputDecoration _dropdownDecoration(String hint) {
-    return InputDecoration(
-      hintText: hint,
-     
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-      
-    );
-  }
 }

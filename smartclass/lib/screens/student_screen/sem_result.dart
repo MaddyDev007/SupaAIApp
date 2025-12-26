@@ -10,8 +10,8 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 class SemResultPage extends StatefulWidget {
-  final Map<String, dynamic> profile;
-  const SemResultPage({super.key, required this.profile});
+  
+  const SemResultPage({super.key});
   @override
   State<SemResultPage> createState() => _SemResultPageState();
 }
@@ -36,7 +36,7 @@ class _SemResultPageState extends State<SemResultPage> {
       DeviceOrientation.portraitUp,
     ]);
     super.initState();
-    _reg.text = widget.profile["reg_no"];
+    // _reg.text = widget.profile["reg_no"];
   }
   @override
   void dispose() {

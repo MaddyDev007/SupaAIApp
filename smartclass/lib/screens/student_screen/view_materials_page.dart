@@ -1,24 +1,20 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:smartclass/screens/common_screen/pdf_view_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-// import 'package:url_launcher/url_launcher.dart';
 import 'package:dio/dio.dart';
-// import 'package:path_provider/path_provider.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'dart:async';
 import 'package:smartclass/screens/common_screen/error_page.dart';
 
 class ViewMaterialsPage extends StatefulWidget {
-  final String department;
-  final String year;
+  final String classId; // ✅ NEW
 
   const ViewMaterialsPage({
     super.key,
-    required this.department,
-    required this.year,
+    required this.classId,
   });
 
   @override
@@ -33,6 +29,7 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
   bool _hasError = false;
   Object? _errorObj;
   StackTrace? _errorStack;
+
   List<Map<String, dynamic>> _materials = [];
   List<Map<String, dynamic>> _filteredMaterials = [];
 
@@ -44,16 +41,18 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
   @override
   void initState() {
     super.initState();
+
     _listController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
+
     _listAnimation = CurvedAnimation(
       parent: _listController,
       curve: Curves.easeOut,
     );
-    _fetchMaterials();
 
+    _fetchMaterials();
     _searchController.addListener(_onSearchChanged);
   }
 
@@ -64,38 +63,42 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
     super.dispose();
   }
 
+  // ---------------- SEARCH ----------------
   void _onSearchChanged() {
     final query = _searchController.text.toLowerCase();
+
     setState(() {
       _filteredMaterials = _materials
           .where(
-            (mat) =>
-                (mat['subject'] ?? '').toString().toLowerCase().contains(query),
+            (m) =>
+                (m['subject'] ?? '')
+                    .toString()
+                    .toLowerCase()
+                    .contains(query),
           )
           .toList();
     });
   }
 
+  // ---------------- FETCH MATERIALS (CLASS-BASED) ----------------
   Future<void> _fetchMaterials() async {
     if (!mounted) return;
+
     setState(() {
       _loading = true;
       _hasError = false;
-      _errorObj = null;
-      _errorStack = null;
-      _materials = [];
-      _filteredMaterials = [];
+      _materials.clear();
+      _filteredMaterials.clear();
     });
 
     try {
       final user = supabase.auth.currentUser;
-      if (user == null) throw Exception("Not logged in");
+      if (user == null) throw Exception("User not logged in");
 
       final data = await supabase
           .from('materials')
-          .select('id, subject, file_url, department, year, created_at')
-          .eq('department', widget.department)
-          .eq('year', widget.year)
+          .select('id, subject, file_url, created_at')
+          .eq('class_id', widget.classId) // ✅ NEW
           .order('created_at', ascending: false)
           .timeout(
             const Duration(seconds: 12),
@@ -104,139 +107,88 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
           );
 
       final list = (data as List)
-          .map((item) => Map<String, dynamic>.from(item))
+          .map((e) => Map<String, dynamic>.from(e))
           .toList();
 
       if (!mounted) return;
+
       setState(() {
         _materials = list;
         _filteredMaterials = list;
       });
 
-      // kick the list animation after data is ready
       _listController.forward(from: 0);
     } on TimeoutException catch (e, st) {
-      if (!mounted) return;
-      setState(() {
-        _hasError = true;
-        _errorObj = e;
-        _errorStack = st;
-      });
+      _setError(e, st);
     } catch (e, st) {
-      if (!mounted) return;
-      setState(() {
-        _hasError = true;
-        _errorObj = e;
-        _errorStack = st;
-      });
+      _setError(e, st);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  Future<void> _openMaterialExternal(String url) async {
-    final uri = Uri.tryParse(url);
-
-    if (uri == null) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Invalid URL.')));
-      return;
-    }
-
-    // Try to launch externally (browser, PDF viewer, etc.)
-    try {
-      final launched = await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
-
-      if (!launched && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open the material.')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error opening material: $e')));
-      }
-    }
+  void _setError(Object e, StackTrace st) {
+    if (!mounted) return;
+    setState(() {
+      _hasError = true;
+      _errorObj = e;
+      _errorStack = st;
+    });
   }
 
+  // ---------------- OPEN MATERIAL ----------------
   Future<void> _openMaterial(String url, String title) async {
     final uri = Uri.tryParse(url);
-
     if (uri == null) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-           backgroundColor: Theme.of(context).cardColor,
-          content: Text('Invalid material link',style: TextStyle(color: Theme.of(context).highlightColor)),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+      _snack('Invalid material link');
       return;
     }
 
-    // 👇 Open in-app PDF viewer
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PDFViewerPage(pdfUrl: url, title: title),
+        builder: (_) => PDFViewerPage(pdfUrl: url, title: title),
       ),
     );
   }
 
-  Future<bool> _showModernConfirmDialog({
-    required String title,
-    required String message,
-    required String confirmText,
-  }) async {
-    final theme = Theme.of(context);
+  Future<void> _openMaterialExternal(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) {
+      _snack('Invalid URL');
+      return;
+    }
+
+    final launched = await launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication,
+    );
+
+    if (!launched && mounted) {
+      _snack('Could not open the material');
+    }
+  }
+
+  // ---------------- DOWNLOAD ----------------
+  Future<bool> _confirmDownload() async {
     return (await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-            title: Text(
-              title,
-              style: theme.textTheme.titleLarge
-            ),
-            content: Text(
-              message,
-             
-            ),
-            actionsPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 8,
+            title: const Text("Download Material"),
+            content: const Text(
+              "Do you want to download this file to your Downloads folder?",
             ),
             actions: [
               OutlinedButton(
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: Colors.transparent),
-                ),
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text(
-                  "Cancel",
-                  style: TextStyle(color: Colors.grey),
-                ),
+                child: const Text("Cancel"),
               ),
               FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: Theme.of(context).primaryColor,
-                ),
                 onPressed: () => Navigator.pop(context, true),
-                child: Text(
-                  confirmText,
-                  style: const TextStyle(color: Colors.white),
-                ),
+                child: const Text("Download"),
               ),
             ],
           ),
@@ -244,232 +196,96 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
         false;
   }
 
-  Future<void> _confirmAndDownload(String url, String filename) async {
-    final confirm = await _showModernConfirmDialog(
-      title: "Download Question Bank",
-      message: "Do you want to download this file to your Downloads folder?",
-      confirmText: "Download",
-    );
-
-    if (confirm) await _downloadMaterial(url, filename);
-  }
-
-  /* Future<void> _downloadMaterial(String url, String filename) async {
-    try {
-      // 📂 Get the user's Downloads folder
-      final downloadsDir = Directory('/storage/emulated/0/Download');
-
-      // Ensure the directory exists
-      if (!await downloadsDir.exists()) {
-        await downloadsDir.create(recursive: true);
-      }
-
-      String savePath = "${downloadsDir.path}/$filename";
-
-      // 🧠 Auto-rename if file already exists
-      int counter = 1;
-      while (await File(savePath).exists()) {
-        final nameWithoutExt = filename.split('.').first;
-        final ext = filename.contains('.')
-            ? '.${filename.split('.').last}'
-            : '';
-        savePath = "${downloadsDir.path}/$nameWithoutExt ($counter)$ext";
-        counter++;
-      }
-
-      // 📥 Download the file
-      await Dio().download(url, savePath);
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Downloaded to: $savePath'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
-
-      // 📂 Open after download
-      await OpenFilex.open(savePath);
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Download failed: $e'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
-    }
-  }
- */
-
   Future<void> _downloadMaterial(String url, String filename) async {
-    final progress = ValueNotifier<double?>(
-      0.0,
-    ); // 0..1 or null (indeterminate)
+    final confirm = await _confirmDownload();
+    if (!confirm) return;
+
+    final progress = ValueNotifier<double?>(0);
     final cancelToken = CancelToken();
 
-    Future<void> showProgressDialog() async {
+    Future<void> showProgress() async {
       await showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (_) => WillPopScope(
-          onWillPop: () async => false,
-          child: AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: const Text('Downloading…'),
-            content: ValueListenableBuilder<double?>(
-              valueListenable: progress,
-              builder: (_, p, __) {
-                final pct = p == null
-                    ? null
-                    : ((p * 100).clamp(0, 100)).toStringAsFixed(0);
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    LinearProgressIndicator(
-                      value: p, // null → indeterminate
-                      color: Colors.blue,
-                      backgroundColor: Colors.blue.shade100,
-                    ),
-                    const SizedBox(height: 12),
-                    Text(pct == null ? 'Starting…' : '$pct%'),
-                  ],
-                );
-              },
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => cancelToken.cancel('Cancelled by user'),
-                child: const Text(
-                  'Cancel',
-                  style: TextStyle(color: Colors.blue),
+        builder: (_) => AlertDialog(
+          title: const Text("Downloading…"),
+          content: ValueListenableBuilder<double?>(
+            valueListenable: progress,
+            builder: (_, p, __) => Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                LinearProgressIndicator(value: p),
+                const SizedBox(height: 12),
+                Text(
+                  p == null ? "Starting…" : "${(p * 100).toInt()}%",
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () => cancelToken.cancel(),
+              child: const Text("Cancel"),
+            ),
+          ],
         ),
       );
     }
 
     try {
-      // 📂 Get the Downloads folder
-      final downloadsDir = Directory('/storage/emulated/0/Download');
-      if (!await downloadsDir.exists()) {
-        await downloadsDir.create(recursive: true);
-      }
+      final dir = Directory('/storage/emulated/0/Download');
+      if (!await dir.exists()) await dir.create(recursive: true);
 
-      String savePath = "${downloadsDir.path}/$filename";
+      String savePath = "${dir.path}/$filename";
+      int i = 1;
 
-      // 🧠 Auto-rename if file already exists
-      int counter = 1;
       while (await File(savePath).exists()) {
-        final dot = filename.lastIndexOf('.');
-        final base = dot > 0 ? filename.substring(0, dot) : filename;
-        final ext = dot > 0 ? filename.substring(dot) : '';
-        savePath = "${downloadsDir.path}/$base ($counter)$ext";
-        counter++;
+        savePath = "${dir.path}/$filename ($i).pdf";
+        i++;
       }
 
-      // 🚀 Show dialog (don’t await so it runs in parallel)
-      progress.value = 0.0;
-      showProgressDialog();
+      progress.value = 0;
+      showProgress();
 
-      // 📥 Download with progress + cancel
       await Dio().download(
         url,
         savePath,
         cancelToken: cancelToken,
-        onReceiveProgress: (received, total) {
-          if (total <= 0) {
-            progress.value = null; // indeterminate
-          } else {
-            progress.value = received / total;
-          }
+        onReceiveProgress: (r, t) {
+          progress.value = t <= 0 ? null : r / t;
         },
       );
 
-      // ✅ Close dialog
       if (Navigator.of(context, rootNavigator: true).canPop()) {
         Navigator.of(context, rootNavigator: true).pop();
       }
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-           backgroundColor: Theme.of(context).cardColor,
-          content: Text('✅ Downloaded to: $savePath',style: TextStyle(color: Theme.of(context).highlightColor)),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
-
-      // 📂 Open after download
+      _snack("Downloaded to $savePath");
       await OpenFilex.open(savePath);
-    } on DioException catch (e) {
-      // Close dialog
-      if (Navigator.of(context, rootNavigator: true).canPop()) {
-        Navigator.of(context, rootNavigator: true).pop();
-      }
-
-      if (!mounted) return;
-      if (CancelToken.isCancel(e)) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-             backgroundColor: Theme.of(context).cardColor,
-            content: Text('⛔ Download cancelled',style: TextStyle(color: Theme.of(context).highlightColor)),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-             backgroundColor: Theme.of(context).cardColor,
-            content: Text('❌ Download failed: ${e.message}',style: TextStyle(color: Theme.of(context).highlightColor)),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
-      }
     } catch (e) {
-      // Close dialog if open
       if (Navigator.of(context, rootNavigator: true).canPop()) {
         Navigator.of(context, rootNavigator: true).pop();
       }
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-           backgroundColor: Theme.of(context).cardColor,
-          content: Text('❌ Download failed: $e',style: TextStyle(color: Theme.of(context).highlightColor)),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+      _snack("Download failed");
     }
   }
 
-  Widget _buildMaterialCard(Map<String, dynamic> material, int index) {
-    // final blue = Colors.blue;
+  void _snack(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        behavior: SnackBarBehavior.floating,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  // ---------------- MATERIAL CARD ----------------
+  Widget _buildMaterialCard(Map<String, dynamic> material) {
     final subject = material['subject'] ?? 'Untitled';
-    final url = material['file_url'] as String;
+    final url = material['file_url'];
 
     final slideTween = Tween<Offset>(
       begin: const Offset(0, 0.3),
@@ -481,22 +297,17 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
       child: SlideTransition(
         position: _listAnimation.drive(slideTween),
         child: Card(
-          color: Theme.of(context).cardColor,
           elevation: 3,
+          margin: const EdgeInsets.symmetric(vertical: 8),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          margin: const EdgeInsets.symmetric(vertical: 8),
           child: InkWell(
-            // Added InkWell for card tap
             onTap: () => _openMaterial(url, subject),
-            splashColor: Color.fromARGB(255, 196, 221, 254),
             borderRadius: BorderRadius.circular(12),
             child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
-              ),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               title: Text(
                 subject,
                 style: const TextStyle(
@@ -504,29 +315,17 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
                   fontSize: 16,
                 ),
               ),
-              subtitle: Text(
-                '${material['department']} • ${material['year']}',
-                style: const TextStyle(color: Colors.grey),
-              ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  InkWell(
-                    onTap: () => _openMaterialExternal(url),
-                    borderRadius: BorderRadius.circular(50),
-                    child: Padding(
-                      padding: const EdgeInsets.all(6),
-                      child: Icon(Icons.open_in_new, color:Theme.of(context).primaryColor),
-                    ),
+                  IconButton(
+                    icon: const Icon(Icons.open_in_new),
+                    onPressed: () => _openMaterialExternal(url),
                   ),
-                  const SizedBox(width: 8),
-                  InkWell(
-                    onTap: () => _confirmAndDownload(url, "$subject.pdf"),
-                    borderRadius: BorderRadius.circular(50),
-                    child: Padding(
-                      padding: const EdgeInsets.all(6),
-                      child: Icon(Icons.download, color: Theme.of(context).primaryColor),
-                    ),
+                  IconButton(
+                    icon: const Icon(Icons.download),
+                    onPressed: () =>
+                        _downloadMaterial(url, "$subject.pdf"),
                   ),
                 ],
               ),
@@ -537,108 +336,65 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
     );
   }
 
+  // ---------------- BODY ----------------
   Widget _buildContent() {
-    // Always return a scrollable so RefreshIndicator works
     if (_loading) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        children:  [
-          SizedBox(height: 160),
-          Center(child: CircularProgressIndicator(
-            color: Theme.of(context).primaryColor,
-          )),
-          SizedBox(height: 300),
-        ],
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_hasError) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          // const SizedBox(height: 80),
-          SmartClassErrorPage(
-            standalone: false,
-            type: SmartClassErrorPage.mapToType(_errorObj),
-            error: _errorObj,
-            stackTrace: _errorStack,
-            onRetry: _fetchMaterials,
-          ),
-          // const SizedBox(height: 300),
-        ],
+      return SmartClassErrorPage(
+        standalone: false,
+        type: SmartClassErrorPage.mapToType(_errorObj),
+        error: _errorObj,
+        stackTrace: _errorStack,
+        onRetry: _fetchMaterials,
       );
     }
 
     if (_filteredMaterials.isEmpty) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          // SizedBox(height: 120),
-          // Use your SmartClass not-found preset
-          SmartClassErrorPage(
-            standalone: false,
-            type: SmartErrorType.notFound,
-            title: 'No materials yet',
-            message: 'Try a different search or pull to refresh.',
-            onRetry: _fetchMaterials,
-          ),
-          // const SizedBox(height: 300),
-        ],
+      return SmartClassErrorPage(
+        standalone: false,
+        type: SmartErrorType.notFound,
+        title: "No materials yet",
+        message: "Pull to refresh or check back later.",
+        onRetry: _fetchMaterials,
       );
     }
 
-    // Data list
     return ListView.builder(
-      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16),
       itemCount: _filteredMaterials.length,
-      itemBuilder: (context, index) =>
-          _buildMaterialCard(_filteredMaterials[index], index),
+      itemBuilder: (_, i) => _buildMaterialCard(_filteredMaterials[i]),
     );
   }
 
+  // ---------------- BUILD ----------------
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text(
-          'Materials',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
-        ),
+        title: const Text("Materials"),
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Colors.white),
-        elevation: 0,
       ),
-      body: SafeArea(
-        child: Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
-          ),
-          child: RefreshIndicator(
-            onRefresh: _fetchMaterials,
-            color: Theme.of(context).primaryColor,
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                  child: TextField(
-                    controller: _searchController,
-                    // cursorColor: Colors.blueAccent,
-                    decoration: InputDecoration(
-                      hintText: 'Search by subject name...',
-                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                      filled: true,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                  ),
+      body: RefreshIndicator(
+        onRefresh: _fetchMaterials,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: TextField(
+                controller: _searchController,
+                decoration: const InputDecoration(
+                  hintText: "Search by subject name…",
+                  prefixIcon: Icon(Icons.search),
+                  filled: true,
                 ),
-                const SizedBox(height: 8),
-                Expanded(child: _buildContent()),
-              ],
+              ),
             ),
-          ),
+            const SizedBox(height: 8),
+            Expanded(child: _buildContent()),
+          ],
         ),
       ),
     );

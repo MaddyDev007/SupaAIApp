@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:hive_flutter/adapters.dart';
-import 'package:smartclass/models/user_model.dart';
+import 'package:smartclass/models/login_model.dart';
+// import 'package:smartclass/models/user_model.dart';
+import 'package:smartclass/screens/continueWithGoogle.dart';
 import 'package:smartclass/screens/onboarding.dart';
 import 'package:smartclass/screens/theme/dark_theme.dart';
 import 'package:smartclass/screens/theme/light_theme.dart';
@@ -15,10 +17,11 @@ import 'screens/teacher_screen/upload_material_page.dart';
 import 'screens/student_screen/quiz_page.dart';
 import 'screens/teacher_screen/result_page.dart';
 import 'screens/common_screen/chatbot_page.dart';
+import 'screens/common_screen/common_dashboard.dart';
 import 'dart:math';
 
-late Box<UserModel> userBox;
-UserModel? userModel;
+/* late Box<UserModel> userBox;
+UserModel? userModel; */
 
 void main() async {
   final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
@@ -26,8 +29,11 @@ void main() async {
 
   // ✅ Initialize Hive
   await Hive.initFlutter(); // (see note below about the import)
-  Hive.registerAdapter(UserModelAdapter());
-  userBox = await Hive.openBox<UserModel>('userBox');
+  Hive.registerAdapter(LoginModelAdapter());
+
+  await Hive.openBox<LoginModel>('loginBox');
+  // Hive.registerAdapter(UserModelAdapter());
+  // userBox = await Hive.openBox<UserModel>('userBox');
 
   // ✅ Initialize Supabase
   await Supabase.initialize(
@@ -69,31 +75,70 @@ class MyApp extends StatelessWidget {
 
       onGenerateRoute: (settings) {
         switch (settings.name) {
+          case '/commondashboard':
+            return MaterialPageRoute(builder: (_) => const CommonDashboard());
+
           case '/login':
             return MaterialPageRoute(builder: (_) => const LoginPage());
+
+          case '/loginGoogle':
+            return MaterialPageRoute(
+              builder: (_) => const ContinueWithGoogle(),
+            );
+
           case '/signup':
             return MaterialPageRoute(builder: (_) => const SignupPage());
+
+          // ❌ DO NOT open dashboards without classId
           case '/teacher-dashboard':
-            return MaterialPageRoute(builder: (_) => const TeacherDashboard());
+            {
+              final cls = settings.arguments as Map<String, dynamic>;
+              return MaterialPageRoute(
+                builder: (_) => TeacherDashboard(cls: cls),
+              );
+            }
+
           case '/student-dashboard':
-            return MaterialPageRoute(builder: (_) => const StudentDashboard());
+            {
+              final cls = settings.arguments as Map<String, dynamic>;
+              return MaterialPageRoute(
+                builder: (_) => StudentDashboard(cls: cls),
+              );
+            }
+
           case '/upload':
-            return MaterialPageRoute(
-              builder: (_) => const UploadMaterialPage(),
-            );
+            {
+              final cls = settings.arguments as Map<String, dynamic>;
+              return MaterialPageRoute(
+                builder: (_) => UploadMaterialPage(classId: cls['id']),
+              );
+            }
+
           case '/quiz':
-            final args = settings.arguments as Map<String, dynamic>;
-            return MaterialPageRoute(
-              builder: (_) => QuizPage(
-                department: args['department'],
-                year: args['year'],
-                quizId: args['quizId'],
-              ),
-            );
+            {
+              final args = settings.arguments as Map<String, dynamic>;
+              return MaterialPageRoute(
+                builder: (_) =>
+                    QuizPage(quizId: args['quizId'], classId: args['classId']),
+              );
+            }
+
           case '/results':
-            return MaterialPageRoute(builder: (_) => const ResultPage());
+            {
+              final args = settings.arguments as Map<String, dynamic>;
+              return MaterialPageRoute(
+                builder: (_) => ResultPage(classId: args['classId']),
+              );
+            }
+
           case '/chatbot':
-            return MaterialPageRoute(builder: (_) => const ChatbotPage());
+            {
+              final args = settings.arguments as Map<String, dynamic>;
+              return MaterialPageRoute(
+                builder: (_) => ChatbotPage(classId: args['classId']),
+              );
+            }
+
           case '/onboarding':
             return MaterialPageRoute(builder: (_) => const OnboardingScreen());
 
@@ -136,7 +181,7 @@ class _SplashRedirectorState extends State<SplashRedirector>
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
 
-    // ✅ Delay for splash
+    /* // ✅ Delay for splash
     await Future.delayed(const Duration(seconds: 3));
 
     // ✅ Load Hive profile
@@ -146,16 +191,24 @@ class _SplashRedirectorState extends State<SplashRedirector>
 
     // ✅ Check offline data first
     if (userModel != null && userModel!.role.isNotEmpty) {
-      final role = userModel!.role.toLowerCase();
-      if (role == 'teacher') {
-        Navigator.pushReplacementNamed(context, '/teacher-dashboard');
-      } else {
-        Navigator.pushReplacementNamed(context, '/student-dashboard');
-      }
+      // final role = userModel!.role.toLowerCase();
+       Navigator.pushReplacementNamed(context, '/commondashboard');
     } else {
       // ✅ Fallback to login if no local data
-      // Navigator.pushReplacementNamed(context, '/login');
-      Navigator.pushReplacementNamed(context, "/onboarding");
+      Navigator.pushReplacementNamed(context, '/loginGoogle');
+      // Navigator.pushReplacementNamed(context, "/onboarding");
+    } */
+
+    await Future.delayed(const Duration(seconds: 3));
+
+    final session = supabase.auth.currentSession;
+
+    if (!mounted) return;
+
+    if (session != null) {
+      Navigator.pushReplacementNamed(context, '/commondashboard');
+    } else {
+      Navigator.pushReplacementNamed(context, '/onboarding'); //onboarding
     }
   }
 

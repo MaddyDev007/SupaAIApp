@@ -9,7 +9,8 @@ import 'package:open_filex/open_filex.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ViewQNBankTeacherPage extends StatefulWidget {
-  const ViewQNBankTeacherPage({super.key});
+  final String classId;
+  const ViewQNBankTeacherPage({super.key, required this.classId});
 
   @override
   State<ViewQNBankTeacherPage> createState() => _ViewQNBankTeacherPageState();
@@ -27,27 +28,10 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
   List<Map<String, dynamic>> _filteredMaterials = [];
 
   String _searchQuery = "";
-  String? _selectedDepartment = "All";
-  String? _selectedYear = "All";
 
   late final AnimationController _listController;
   late final Animation<double> _listAnimation;
 
-  final List<String> _departments = [
-    "All",
-    "CSE",
-    "ECE",
-    "EEE",
-    "MECH",
-    "CIVIL",
-  ];
-  final List<String> _years = [
-    "All",
-    "1st year",
-    "2nd year",
-    "3rd year",
-    "4th year",
-  ];
 
   @override
   void initState() {
@@ -83,13 +67,14 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
 
       final data = await supabase
           .from('questions')
-          .select('id, subject, file_url, department, year, created_at')
-          .eq('teacher_id', user.id)
+          .select('id, subject, file_url, created_at')
+          .eq('class_id', widget.classId)      // ✅ KEY CHANGE
+          .eq('created_by', user.id)           // ✅ teacher only
           .order('created_at', ascending: false)
           .timeout(
             const Duration(seconds: 12),
             onTimeout: () =>
-                throw TimeoutException('Materials fetch timed out'),
+                throw TimeoutException('Question bank fetch timed out'),
           );
 
       _materials = List<Map<String, dynamic>>.from(data);
@@ -116,17 +101,9 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
 
   void _applyFilters() {
     setState(() {
-      _filteredMaterials = _materials.where((material) {
-        final subject = (material['subject'] ?? '').toLowerCase();
-        final dept = material['department'];
-        final year = material['year'];
-
-        final matchesSearch = subject.contains(_searchQuery.toLowerCase());
-        final matchesDept =
-            _selectedDepartment == "All" || _selectedDepartment == dept;
-        final matchesYear = _selectedYear == "All" || _selectedYear == year;
-
-        return matchesSearch && matchesDept && matchesYear;
+      _filteredMaterials = _materials.where((m) {
+        final subject = (m['subject'] ?? '').toLowerCase();
+        return subject.contains(_searchQuery.toLowerCase());
       }).toList();
     });
   }
@@ -343,58 +320,6 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
     if (confirm) await _downloadMaterial(url, filename);
   }
 
-  /* Future<void> _downloadMaterial(String url, String filename) async { 
-    try {
-      // 📂 Get the user's Downloads folder
-      final downloadsDir = Directory('/storage/emulated/0/Download');
-
-      // Ensure the directory exists
-      if (!await downloadsDir.exists()) {
-        await downloadsDir.create(recursive: true);
-      }
-
-      String savePath = "${downloadsDir.path}/$filename";
-
-      // 🧠 Auto-rename if file already exists
-      int counter = 1;
-      while (await File(savePath).exists()) {
-        final nameWithoutExt = filename.split('.').first;
-        final ext = filename.contains('.')
-            ? '.${filename.split('.').last}'
-            : '';
-        savePath = "${downloadsDir.path}/$nameWithoutExt ($counter)$ext";
-        counter++;
-      }
-
-      // 📥 Download the file
-      await Dio().download(url, savePath);
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Downloaded to: $savePath'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
-
-      // 📂 Open after download
-      await OpenFilex.open(savePath);
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Download failed: $e'),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
-    }
-  }*/
 
   Future<void> _downloadMaterial(String url, String filename) async {
     final progress = ValueNotifier<double?>(
@@ -592,10 +517,6 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
                   fontSize: 16,
                 ),
               ),
-              subtitle: Text(
-                '${material['department']} • ${material['year']}',
-                style: const TextStyle(color: Colors.grey),
-              ),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -734,61 +655,6 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
                   ),
                 ),
                 const SizedBox(height: 8),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          dropdownColor: Theme.of(context).cardColor,
-                  style: TextStyle(
-                    color: Theme.of(context).textTheme.bodyMedium?.color,
-                    fontWeight: FontWeight.w500,
-                  ),
-                          value: _selectedDepartment,
-                          items: _departments
-                              .map(
-                                (dept) => DropdownMenuItem(
-                                  value: dept,
-                                  child: Text(dept),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            setState(() => _selectedDepartment = value);
-                            _applyFilters();
-                          },
-                          decoration: _dropdownDecoration("Department"),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          dropdownColor: Theme.of(context).cardColor,
-                  style: TextStyle(
-                    color: Theme.of(context).textTheme.bodyMedium?.color,
-                    fontWeight: FontWeight.w500,
-                  ),
-                          value: _selectedYear,
-                          items: _years
-                              .map(
-                                (year) => DropdownMenuItem(
-                                  value: year,
-                                  child: Text(year),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            setState(() => _selectedYear = value);
-                            _applyFilters();
-                          },
-                          decoration: _dropdownDecoration("Year"),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
                 Expanded(child: _buildContent()),
               ],
             ),
@@ -798,12 +664,4 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
     );
   }
 
-  InputDecoration _dropdownDecoration(String hint) {
-    return InputDecoration(
-      hintText: hint,
-     
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-      
-    );
-  }
 }

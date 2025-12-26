@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:smartclass/screens/common_screen/error_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -7,7 +6,12 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 
 class TeacherAnalyticsPage extends StatefulWidget {
-  const TeacherAnalyticsPage({super.key});
+  final String classId; // ✅ NEW
+
+  const TeacherAnalyticsPage({
+    super.key,
+    required this.classId,
+  });
 
   @override
   State<TeacherAnalyticsPage> createState() => _TeacherAnalyticsPageState();
@@ -15,11 +19,12 @@ class TeacherAnalyticsPage extends StatefulWidget {
 
 class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
   final supabase = Supabase.instance.client;
+
   List<Map<String, dynamic>> studentPerformance = [];
   bool _isLoading = true;
-  Object? _errorObj; // 👈 add
-  StackTrace? _errorStack; // 👈 add
   bool _hasError = false;
+  Object? _errorObj;
+  StackTrace? _errorStack;
 
   @override
   void initState() {
@@ -27,31 +32,39 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
     _fetchAnalytics();
   }
 
+  // ---------------- FETCH (CLASS-BASED) ----------------
   Future<void> _fetchAnalytics() async {
-    final user = supabase.auth.currentUser;
-    if (user == null) {
-      setState(() {
-        _hasError = true;
-        _errorObj = Exception('Not signed in');
-        _errorStack = StackTrace.current;
-        _isLoading = false;
-      });
-      return;
-    }
-    final teacherId = user.id;
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+      _errorObj = null;
+      _errorStack = null;
+    });
+
     try {
+      final user = supabase.auth.currentUser;
+      if (user == null) throw Exception('Not signed in');
+
       final data = await supabase
           .from('results')
           .select(
-            'score, student_id, subject, quiz_id, created_at, quizzes!inner(created_by), profiles!inner(name)',
+            '''
+            score,
+            subject,
+            quiz_id,
+            created_at,
+            users!inner(name)
+            ''',
           )
-          .eq('quizzes.created_by', teacherId)
+          .eq('class_id', widget.classId) // ✅ KEY CHANGE
+          .order('created_at', ascending: true)
           .timeout(
             const Duration(seconds: 15),
             onTimeout: () =>
                 throw TimeoutException('Analytics fetch timed out'),
           );
 
+      if (!mounted) return;
       setState(() {
         studentPerformance = List<Map<String, dynamic>>.from(data);
         _isLoading = false;
@@ -67,7 +80,8 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
     }
   }
 
-  double _calculateAverageScore() {
+  // ---------------- STATS ----------------
+  double _averageScore() {
     if (studentPerformance.isEmpty) return 0;
     final total = studentPerformance.fold<int>(
       0,
@@ -76,13 +90,31 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
     return total / studentPerformance.length;
   }
 
+  int _uniqueStudents() {
+    return studentPerformance
+        .map((e) => e['users']?['name'])
+        .toSet()
+        .length;
+  }
+
+  int _uniqueQuizzes() {
+    return studentPerformance
+        .map((e) => e['quiz_id'])
+        .toSet()
+        .length;
+  }
+
+  // ---------------- BUILD ----------------
   @override
   Widget build(BuildContext context) {
     Widget bodyChild;
+
     if (_isLoading) {
-      bodyChild = Center(child: CircularProgressIndicator(
-         color: Theme.of(context).primaryColor,
-      ));
+      bodyChild = Center(
+        child: CircularProgressIndicator(
+          color: Theme.of(context).primaryColor,
+        ),
+      );
     } else if (_hasError) {
       bodyChild = SmartClassErrorPage(
         type: SmartClassErrorPage.mapToType(_errorObj),
@@ -94,7 +126,7 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
       bodyChild = SmartClassErrorPage(
         type: SmartErrorType.notFound,
         title: 'No results yet',
-        message: 'Students didnot take any quizzes yet.',
+        message: 'Students have not taken any quizzes in this class.',
         onRetry: _fetchAnalytics,
       );
     } else {
@@ -107,32 +139,24 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                /// 🔹 Summary Cards
+                // ---------- SUMMARY CARDS ----------
                 Row(
                   children: [
                     _buildStatCard(
                       "Total Students",
-                      studentPerformance
-                          .map((e) => e['student_id'])
-                          .toSet()
-                          .length
-                          .toString(),
+                      _uniqueStudents().toString(),
                       Colors.blue,
                       Icons.people,
                     ),
                     _buildStatCard(
                       "Quizzes Taken",
-                      studentPerformance
-                          .map((e) => e['quiz_id'])
-                          .toSet()
-                          .length
-                          .toString(),
+                      _uniqueQuizzes().toString(),
                       Colors.green,
                       Icons.assignment,
                     ),
                     _buildStatCard(
                       "Avg Score",
-                      _calculateAverageScore().toStringAsFixed(1),
+                      _averageScore().toStringAsFixed(1),
                       Colors.orange,
                       Icons.bar_chart,
                     ),
@@ -140,12 +164,12 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
                 ),
                 const SizedBox(height: 24),
 
-                /// 🔹 Performance Chart
+                // ---------- CHART ----------
                 _buildPerformanceChart(),
 
                 const SizedBox(height: 24),
 
-                /// 🔹 Detailed Table
+                // ---------- TABLE ----------
                 _buildDetailedTable(),
               ],
             ),
@@ -153,11 +177,12 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
         ),
       );
     }
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text(
-          "Teacher Analytics Dashboard",
+          "Class Performance Analytics",
           style: TextStyle(fontWeight: FontWeight.w500),
         ),
         centerTitle: true,
@@ -167,7 +192,7 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
     );
   }
 
-  /// 📊 Performance Chart Widget
+  // ---------------- CHART ----------------
   Widget _buildPerformanceChart() {
     return _buildCard(
       title: "Student Performance",
@@ -180,7 +205,7 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
             child: BarChart(
               BarChartData(
                 minY: 0,
-                maxY: 11.5,
+                maxY: 11,
                 gridData: FlGridData(show: false),
                 borderData: FlBorderData(show: false),
                 titlesData: FlTitlesData(
@@ -198,22 +223,21 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
                       },
                     ),
                   ),
-                  rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
+                  rightTitles:
+                      const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles:
+                      const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
                       getTitlesWidget: (value, _) {
-                        int index = value.toInt();
-                        if (index < 0 || index >= studentPerformance.length) {
+                        final index = value.toInt();
+                        if (index < 0 ||
+                            index >= studentPerformance.length) {
                           return const SizedBox();
                         }
                         return Text(
-                          studentPerformance[index]['profiles']?['name'] ?? "-",
+                          studentPerformance[index]['users']?['name'] ?? "-",
                           style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w500,
@@ -223,8 +247,9 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
                     ),
                   ),
                 ),
-                barGroups: studentPerformance.asMap().entries.map((entry) {
-                  int index = entry.key;
+                barGroups:
+                    studentPerformance.asMap().entries.map((entry) {
+                  final index = entry.key;
                   final score = (entry.value['score'] ?? 0) as int;
                   return BarChartGroupData(
                     x: index,
@@ -240,19 +265,18 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
                         borderRadius: BorderRadius.circular(6),
                       ),
                     ],
-                    showingTooltipIndicators: [0],
                   );
                 }).toList(),
                 barTouchData: BarTouchData(
                   enabled: true,
                   touchTooltipData: BarTouchTooltipData(
-                    getTooltipColor: (group) => Colors.transparent,
+                    getTooltipColor: (_) => Colors.transparent,
                     tooltipPadding: EdgeInsets.zero,
                     tooltipMargin: 0,
-                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                    getTooltipItem: (group, _, rod, __) {
+                      final data = studentPerformance[group.x];
                       return BarTooltipItem(
-                        "${rod.toY.toInt()} / 10 \n ${studentPerformance[group.x]['subject'] ?? "-"}",
-
+                        "${rod.toY.toInt()} / 10\n${data['subject'] ?? "-"}",
                         const TextStyle(
                           fontWeight: FontWeight.w500,
                           fontSize: 10,
@@ -269,47 +293,45 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
     );
   }
 
-  /// 📋 Detailed Table Widget
+  // ---------------- TABLE ----------------
   Widget _buildDetailedTable() {
     return _buildCard(
       title: "Detailed Results",
-      child: Center(
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: DataTable(
-            headingRowColor: WidgetStateProperty.all(Theme.of(context).scaffoldBackgroundColor),
-            border: TableBorder.all(color: Colors.grey.shade200),
-            columns: const [
-              DataColumn(label: Text("Student")),
-              DataColumn(label: Text("Subject")),
-              DataColumn(label: Text("Score")),
-              DataColumn(label: Text("Date")),
-            ],
-            rows: studentPerformance.map((e) {
-              return DataRow(
-                cells: [
-                  DataCell(Text(e['profiles']?['name'] ?? "")),
-                  DataCell(Text(e['subject'] ?? "")),
-                  DataCell(Text("${e['score']}/10")),
-                  DataCell(
-                    Text(
-                      e['created_at'] != null
-                          ? DateFormat(
-                              'dd-MM-yyyy',
-                            ).format(DateTime.parse(e['created_at']))
-                          : "",
-                    ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          headingRowColor:
+              WidgetStateProperty.all(Theme.of(context).scaffoldBackgroundColor),
+          border: TableBorder.all(color: Colors.grey.shade200),
+          columns: const [
+            DataColumn(label: Text("Student")),
+            DataColumn(label: Text("Subject")),
+            DataColumn(label: Text("Score")),
+            DataColumn(label: Text("Date")),
+          ],
+          rows: studentPerformance.map((e) {
+            return DataRow(
+              cells: [
+                DataCell(Text(e['users']?['name'] ?? "")),
+                DataCell(Text(e['subject'] ?? "")),
+                DataCell(Text("${e['score']}/10")),
+                DataCell(
+                  Text(
+                    e['created_at'] != null
+                        ? DateFormat('dd-MM-yyyy')
+                            .format(DateTime.parse(e['created_at']))
+                        : "",
                   ),
-                ],
-              );
-            }).toList(),
-          ),
+                ),
+              ],
+            );
+          }).toList(),
         ),
       ),
     );
   }
 
-  /// 📦 Reusable Card
+  // ---------------- CARD ----------------
   Widget _buildCard({required String title, required Widget child}) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -329,7 +351,8 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
         children: [
           Text(
             title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style:
+                const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           child,
@@ -338,7 +361,7 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
     );
   }
 
-  /// 🔹 Summary Stat Card
+  // ---------------- STAT CARD ----------------
   Widget _buildStatCard(
     String title,
     String value,
@@ -364,7 +387,8 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
           ],
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+          padding:
+              const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

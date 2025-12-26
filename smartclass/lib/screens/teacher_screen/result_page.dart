@@ -5,7 +5,8 @@ import 'package:smartclass/screens/common_screen/error_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ResultPage extends StatefulWidget {
-  const ResultPage({super.key});
+    final String classId; 
+  const ResultPage({super.key, required this.classId});
 
   @override
   State<ResultPage> createState() => _ResultPageState();
@@ -22,25 +23,9 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
 
   String searchQuery = '';
   String sortOption = 'Default';
-  String selectedDepartment = 'All';
-  String selectedYear = 'All';
 
   final List<String> sortOptions = ['Default', 'High → Low', 'Low → High'];
-  final List<String> departmentOptions = [
-    'All',
-    'CSE',
-    'ECE',
-    'MECH',
-    'EEE',
-    'CIVIL',
-  ]; // example departments
-  final List<String> yearOptions = [
-    'All',
-    '1st year',
-    '2nd year',
-    '3rd year',
-    '4th year',
-  ]; // example years
+  
 
   late final AnimationController _listController;
   late final Animation<double> _listAnimation;
@@ -90,18 +75,24 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
 
   try {
     final response = await supabase
-        .from('results')
-        .select(
-          'id, score, quiz_id, subject, student_id, created_at, ' // ← include created_at
-          'profiles(name, email, department, year), '
-          'quizzes!inner(created_by)',
-        )
-        .eq('quizzes.created_by', teacherId)
-        .order('created_at', ascending: false)
-        .timeout(
-          const Duration(seconds: 12),
-          onTimeout: () => throw TimeoutException('Results fetch timed out'),
-        );
+          .from('results')
+          .select(
+            '''
+            id,
+            score,
+            subject,
+            student_id,
+            created_at,
+            users!inner(name, email)
+            ''',
+          )
+          .eq('class_id', widget.classId) // ✅ KEY CHANGE
+          .order('created_at', ascending: false)
+          .timeout(
+            const Duration(seconds: 12),
+            onTimeout: () =>
+                throw TimeoutException('Results fetch timed out'),
+          );
 
     results = List<Map<String, dynamic>>.from(response);
     filteredResults = List.from(results);
@@ -130,17 +121,9 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
 
   void applyFilters() {
     filteredResults = results.where((result) {
-      final profile = result['profiles'] ?? {};
-      final name = (profile['name'] ?? '').toString().toLowerCase();
-      final department = (profile['department'] ?? '').toString();
-      final year = (profile['year'] ?? '').toString();
-
-      final matchesSearch = name.contains(searchQuery.toLowerCase());
-      final matchesDept =
-          selectedDepartment == 'All' || department == selectedDepartment;
-      final matchesYear = selectedYear == 'All' || year == selectedYear;
-
-      return matchesSearch && matchesDept && matchesYear;
+      final user = result['users'] ?? {};
+      final name = (user['name'] ?? '').toString().toLowerCase();
+      return name.contains(searchQuery.toLowerCase());
     }).toList();
 
     applySort();
@@ -166,10 +149,8 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
   }
 
   Widget _buildResultCard(Map<String, dynamic> result, int index) {
-    final profile = result['profiles'] ?? {};
-    final studentName = profile['name'] ?? "Unknown";
-    final studentDepartment = profile['department'] ?? "N/A";
-    final studentYear = profile['year'] ?? "N/A";
+    final user = result['users'] ?? {};
+    final studentName = user['name'] ?? "Unknown";
 
     final slideTween = Tween<Offset>(
       begin: const Offset(0, 0.2),
@@ -201,7 +182,7 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             subtitle: Text(
-              "Subject: ${result['subject']}\nDepartment: $studentDepartment \nYear: $studentYear",
+              "Subject: ${result['subject']}",
               style: const TextStyle(color: Colors.grey),
             ),
             trailing: Container(
@@ -326,67 +307,7 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
               ),
             ),
           ),
-          // Department & Year Dropdowns
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    dropdownColor: Theme.of(context).cardColor,
-                  style: TextStyle(
-                    color: Theme.of(context).textTheme.bodyMedium?.color,
-                    fontWeight: FontWeight.w500,
-                  ),
-                    value: selectedDepartment,
-                    items: departmentOptions
-                        .map(
-                          (opt) =>
-                              DropdownMenuItem(value: opt, child: Text(opt)),
-                        )
-                        .toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        selectedDepartment = val;
-                        applyFilters();
-                      }
-                    },
-                    decoration: InputDecoration(
-                      labelText: "Department",
-                      labelStyle: TextStyle(color: Theme.of(context).primaryColor),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    dropdownColor: Theme.of(context).cardColor,
-                  style: TextStyle(
-                    color: Theme.of(context).textTheme.bodyMedium?.color,
-                    fontWeight: FontWeight.w500,
-                  ),
-                    value: selectedYear,
-                    items: yearOptions
-                        .map(
-                          (opt) =>
-                              DropdownMenuItem(value: opt, child: Text(opt)),
-                        )
-                        .toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        selectedYear = val;
-                        applyFilters();
-                      }
-                    },
-                    decoration: InputDecoration(
-                      labelText: "Year",
-                      labelStyle: TextStyle(color: Theme.of(context).primaryColor),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          // Department & Year Dropdown
           // Results List
           const SizedBox(height: 8),
         Expanded(

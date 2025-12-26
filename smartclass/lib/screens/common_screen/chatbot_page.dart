@@ -1,15 +1,18 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 
-// Global chat history
-List<Map<String, String>> chatHistory = [];
+// ---------------- GLOBAL CHAT MEMORY ----------------
+// (kept global intentionally for persistent chat)
+final List<Map<String, String>> chatHistory = [];
 
 class ChatbotPage extends StatefulWidget {
-  const ChatbotPage({super.key});
+  final String classId; 
+  const ChatbotPage({super.key,
+  required this.classId,});
 
   @override
   State<ChatbotPage> createState() => _ChatbotPageState();
@@ -20,24 +23,26 @@ class _ChatbotPageState extends State<ChatbotPage> {
   final ScrollController _scrollController = ScrollController();
 
   bool _isLoading = false;
-  bool _showFAB = false; // ✅ Controls floating button visibility
+  bool _showFAB = false;
 
   int _dotIndex = 0;
-  Timer? _dotAnimationTimer;
+  Timer? _dotTimer;
 
   List<Map<String, String>> get _messages => chatHistory;
 
+  // ---------------- INIT ----------------
   @override
   void initState() {
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
     super.initState();
+
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+
     _startDotAnimation();
-    _scrollToBottom();
+    _attachScrollListener();
 
     if (chatHistory.isEmpty) {
       Future.delayed(const Duration(milliseconds: 400), () {
+        if (!mounted) return;
         setState(() {
           chatHistory.add({
             'role': 'bot_typing',
@@ -47,48 +52,45 @@ class _ChatbotPageState extends State<ChatbotPage> {
       });
     }
 
-    bool lastState = false;
-    // ✅ Track scroll to show/hide FAB
-    _scrollController.addListener(() {
-      final atBottom =
-          _scrollController.offset >=
-          _scrollController.position.maxScrollExtent - 50;
-
-      if (atBottom != lastState) {
-        lastState = atBottom;
-        setState(() {
-          _showFAB = !atBottom;
-        });
-      }
-    });
+    _scrollToBottom();
   }
 
   @override
   void dispose() {
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
-    _dotAnimationTimer?.cancel();
-
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    _dotTimer?.cancel();
     _controller.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
-  // Typing dots animation
+  // ---------------- DOT ANIMATION ----------------
   void _startDotAnimation() {
-    _dotAnimationTimer = Timer.periodic(const Duration(milliseconds: 400), (_) {
-      if (_isLoading) {
+    _dotTimer = Timer.periodic(const Duration(milliseconds: 400), (_) {
+      if (_isLoading && mounted) {
         setState(() => _dotIndex = (_dotIndex + 1) % 3);
       }
     });
   }
 
+  // ---------------- SCROLL HANDLING ----------------
+  void _attachScrollListener() {
+    bool lastAtBottom = true;
+
+    _scrollController.addListener(() {
+      final atBottom =
+          _scrollController.offset >=
+          _scrollController.position.maxScrollExtent - 50;
+
+      if (atBottom != lastAtBottom && mounted) {
+        lastAtBottom = atBottom;
+        setState(() => _showFAB = !atBottom);
+      }
+    });
+  }
+
   void _scrollToBottom() {
-    Future.delayed(const Duration(milliseconds: 100), () {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
@@ -99,7 +101,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
     });
   }
 
-  // API call
+  // ---------------- SEND MESSAGE ----------------
   Future<void> _sendMessage() async {
     final question = _controller.text.trim();
     if (question.isEmpty || _isLoading) return;
@@ -114,46 +116,52 @@ class _ChatbotPageState extends State<ChatbotPage> {
     _scrollToBottom();
 
     try {
-      final res = await http.post(
-        // Uri.parse('http://127.0.0.1:8000/chatbot/'),
-        Uri.parse('https://supaaiapp-1.onrender.com/chatbot/'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'question': question}),
-      ).timeout(
-        const Duration(seconds: 15), // ⏳ hard timeout
-        onTimeout: () => throw TimeoutException('Chat request timed out'),
-      );
+      final res = await http
+          .post(
+            Uri.parse('https://supaaiapp-1.onrender.com/chatbot/'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'question': question,
+              // 🔹 future-ready (optional)
+             'class_id': widget.classId,
+            }),
+          )
+          .timeout(
+            const Duration(seconds: 25),
+            onTimeout: () => throw TimeoutException('Request timed out'),
+          );
 
       if (!mounted) return;
 
       if (res.statusCode == 200) {
-        final response = jsonDecode(res.body)['answer'];
+        final answer = jsonDecode(res.body)['answer'];
         setState(() {
           _isLoading = false;
-          _messages.add({'role': 'bot_typing', 'msg': response});
+          _messages.add({'role': 'bot_typing', 'msg': answer});
         });
       } else {
-        _handleApiError('⚠️ Failed to get response.');
+        _handleError('⚠️ Failed to get response from server.');
       }
     } catch (e) {
       if (!mounted) return;
-      if (e is http.ClientException) {
-        _handleApiError('🌐 Network error. Please check your connection.');
-        return;
-      }
-      _handleApiError('❌ Error occurred: $e');
+      _handleError(
+        e is TimeoutException
+            ? '⏳ Request timed out. Try again.'
+            : '🌐 Network error. Please check your connection.',
+      );
     }
 
     _scrollToBottom();
   }
 
-  void _handleApiError(String errorMessage) {
+  void _handleError(String msg) {
     setState(() {
       _isLoading = false;
-      _messages.add({'role': 'bot', 'msg': errorMessage});
+      _messages.add({'role': 'bot', 'msg': msg});
     });
   }
 
+  // ---------------- CLEAR CHAT ----------------
   void _clearChat() {
     setState(() {
       chatHistory.clear();
@@ -161,7 +169,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
     });
   }
 
-  Future<void> _showClearChatDialog() async {
+  Future<void> _confirmClearChat() async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -175,35 +183,32 @@ class _ChatbotPageState extends State<ChatbotPage> {
         ),
         content: const Text(
           'Are you sure you want to clear the chat history?',
-          style: TextStyle(fontSize: 15),
         ),
         actions: [
           TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-            onPressed: () => Navigator.of(ctx).pop(false),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(
-              'Yes, Clear',
-              style: TextStyle(color: Colors.white),
-            ),
+            style:
+                ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Yes, Clear',
+                style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
-    if (confirm == true) {
-      _clearChat();
-    }
+
+    if (confirm == true) _clearChat();
   }
 
+  // ---------------- BUILD ----------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor, 
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: _buildAppBar(),
-
       body: Stack(
         children: [
           Column(
@@ -211,47 +216,12 @@ class _ChatbotPageState extends State<ChatbotPage> {
               _buildMessageList(),
               _MessageInputBar(
                 controller: _controller,
-                onSend: _sendMessage,
                 isLoading: _isLoading,
+                onSend: _sendMessage,
               ),
             ],
           ),
-
-          // ✅ Glassmorphic Floating Scroll-To-Bottom Button
-          AnimatedPositioned(
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeOut,
-            right: 16,
-            bottom: _showFAB ? 80 : -70, // slide out
-            child: AnimatedOpacity(
-              duration: const Duration(milliseconds: 200),
-              opacity: _showFAB ? 1 : 0,
-              child: GestureDetector(
-                onTap: _scrollToBottom,
-                child: Container(
-                  height: 50,
-                  width: 50,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).primaryColor,
-                    borderRadius: BorderRadius.circular(30),
-                    border: Border.all(color: Theme.of(context).primaryColor, width: 1.3),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withAlpha((0.15 * 255).toInt()),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.arrow_downward_rounded,
-                    color: Colors.white,
-                    size: 26,
-                  ),
-                ),
-              ),
-            ),
-          ),
+          _buildScrollFAB(),
         ],
       ),
     );
@@ -269,60 +239,82 @@ class _ChatbotPageState extends State<ChatbotPage> {
       actions: [
         IconButton(
           icon: const Icon(Icons.delete, color: Colors.white),
-          onPressed: _showClearChatDialog,
+          onPressed: _confirmClearChat,
         ),
       ],
     );
   }
 
-  Widget _buildMessageList() {
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.only(top: 6),
-        child: ListView.builder(
-          controller: _scrollController,
-          padding: const EdgeInsets.only(bottom: 20),
-          itemCount: _messages.length + (_isLoading ? 1 : 0),
-          physics: const BouncingScrollPhysics(), // smoother
-          addRepaintBoundaries: true,
-          addAutomaticKeepAlives: true,
-          addSemanticIndexes: false,
-          itemBuilder: (context, index) {
-            if (index == _messages.length) {
-              return _TypingIndicator(dotIndex: _dotIndex);
-            }
-
-            final msg = _messages[index];
-            final role = msg['role'];
-            final text = msg['msg']!;
-
-            if (role == "bot_typing") {
-              return _TypingMessageBubble(
-                fullText: text,
-                scrollController: _scrollController,
-                onTypingComplete: () {
-                  final i = chatHistory.indexOf(msg);
-                  if (i != -1) {
-                    setState(() {
-                      chatHistory[i] = {'role': 'bot', 'msg': text};
-                    });
-                  }
-                },
-              );
-            }
-
-            return _MessageBubble(text: text, isUser: role == "user");
-          },
+  Widget _buildScrollFAB() {
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+      right: 16,
+      bottom: _showFAB ? 80 : -70,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 200),
+        opacity: _showFAB ? 1 : 0,
+        child: GestureDetector(
+          onTap: _scrollToBottom,
+          child: Container(
+            height: 50,
+            width: 50,
+            decoration: BoxDecoration(
+              color: Theme.of(context).primaryColor,
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(38),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Icon(Icons.arrow_downward_rounded,
+                color: Colors.white, size: 26),
+          ),
         ),
       ),
     );
   }
+
+  Widget _buildMessageList() {
+    return Expanded(
+      child: ListView.builder(
+        controller: _scrollController,
+        padding: const EdgeInsets.only(bottom: 20),
+        physics: const BouncingScrollPhysics(),
+        itemCount: _messages.length + (_isLoading ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index == _messages.length) {
+            return _TypingIndicator(dotIndex: _dotIndex);
+          }
+
+          final msg = _messages[index];
+          final role = msg['role'];
+          final text = msg['msg']!;
+
+          if (role == 'bot_typing') {
+            return _TypingMessageBubble(
+              fullText: text,
+              scrollController: _scrollController,
+              onTypingComplete: () {
+                final i = chatHistory.indexOf(msg);
+                if (i != -1 && mounted) {
+                  setState(() {
+                    chatHistory[i] = {'role': 'bot', 'msg': text};
+                  });
+                }
+              },
+            );
+          }
+
+          return _MessageBubble(text: text, isUser: role == 'user');
+        },
+      ),
+    );
+  }
 }
-
-////////////////////////////////////////////////////////////////////////////////
-// ✅ MESSAGE BUBBLES + INDICATORS + INPUT BAR + TYPING EFFECT
-////////////////////////////////////////////////////////////////////////////////
-
 class _MessageBubble extends StatelessWidget {
   const _MessageBubble({required this.text, required this.isUser});
 
