@@ -52,7 +52,7 @@ class _ContinueWithGoogleState extends State<ContinueWithGoogle> {
 
       final box = Hive.box<LoginModel>('loginBox');
       await box.put(
-        'login',
+        'profile',
         LoginModel(name: name, email: email, avatarUrl: avatarUrl),
       );
 

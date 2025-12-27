@@ -20,6 +20,7 @@ async def store_quiz(payload: dict = Body(...)):
         "class_id",      # ✅ REQUIRED
         "subject",
         "questions",
+        "material_id",
         "pdf_url",
         "text_preview",
     ]
@@ -32,6 +33,7 @@ async def store_quiz(payload: dict = Body(...)):
         "class_id": payload["class_id"],   # ✅ ADD THIS
         "subject": payload["subject"],
         "questions": payload["questions"],
+        "material_id": payload["material_id"],
         "pdf_url": payload["pdf_url"],
         "text_preview": payload["text_preview"],
     }

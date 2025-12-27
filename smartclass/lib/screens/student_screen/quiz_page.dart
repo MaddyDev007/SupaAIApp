@@ -87,11 +87,14 @@ class _QuizPageState extends State<QuizPage> {
       _startTimer();
     } catch (_) {
       if (!mounted) return;
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Failed to load quiz'),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
       Navigator.pop(context);
@@ -172,6 +175,9 @@ class _QuizPageState extends State<QuizPage> {
             SnackBar(
               content: Text('Error saving result: $e'),
               behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           );
         }
@@ -330,56 +336,88 @@ class _QuizPageState extends State<QuizPage> {
             ),
 
             // ---------- FOOTER ----------
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
-              child: Column(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value:
-                          (currentIndex + 1) / questions.length,
-                      minHeight: 6,
-                      backgroundColor:
-                          Colors.blue.shade100.withAlpha(220),
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        Theme.of(context).primaryColor,
+            Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                child: Column(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value:
+                            (currentIndex + 1) / questions.length,
+                        minHeight: 6,
+                        backgroundColor:
+                            Colors.blue.shade100.withAlpha(220),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Theme.of(context).primaryColor,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Text(
-                        'Q ${currentIndex + 1} of ${questions.length}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.color,
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Text(
+                          'Q ${currentIndex + 1} of ${questions.length}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.color,
+                          ),
                         ),
-                      ),
-                      const Spacer(),
-                      ElevatedButton(
-                        onPressed:
-                            currentIndex == 0 ? null : _onPrevious,
+                        const Spacer(),
+                        ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          elevation: 0,
+                          backgroundColor: currentIndex == 0
+                              ? Colors.grey.shade200
+                              : Colors.white,
+                          foregroundColor: currentIndex == 0
+                              ? Colors.grey
+                              : Colors.black87,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(color: Colors.grey),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                        ),
+                        onPressed: currentIndex == 0 ? null : _onPrevious,
                         child: const Text('Previous'),
                       ),
-                      const SizedBox(width: 10),
-                      ElevatedButton(
-                        onPressed:
-                            selected != -1 ? _onNext : null,
+                        const SizedBox(width: 10),
+                        ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          elevation: 0,
+                          backgroundColor: Theme.of(context).primaryColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 12,
+                          ),
+                        ),
+                        onPressed: selected != -1 ? _onNext : null,
                         child: Text(
-                          currentIndex ==
-                                  questions.length - 1
+                          currentIndex == questions.length - 1
                               ? 'Submit'
                               : 'Next',
+                          style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                       ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -404,19 +442,13 @@ class _OptionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected
-          ? Theme.of(context)
-              .splashColor
-              .withAlpha(64)
-          : Theme.of(context).cardColor,
+      color: selected ? Theme.of(context).splashColor.withAlpha((0.25 * 255).toInt()) : Theme.of(context).cardColor,
       elevation: 2,
-      shadowColor: Colors.black.withAlpha(16),
+      shadowColor: Colors.black.withAlpha((0.06 * 255).toInt()),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
         side: BorderSide(
-          color: selected
-              ? Theme.of(context).primaryColor
-              : Colors.transparent,
+          color: selected ? Theme.of(context).primaryColor : Colors.transparent,
           width: 2,
         ),
       ),
@@ -424,8 +456,7 @@ class _OptionCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
         child: Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           child: Row(
             children: [
               Radio<bool>(
@@ -440,11 +471,8 @@ class _OptionCard extends StatelessWidget {
                   label,
                   style: TextStyle(
                     fontSize: 16,
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
                     height: 1.2,
-                    color: Theme.of(context)
-                        .textTheme
-                        .bodyMedium
-                        ?.color,
                   ),
                 ),
               ),
@@ -455,3 +483,4 @@ class _OptionCard extends StatelessWidget {
     );
   }
 }
+

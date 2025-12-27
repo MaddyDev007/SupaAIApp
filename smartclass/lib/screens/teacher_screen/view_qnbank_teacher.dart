@@ -376,8 +376,9 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
     try {
       // 📂 Get the Downloads folder
       final downloadsDir = Directory('/storage/emulated/0/Download');
-      if (!await downloadsDir.exists())
+      if (!await downloadsDir.exists()) {
         await downloadsDir.create(recursive: true);
+      }
 
       String savePath = "${downloadsDir.path}/$filename";
 

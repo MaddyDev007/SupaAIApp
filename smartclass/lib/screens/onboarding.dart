@@ -279,7 +279,7 @@ class _OnboardSlide extends StatelessWidget {
                           child: AspectRatio(
                             aspectRatio: 1.2,
                             child: _SafeLottie(
-                              url: data.lottieUrl,
+                              // url: data.lottieUrl,
                               asset: data.lottieAsset,
                             ),
                           ),
@@ -348,13 +348,12 @@ class _SafeLottie extends StatelessWidget {
 class _OnboardPageData {
   final String title;
   final String subtitle;
-  final String? lottieUrl;
+  // final String? lottieUrl;
   final String? lottieAsset;
   final List<Color> gradient;
   const _OnboardPageData({
     required this.title,
     required this.subtitle,
-    this.lottieUrl,
     this.lottieAsset,
     required this.gradient,
   });

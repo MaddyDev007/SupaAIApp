@@ -243,6 +243,16 @@ class _QuizListPageState extends State<QuizListPage>
                     style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(width: 12),
                 DropdownButton<String>(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  borderRadius: BorderRadius.circular(12),
+                  dropdownColor: Theme.of(context).cardColor,
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  
+                  elevation: 1,
+                  focusColor: Colors.blue.shade50,
                   value: _filterOption,
                   items: _filterOptions
                       .map((opt) =>
@@ -284,8 +294,14 @@ class _QuizListPageState extends State<QuizListPage>
                 final quizzes = _applyFilter(snapshot.data ?? []);
 
                 if (quizzes.isEmpty) {
-                  return const Center(
-                    child: Text("No quizzes available."),
+                  return Center(
+                    child: Text(
+                      "No quizzes available for this filter.",
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Theme.of(context).textTheme.bodySmall?.color,
+                      ),
+                    ),
                   );
                 }
 

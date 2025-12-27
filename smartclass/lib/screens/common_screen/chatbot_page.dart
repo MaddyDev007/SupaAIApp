@@ -149,6 +149,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
             ? '⏳ Request timed out. Try again.'
             : '🌐 Network error. Please check your connection.',
       );
+      _handleError('❌ Error occurred: $e');
     }
 
     _scrollToBottom();

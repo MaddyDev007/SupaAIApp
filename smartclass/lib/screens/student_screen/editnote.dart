@@ -8,8 +8,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class EditNotePage extends StatefulWidget {
   final Map<String, dynamic>? note;
+  final String classId;
 
-  const EditNotePage({super.key, this.note});
+  const EditNotePage({super.key, this.note, required this.classId});
 
   @override
   State<EditNotePage> createState() => _EditNotePageState();
@@ -298,6 +299,7 @@ class _EditNotePageState extends State<EditNotePage> {
           'content': content,
           'color': colorValue,
           'image_url': imageUrl,
+          'class_id': widget.classId,
         });
       } else {
         // 🔵 Update existing note

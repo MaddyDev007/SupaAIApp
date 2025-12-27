@@ -7,7 +7,8 @@ import 'view_note_page.dart';
 // import 'portrait_only.dart';
 
 class NotesPage extends StatefulWidget {
-  const NotesPage({super.key});
+  final String classId;
+  const NotesPage({super.key, required this.classId});
 
   @override
   State<NotesPage> createState() => _NotesPageState();
@@ -38,6 +39,7 @@ class _NotesPageState extends State<NotesPage> {
           .from('notes')
           .select()
           .eq('user_id', user.id)
+          .eq('class_id', widget.classId) 
           .order('created_at', ascending: false)
           .timeout(
             const Duration(seconds: 8),
@@ -123,6 +125,9 @@ class _NotesPageState extends State<NotesPage> {
         SnackBar(
           content: Text("Error deleting note. $e"),
           behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
     }
@@ -156,7 +161,7 @@ class _NotesPageState extends State<NotesPage> {
   void _openEditNotePage({Map<String, dynamic>? note}) async {
     final result = await pushWithAnimation<bool?>(
       context,
-      EditNotePage(note: note),
+      EditNotePage(note: note, classId: widget.classId),
     );
 
     if (result == true) {
@@ -191,7 +196,9 @@ class _NotesPageState extends State<NotesPage> {
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
-                child: CircularProgressIndicator(),
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                ),
               );
             }
 
@@ -268,33 +275,154 @@ class _NotesPageState extends State<NotesPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            note['title'] ?? '',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
                           const SizedBox(height: 6),
-                          Text(
-                            note['content'] ?? '',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: Colors.grey[700]),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      note['title'] ?? '',
+                                      style: const TextStyle(
+                                        color: Colors.black87,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      note['content'] ?? '',
+                                      style: TextStyle(color: Colors.grey[700]),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 8),
+
+                                    Text(
+                                      note['created_at'] != null
+                                          ? DateTime.parse(
+                                              note['created_at'],
+                                            ).toLocal().toString().split(' ')[0]
+                                          : '',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              if (note['image_url'] != null &&
+                                  note['image_url'].toString().isNotEmpty) ...[
+                                const SizedBox(width: 10),
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Image.network(
+                                    note["image_url"],
+                                    height: 70,
+                                    width: 70,
+                                    fit: BoxFit.cover,
+                                    // While loading
+                                    loadingBuilder: (context, child, loadingProgress) {
+                                      if (loadingProgress == null) return child;
+                                      return Container(
+                                        height: 70,
+                                        width: 70,
+                                        color: Colors.grey.shade200,
+                                        child: Center(
+                                          child: CircularProgressIndicator(
+                                            color: Theme.of(context).primaryColor,
+                                            strokeWidth: 2.5,
+                                            value:
+                                                loadingProgress
+                                                        .expectedTotalBytes !=
+                                                    null
+                                                ? loadingProgress
+                                                          .cumulativeBytesLoaded /
+                                                      loadingProgress
+                                                          .expectedTotalBytes!
+                                                : null,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    // If loading fails
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            Container(
+                                              height: 70,
+                                              width: 70,
+                                              color: Colors.grey.shade300,
+                                              child: const Icon(
+                                                Icons.broken_image,
+                                                color: Colors.grey,
+                                              ),
+                                            ),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            note['created_at'] != null
-                                ? DateTime.parse(note['created_at'])
-                                    .toLocal()
-                                    .toString()
-                                    .split(' ')[0]
-                                : '',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
+
+                          const Divider(),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.remove_red_eye,
+                                  color: Color.fromARGB(255, 102, 224, 224),
+                                ),
+                                onPressed: () {
+                                  pushWithAnimation(
+                                    context,
+                                    PortraitOnly(
+                                      child: ViewNotePage(
+                                        title: note['title'],
+                                        content: note['content'],
+                                        imageUrl: note['image_url'],
+                                        noteId: note['id'],
+                                        color: note['color'] != null
+                                            ? Color(int.parse(note['color']))
+                                            : Colors.white,
+                                        onEdit: () {
+                                          Navigator.pop(
+                                            context,
+                                          ); // close detail page
+                                          _openEditNotePage(note: note);
+                                        },
+                                        onDelete: () async {
+                                          await _deleteNote(note['id']);
+                                          Navigator.pop(
+                                            context,
+                                          ); // close after delete
+                                        },
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.edit,
+                                  color: Colors.blueAccent,
+                                ),
+                                onPressed: () {
+                                  _openEditNotePage(note: note);
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.redAccent,
+                                ),
+                                onPressed: () => _deleteNote(note['id']),
+                              ),
+                            ],
                           ),
                         ],
                       ),

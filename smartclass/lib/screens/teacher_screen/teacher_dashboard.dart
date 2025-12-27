@@ -12,10 +12,7 @@ import 'package:smartclass/models/login_model.dart';
 class TeacherDashboard extends StatefulWidget {
   final Map<String, dynamic> cls; // ✅ selected class
 
-  const TeacherDashboard({
-    super.key,
-    required this.cls,
-  });
+  const TeacherDashboard({super.key, required this.cls});
 
   @override
   State<TeacherDashboard> createState() => _TeacherDashboardState();
@@ -33,7 +30,8 @@ class _TeacherDashboardState extends State<TeacherDashboard>
   void initState() {
     super.initState();
     loginBox = Hive.box<LoginModel>('loginBox');
-    loginUser = loginBox.get('login'); // ✅ offline-safe
+    // Use the same key as UpdatePage and other readers
+    loginUser = loginBox.get('profile'); // ✅ offline-safe
   }
 
   void _onNavTapped(int index) {
@@ -50,30 +48,22 @@ class _TeacherDashboardState extends State<TeacherDashboard>
         subtitle: 'Share resources with students',
         icon: Icons.upload_file,
         color: Colors.orange,
-        onTap: () => pushWithAnimation(
-          context,
-          UploadMaterialPage(classId: classId),
-        ),
+        onTap: () =>
+            pushWithAnimation(context, UploadMaterialPage(classId: classId)),
       ),
       _dashboardCard(
         title: 'Chatbot Assistant',
         subtitle: 'Get instant help and support',
         icon: Icons.smart_toy_outlined,
         color: Colors.green,
-        onTap: () => pushWithAnimation(
-          context,
-          ChatbotPage(classId: classId),
-        ),
+        onTap: () => pushWithAnimation(context, ChatbotPage(classId: classId)),
       ),
       _dashboardCard(
         title: 'Quiz Results',
         subtitle: 'View and manage student results',
         icon: Icons.assignment_turned_in,
         color: Colors.pink,
-        onTap: () => pushWithAnimation(
-          context,
-          ResultPage(classId: classId),
-        ),
+        onTap: () => pushWithAnimation(context, ResultPage(classId: classId)),
       ),
       _dashboardCard(
         title: 'View Materials',
@@ -90,20 +80,16 @@ class _TeacherDashboardState extends State<TeacherDashboard>
         subtitle: 'Manage question banks',
         icon: Icons.folder_copy_rounded,
         color: Colors.purple,
-        onTap: () => pushWithAnimation(
-          context,
-          ViewQNBankTeacherPage(classId: classId),
-        ),
+        onTap: () =>
+            pushWithAnimation(context, ViewQNBankTeacherPage(classId: classId)),
       ),
       _dashboardCard(
         title: 'Analytics Dashboard',
         subtitle: 'View teaching analytics',
         icon: Icons.bar_chart_rounded,
         color: Colors.red,
-        onTap: () => pushWithAnimation(
-          context,
-          TeacherAnalyticsPage(classId: classId),
-        ),
+        onTap: () =>
+            pushWithAnimation(context, TeacherAnalyticsPage(classId: classId)),
       ),
     ];
   }
@@ -115,8 +101,8 @@ class _TeacherDashboardState extends State<TeacherDashboard>
     end: Offset.zero,
   );
 
-  void pushWithAnimation(BuildContext context, Widget page) {
-    Navigator.push(
+  Future<dynamic> pushWithAnimation(BuildContext context, Widget page) {
+    return Navigator.push(
       context,
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 350),
@@ -179,6 +165,7 @@ class _TeacherDashboardState extends State<TeacherDashboard>
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
               CircleAvatar(
                 backgroundColor: color.withAlpha((0.15 * 255).round()),
@@ -229,6 +216,12 @@ class _TeacherDashboardState extends State<TeacherDashboard>
             ),
           ),
           child: AppBar(
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
             automaticallyImplyLeading: false,
             backgroundColor: Colors.transparent,
             elevation: 0,
@@ -246,17 +239,19 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                   color: Colors.white,
                   size: 28,
                 ),
-                onPressed: () {
-                  pushWithAnimation(
+                onPressed: () async {
+                  final res = await pushWithAnimation(
                     context,
                     ProfilePage(
-                      profile: {
-                        "name": loginUser?.name,
-                        "email": loginUser?.email,
-                        "avatar_url": loginUser?.avatarUrl,
-                      },
+                      
+                      cls: widget.cls,
                     ),
                   );
+                  if (res == true) {
+                    setState(() {
+                      loginUser = loginBox.get('profile');
+                    });
+                  }
                 },
               ),
             ],
@@ -265,12 +260,7 @@ class _TeacherDashboardState extends State<TeacherDashboard>
       ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.only(
-          top: 16,
-          left: 16,
-          right: 16,
-          bottom: 0,
-        ),
+        padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 0),
         child: Column(
           children: [
             Text(
@@ -286,28 +276,33 @@ class _TeacherDashboardState extends State<TeacherDashboard>
               builder: (context, constraints) {
                 final double cardWidth = 220;
                 final double cardHeight = 200;
-                final int crossAxisCount =
-                    (constraints.maxWidth ~/ 260).clamp(1, 4);
+                final int crossAxisCount = (constraints.maxWidth ~/ 260).clamp(
+                  1,
+                  4,
+                );
 
                 return GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
+                  shrinkWrap: true, // ✅ allows it to fit within scroll view
+                  physics:
+                      const NeverScrollableScrollPhysics(), // ✅ disables inner scroll
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 10,
                   ),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
+                    crossAxisCount: crossAxisCount.clamp(1, 4),
                     mainAxisSpacing: 20,
                     crossAxisSpacing: 20,
                     mainAxisExtent: cardHeight,
                   ),
                   itemCount: visibleCards.length,
                   itemBuilder: (context, index) {
-                    return SizedBox(
-                      width: cardWidth,
-                      height: cardHeight,
-                      child: visibleCards[index],
+                    return Center(
+                      child: SizedBox(
+                        width: cardWidth,
+                        height: cardHeight,
+                        child: visibleCards[index],
+                      ),
                     );
                   },
                 );
@@ -316,33 +311,88 @@ class _TeacherDashboardState extends State<TeacherDashboard>
           ],
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        height: 70,
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: _onNavTapped,
-        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            label: "Home",
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(
+            context,
+          ).scaffoldBackgroundColor.withAlpha((0.8 * 255).round()),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(25),
+            topRight: Radius.circular(25),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.picture_as_pdf_outlined),
-            label: "Materials",
+          boxShadow: [
+            BoxShadow(
+              color: Theme.of(
+                context,
+              ).shadowColor.withAlpha((0.05 * 255).round()),
+              blurRadius: 10,
+              offset: const Offset(0, -3),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(25),
+            topRight: Radius.circular(25),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.quiz_outlined),
-            label: "Quiz",
+          child: NavigationBar(
+            height: 70,
+            backgroundColor: Theme.of(
+              context,
+            ).cardColor.withAlpha((0.7 * 255).round()),
+            indicatorColor: Theme.of(
+              context,
+            ).primaryColor.withAlpha((0.6 * 255).round()),
+            selectedIndex: _selectedIndex,
+            onDestinationSelected: _onNavTapped,
+            labelTextStyle: WidgetStateProperty.all(
+              TextStyle(color: Theme.of(context).primaryColor),
+            ),
+            labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+            destinations: [
+              NavigationDestination(
+                icon: Icon(Icons.home_outlined),
+                label: "Home",
+                selectedIcon: Icon(
+                  Icons.home,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.picture_as_pdf_outlined),
+                label: "Materials",
+                selectedIcon: Icon(
+                  Icons.picture_as_pdf,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.quiz_outlined),
+                label: "Quiz",
+                selectedIcon: Icon(
+                  Icons.quiz,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.chat_outlined),
+                label: "Chat",
+                selectedIcon: Icon(
+                  Icons.chat,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.bar_chart_rounded),
+                label: "Analytics",
+                selectedIcon: Icon(
+                  Icons.bar_chart_rounded,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+            ],
           ),
-          NavigationDestination(
-            icon: Icon(Icons.chat_outlined),
-            label: "Chat",
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.bar_chart_rounded),
-            label: "Analytics",
-          ),
-        ],
+        ),
       ),
     );
   }

@@ -33,7 +33,8 @@ class _CommonDashboardState extends State<CommonDashboard>
     _tabController = TabController(length: 2, vsync: this);
 
     loginBox = Hive.box<LoginModel>('loginBox');
-    loginUser = loginBox.get('login');
+    // Use the same key as other parts of the app (UpdatePage writes to 'profile')
+    loginUser = loginBox.get('profile');
 
     fetchClasses();
   }
@@ -51,8 +52,8 @@ class _CommonDashboardState extends State<CommonDashboard>
     end: Offset.zero,
   );
 
-  void pushWithAnimation(BuildContext context, Widget page) {
-    Navigator.push(
+  Future<dynamic> pushWithAnimation(BuildContext context, Widget page) {
+    return Navigator.push(
       context,
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 350),
@@ -273,8 +274,16 @@ class _CommonDashboardState extends State<CommonDashboard>
         actions: [
           IconButton(
             icon: const Icon(Icons.account_circle, size: 28),
-            onPressed: () {
-              pushWithAnimation(context, ProfilePageNew(profile: loginUser));
+            onPressed: () async {
+              final res = await pushWithAnimation(
+                context,
+                ProfilePageNew(),
+              );
+              if (res == true) {
+                setState(() {
+                  loginUser = loginBox.get('profile');
+                });
+              }
             },
           ),
         ],

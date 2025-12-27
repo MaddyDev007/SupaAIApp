@@ -38,17 +38,15 @@ class _StudentDashboardState extends State<StudentDashboard> {
   void initState() {
     super.initState();
     loginBox = Hive.box<LoginModel>('loginBox');
-    loginUser = loginBox.get('login'); // ✅ correct & offline-safe
+    // Use the same key as other parts of the app (UpdatePage writes to 'profile')
+    loginUser = loginBox.get('profile');
   }
 
   // ---------------- NAV ----------------
   void _onNavTapped(int index) {
-    if (index == 4) {
-      return pushWithAnimation(
-        context,
-        SemResultPage(),
-      );
-    }
+    /* if (index == 4) {
+      return pushWithAnimation(context, SemResultPage());
+    } */
     if (_selectedIndex != index) {
       setState(() => _selectedIndex = index);
     }
@@ -94,7 +92,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
         subtitle: 'Personal study notes',
         icon: Icons.edit_note_rounded,
         color: const Color(0xFF3559C7),
-        onTap: () => pushWithAnimation(context, NotesPage()),
+        onTap: () => pushWithAnimation(context, NotesPage(classId: classId)),
       ),
       _dashboardCard(
         title: 'Analytics',
@@ -135,6 +133,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
               CircleAvatar(
                 backgroundColor: color.withAlpha(a15),
@@ -171,8 +170,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
     end: Offset.zero,
   );
 
-  void pushWithAnimation(BuildContext context, Widget page) {
-    Navigator.push(
+  Future<dynamic> pushWithAnimation(BuildContext context, Widget page) {
+    return Navigator.push(
       context,
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 350),
@@ -220,6 +219,12 @@ class _StudentDashboardState extends State<StudentDashboard> {
             ),
           ),
           child: AppBar(
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+            ),
             automaticallyImplyLeading: false,
             backgroundColor: Colors.transparent,
             elevation: 0,
@@ -238,16 +243,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                   size: 28,
                 ),
                 onPressed: () {
-                  pushWithAnimation(
-                    context,
-                    ProfilePage(
-                      profile: {
-                        "name": loginUser?.name,
-                        "email": loginUser?.email,
-                        "avatar_url": loginUser?.avatarUrl,
-                      },
-                    ),
-                  );
+                  pushWithAnimation(context, ProfilePage(cls: widget.cls));
                 },
               ),
             ],
@@ -256,8 +252,9 @@ class _StudentDashboardState extends State<StudentDashboard> {
       ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
               "Welcome $name 👋",
@@ -280,21 +277,27 @@ class _StudentDashboardState extends State<StudentDashboard> {
                 final visibleCards = _getVisibleCards(_buildAllCards());
 
                 return GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(12),
+                  shrinkWrap: true, // ✅ makes grid take needed space
+                  physics:
+                      const NeverScrollableScrollPhysics(), // ✅ prevents double scroll
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
+                    crossAxisCount: crossAxisCount.clamp(1, 4),
                     mainAxisSpacing: 20,
                     crossAxisSpacing: 20,
                     mainAxisExtent: cardHeight,
                   ),
                   itemCount: visibleCards.length,
                   itemBuilder: (context, index) {
-                    return SizedBox(
-                      width: cardWidth,
-                      height: cardHeight,
-                      child: visibleCards[index],
+                    return Center(
+                      child: SizedBox(
+                        width: cardWidth,
+                        height: cardHeight,
+                        child: visibleCards[index],
+                      ),
                     );
                   },
                 );
@@ -303,24 +306,80 @@ class _StudentDashboardState extends State<StudentDashboard> {
           ],
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        height: 70,
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: _onNavTapped,
-        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), label: "Home"),
-          NavigationDestination(
-            icon: Icon(Icons.picture_as_pdf_outlined),
-            label: "Materials",
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor.withAlpha(a85),
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(25),
+            topRight: Radius.circular(25),
           ),
-          NavigationDestination(icon: Icon(Icons.quiz_outlined), label: "Quiz"),
-          NavigationDestination(icon: Icon(Icons.chat_outlined), label: "Chat"),
-          NavigationDestination(
-            icon: Icon(Icons.web_outlined),
-            label: "Sem Result",
+          boxShadow: [
+            BoxShadow(
+              color: Theme.of(context).shadowColor.withAlpha(a05),
+              blurRadius: 10,
+              offset: const Offset(0, -3),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(25),
+            topRight: Radius.circular(25),
           ),
-        ],
+          child: NavigationBar(
+            height: 70,
+            backgroundColor: Theme.of(context).cardColor.withAlpha(a70),
+            indicatorColor: Theme.of(context).primaryColor.withAlpha(a25),
+            selectedIndex: _selectedIndex,
+            onDestinationSelected: _onNavTapped,
+            labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+            labelTextStyle: WidgetStateProperty.all(
+              TextStyle(color: Theme.of(context).primaryColor),
+            ),
+            destinations: [
+              NavigationDestination(
+                icon: Icon(Icons.home_outlined),
+                label: "Home",
+                selectedIcon: Icon(
+                  Icons.home,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.picture_as_pdf_outlined),
+                label: "Materials",
+                selectedIcon: Icon(
+                  Icons.picture_as_pdf,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.quiz_outlined),
+                label: "Quiz",
+                selectedIcon: Icon(
+                  Icons.quiz,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.chat_outlined),
+                label: "Chat",
+                selectedIcon: Icon(
+                  Icons.chat,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.web_outlined),
+                label: "Sem Result",
+                selectedIcon: Icon(
+                  Icons.web_asset,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

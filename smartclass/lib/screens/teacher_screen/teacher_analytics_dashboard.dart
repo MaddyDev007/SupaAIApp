@@ -265,6 +265,7 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
                         borderRadius: BorderRadius.circular(6),
                       ),
                     ],
+                    showingTooltipIndicators: [0],
                   );
                 }).toList(),
                 barTouchData: BarTouchData(

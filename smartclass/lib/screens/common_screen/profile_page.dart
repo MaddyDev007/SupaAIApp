@@ -1,88 +1,68 @@
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
-import 'package:smartclass/models/user_model.dart';
-import 'package:smartclass/screens/login_page.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:smartclass/models/login_model.dart';
+import 'package:smartclass/screens/continueWithGoogle.dart';
 import 'package:smartclass/screens/common_screen/update.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'chatbot_page.dart' show chatHistory;
 
 class ProfilePage extends StatelessWidget {
-  final Map<String, dynamic>? profile;
+  final Map<String, dynamic> cls;
 
-  const ProfilePage({required this.profile, super.key});
+  const ProfilePage({super.key, required this.cls});
 
   @override
   Widget build(BuildContext context) {
-    final student = profile;
+    final box = Hive.box<LoginModel>('loginBox');
+    final supabase = Supabase.instance.client;
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text(
-          "My Profile",
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w500,
-            color: Colors.white,
-            letterSpacing: 1.1,
+    return ValueListenableBuilder(
+      valueListenable: box.listenable(),
+      builder: (_, Box<LoginModel> box, __) {
+        final profile = box.get('profile');
+
+        if (profile == null) {
+          return _buildNoProfile(context);
+        }
+
+        final isOwner = cls['created_by'] == supabase.auth.currentUser?.id;
+
+        return Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          appBar: AppBar(
+            centerTitle: true,
+            iconTheme: const IconThemeData(color: Colors.white),
+            title: const Text(
+              "My Profile",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w500,
+                color: Colors.white,
+              ),
+            ),
           ),
-        ),
-        centerTitle: true,
-      ),
-
-      body: student == null
-          ? _buildNoProfile(context)
-          : _buildProfile(context, student),
+          body: _buildProfile(context, profile, isOwner),
+        );
+      },
     );
   }
 
-  Widget _buildNoProfile(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            'No profile found.',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500,
-            color: Theme.of(context).textTheme.bodySmall?.color,),
-          ),
-          const SizedBox(height: 20),
-
-          ElevatedButton.icon(
-            icon: const Icon(Icons.logout, color: Colors.white),
-            label: const Text(
-              "Logout",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-            ),
-            onPressed: () => _logout(context),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfile(BuildContext context, Map<String, dynamic> student) {
+  // ---------------- PROFILE UI ----------------
+  Widget _buildProfile(
+    BuildContext context,
+    LoginModel profile,
+    bool isOwner,
+  ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Center(
         child: Container(
-          width: double.infinity,
           constraints: const BoxConstraints(maxWidth: 450),
           decoration: BoxDecoration(
-            color: Theme.of(context).cardColor.withAlpha((0.95 * 255).toInt()),
+            color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Theme.of(context).primaryColor.withAlpha((0.15 * 255).toInt()),
-                blurRadius: 15,
-                offset: const Offset(0, 8),
-              ),
+            boxShadow: const [
+              BoxShadow(blurRadius: 15, offset: Offset(0, 8)),
             ],
           ),
           child: Padding(
@@ -91,13 +71,18 @@ class ProfilePage extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 48,
-                  backgroundColor: Theme.of(context).splashColor,
-                  child:Icon(Icons.person, size: 55, color: Theme.of(context).primaryColor),
+                  backgroundImage: profile.avatarUrl != null
+                      ? NetworkImage(profile.avatarUrl!)
+                      : null,
+                  child: profile.avatarUrl == null
+                      ? const Icon(Icons.person, size: 48)
+                      : null,
                 ),
 
                 const SizedBox(height: 18),
+
                 Text(
-                  student['name'] ?? "Unknown",
+                  profile.name, // ✅ ALWAYS UPDATED
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -105,60 +90,62 @@ class ProfilePage extends StatelessWidget {
                 ),
 
                 const SizedBox(height: 6),
+
                 Text(
-                  student['email'] ?? "No Email",
+                  profile.email,
                   style: TextStyle(
                     fontSize: 14,
                     color: Theme.of(context).textTheme.bodySmall?.color,
                   ),
                 ),
 
-                const Divider(height: 30),
+                const Divider(height: 32),
 
-                if (student['reg_no'] != null && student['reg_no'] != "")
-                  _infoTile(context, Icons.confirmation_number, "Register Number",
-                      student['reg_no']),
+                if (profile.reg_no != null && profile.reg_no!.isNotEmpty)
+                  _infoTile(
+                    context,
+                    Icons.confirmation_number,
+                    "Register Number",
+                    profile.reg_no,
+                  ),
 
                 const SizedBox(height: 14),
-                _infoTile(context, Icons.school, "Department", student['department']),
-                const SizedBox(height: 14),
-                _infoTile(context, Icons.calendar_today, "Year", student['year']),
+
+                _infoTile(
+                  context,
+                  Icons.class_,
+                  "Class",
+                  cls['name'] ?? "Not Assigned",
+                ),
 
                 const SizedBox(height: 14),
-                _infoTile(context,
+
+                _infoTile(
+                  context,
                   Icons.badge,
                   "Role",
-                  student['role'].toString().contains("teacher")
-                      ? "Teacher"
-                      : "Student",
+                  isOwner ? "Teacher" : "Student",
                 ),
 
                 const SizedBox(height: 28),
 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  spacing: 10,
-                  children: [
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.update, color: Colors.white),
-                      label: const Text("Update Profile", style: TextStyle(color: Colors.white),),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor,
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.update, color: Colors.white),
+                  label: const Text("Update Profile"),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => UpdatePage(profile: {
+                          'name': profile.name,
+                          'email': profile.email,
+                          'reg_no': profile.reg_no,
+                          'avatar_url': profile.avatarUrl,
+                          'role': profile.role,
+                        }),
                       ),
-                      onPressed: () => _pushAnimation(context, UpdatePage(
-                        profile: student,
-                      )),
-                    ),
-
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.logout, color: Colors.white),
-                      label: const Text("Logout", style: TextStyle(color: Colors.white),),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent,
-                      ),
-                      onPressed: () => _logout(context),
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ],
             ),
@@ -168,94 +155,38 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
+  // ---------------- NO PROFILE ----------------
+  static Widget _buildNoProfile(BuildContext context) {
+    return const Center(child: Text("No profile found"));
+  }
+
+  // ---------------- LOGOUT ----------------
   Future<void> _logout(BuildContext context) async {
-    // ✅ Show confirmation
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: const [
-            Icon(Icons.logout_rounded, color: Color(0xFFFF5252)),
-            SizedBox(width: 10),
-            Text('Confirm Logout'),
-          ],
-        ),
-        content: const Text('Are you sure you want to logout?'),
-        actions: [
-          TextButton(
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey),),
-            onPressed: () => Navigator.pop(ctx, false),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Color(0xFFFF5252)),
-            child: const Text('Yes, Logout', style: TextStyle(color: Colors.white),),
-            onPressed: () => Navigator.pop(ctx, true),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true) return;
-
-    // ✅ 1. Clear Supabase session
     await Supabase.instance.client.auth.signOut();
-
-    // ✅ 2. Clear Hive offline profile
-    final userBox = Hive.box<UserModel>('userBox');
-    await userBox.clear();
-
-    // ✅ 3. Clear chatbot history
+    await Hive.box<LoginModel>('loginBox').clear();
     chatHistory.clear();
 
-    // ✅ 4. Navigate to login
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => const LoginPage()),
+      MaterialPageRoute(builder: (_) => const ContinueWithGoogle()),
       (_) => false,
     );
   }
-  static const _curve = Cubic(0.22, 0.61, 0.36, 1.0);
 
-  void _pushAnimation(BuildContext context, Widget page) {
-    Navigator.push(
-      context,
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 350),
-        pageBuilder: (_, __, ___) => page,
-        transitionsBuilder: (_, animation, __, child) {
-          final curved = CurvedAnimation(
-            parent: animation,
-            curve: _curve,
-          );
-
-          return SlideTransition(
-            position: Tween(begin: const Offset(1, 0), end: Offset.zero)
-                .animate(curved),
-            child: child,
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _infoTile(BuildContext context,IconData icon, String label, dynamic value) {
+  // ---------------- INFO TILE ----------------
+  Widget _infoTile(
+    BuildContext context,
+    IconData icon,
+    String label,
+    dynamic value,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: BorderRadius.circular(12),
-      ),
       child: Row(
         children: [
-          Icon(icon, color: Theme.of(context).primaryColor, size: 22),
+          Icon(icon),
           const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              "$label: ${value ?? "-"}",
-              style: const TextStyle(fontSize: 15),
-            ),
-          ),
+          Expanded(child: Text("$label: $value")),
         ],
       ),
     );

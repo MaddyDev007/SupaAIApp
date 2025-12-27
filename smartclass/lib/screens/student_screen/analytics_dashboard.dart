@@ -8,10 +8,7 @@ import 'package:intl/intl.dart';
 class AnalyticsDashboard extends StatefulWidget {
   final String classId; // ✅ NEW
 
-  const AnalyticsDashboard({
-    super.key,
-    required this.classId,
-  });
+  const AnalyticsDashboard({super.key, required this.classId});
 
   @override
   State<AnalyticsDashboard> createState() => _AnalyticsDashboardState();
@@ -79,21 +76,21 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
   double get averageScore => _results.isEmpty
       ? 0
       : _results
-              .map((r) => (r['score'] as num).toDouble())
-              .reduce((a, b) => a + b) /
-          _results.length;
+                .map((r) => (r['score'] as num).toDouble())
+                .reduce((a, b) => a + b) /
+            _results.length;
 
   int get highestScore => _results.isEmpty
       ? 0
       : _results
-          .map((r) => (r['score'] as num).toInt())
-          .reduce((a, b) => a > b ? a : b);
+            .map((r) => (r['score'] as num).toInt())
+            .reduce((a, b) => a > b ? a : b);
 
   int get lowestScore => _results.isEmpty
       ? 0
       : _results
-          .map((r) => (r['score'] as num).toInt())
-          .reduce((a, b) => a < b ? a : b);
+            .map((r) => (r['score'] as num).toInt())
+            .reduce((a, b) => a < b ? a : b);
 
   // ---------------- BUILD ----------------
   @override
@@ -102,9 +99,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
 
     if (_isLoading) {
       bodyChild = Center(
-        child: CircularProgressIndicator(
-          color: Theme.of(context).primaryColor,
-        ),
+        child: CircularProgressIndicator(color: Theme.of(context).primaryColor),
       );
     } else if (_hasError) {
       bodyChild = SmartClassErrorPage(
@@ -237,8 +232,26 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
                             borderRadius: BorderRadius.circular(6),
                           ),
                         ],
+                        showingTooltipIndicators: const [0],
                       );
                     }).toList(),
+                    barTouchData: BarTouchData(
+                      enabled: true,
+                      touchTooltipData: BarTouchTooltipData(
+                        getTooltipColor: (group) => Colors.transparent,
+                        tooltipPadding: EdgeInsets.zero,
+                        tooltipMargin: 0,
+                        getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                          return BarTooltipItem(
+                            "${rod.toY.toInt()} / 10",
+                            const TextStyle(
+                              fontWeight: FontWeight.w500,
+                              fontSize: 10,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -256,14 +269,19 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
           showTitles: true,
           reservedSize: 30,
           interval: 2,
-          getTitlesWidget: (value, _) =>
-              Text(value.toInt().toString(), style: const TextStyle(fontSize: 12)),
+          getTitlesWidget: (value, meta) {
+            if (value < 0 || value > 10) {
+              return const SizedBox();
+            }
+            return Text(
+              value.toInt().toString(),
+              style: const TextStyle(fontSize: 12),
+            );
+          },
         ),
       ),
-      rightTitles:
-          const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-      topTitles:
-          const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+      rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+      topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
       bottomTitles: AxisTitles(
         sideTitles: SideTitles(
           showTitles: true,
@@ -272,9 +290,15 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
             if (index < 0 || index >= _results.length) {
               return const SizedBox();
             }
-            return Text(
-              _results[index]['subject'] ?? '-',
-              style: const TextStyle(fontSize: 10),
+            return Transform.rotate(
+              angle: 0,
+              child: Text(
+                _results[index]['subject'] ?? "-",
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             );
           },
         ),
@@ -310,6 +334,9 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
               headingRowColor: WidgetStateProperty.all(
                 Theme.of(context).scaffoldBackgroundColor,
               ),
+              border: TableBorder.all(
+                              color: Colors.grey.shade200,
+                            ),
               columns: const [
                 DataColumn(label: Text("S.No")),
                 DataColumn(label: Text("Subject")),
@@ -319,8 +346,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
               rows: _results.asMap().entries.map((entry) {
                 final index = entry.key;
                 final data = entry.value;
-                final dt =
-                    DateTime.tryParse(data['created_at'] ?? '');
+                final dt = DateTime.tryParse(data['created_at'] ?? '');
                 final formattedDate = dt == null
                     ? '-'
                     : DateFormat('dd-MM-yyyy').format(dt);
@@ -367,8 +393,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
           ],
         ),
         child: Padding(
-          padding:
-              const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
           child: Column(
             children: [
               Icon(icon, size: 28, color: Colors.white),

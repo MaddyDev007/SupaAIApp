@@ -78,17 +78,17 @@ class MyApp extends StatelessWidget {
           case '/commondashboard':
             return MaterialPageRoute(builder: (_) => const CommonDashboard());
 
-          case '/login':
-            return MaterialPageRoute(builder: (_) => const LoginPage());
+          /* case '/login':
+            return MaterialPageRoute(builder: (_) => const LoginPage()); */
 
           case '/loginGoogle':
             return MaterialPageRoute(
               builder: (_) => const ContinueWithGoogle(),
             );
 
-          case '/signup':
+          /* case '/signup':
             return MaterialPageRoute(builder: (_) => const SignupPage());
-
+ */
           // ❌ DO NOT open dashboards without classId
           case '/teacher-dashboard':
             {
