@@ -8,7 +8,7 @@ final ThemeData darkTheme = ThemeData(
   cardColor: const Color(0xFF1E1E1E),
   shadowColor: Color(0xFF474747),
   canvasColor: Color(0xFF000000),
-  disabledColor:  const Color.fromARGB(255, 19, 19, 19),
+  disabledColor: const Color.fromARGB(255, 19, 19, 19),
   highlightColor: Colors.white,
 
   appBarTheme: AppBarTheme(
@@ -23,16 +23,10 @@ final ThemeData darkTheme = ThemeData(
     bodyMedium: TextStyle(color: Colors.white),
     bodySmall: TextStyle(color: Color(0xFF9E9E9E)), // grey[500]
     titleLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-    titleMedium: TextStyle(color: Colors.black, fontWeight: FontWeight.w600,
-    ),
+    titleMedium: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
   ),
 
-  
-
   inputDecorationTheme: InputDecorationTheme(
-    // labelStyle: const TextStyle(color: Colors.white),
-    // prefixStyle: TextStyle(color: Colors.white),
-    // suffixStyle: TextStyle(color: Colors.white),
     filled: true,
 
     fillColor: const Color(0xFF1E1E1E),
@@ -55,13 +49,6 @@ final ThemeData darkTheme = ThemeData(
     selectionHandleColor: Color(0xFF3A7BFF), // Handle color
   ),
 
-  /* extensions: const <ThemeExtension<dynamic>>[
-    CustomColors(
-      success: Color(0xFF4CAF50),
-      warning: Color(0xFFFFC107),
-      error: Color.fromARGB(255, 255, 243, 82),
-    ),
-  ], */
   extensions: const [
     CustomColors(
       success: Color(0xFF4CAF50),
@@ -70,11 +57,6 @@ final ThemeData darkTheme = ThemeData(
     ),
   ],
 
-  /* dropdownMenuTheme: DropdownMenuThemeData(
-    textStyle: const TextStyle(
-      color: Colors.white,
-      fontWeight: FontWeight.w500,
-  ),) */
 );
 
 @immutable

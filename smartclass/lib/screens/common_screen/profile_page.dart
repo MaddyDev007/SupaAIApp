@@ -128,6 +128,14 @@ class ProfilePage extends StatelessWidget {
                   "Class",
                   cls['name'] ?? "Not Assigned",
                 ),
+                const SizedBox(height: 14),
+
+                _infoTile(
+                  context,
+                  Icons.code,
+                  "Code",
+                  cls['code'] ?? "Not Assigned",
+                ),
 
                 const SizedBox(height: 14),
 
@@ -398,6 +406,7 @@ class ProfilePage extends StatelessWidget {
       Uri.parse(
         'https://supaaiapp-1.onrender.com/delete/class?class_id=$classId',
       ),
+      // Uri.parse('http://10.0.2.2:8000/delete/class?class_id=$classId'),
       headers: {
         'Content-Type': 'application/json',
       },
@@ -446,9 +455,11 @@ class ProfilePage extends StatelessWidget {
           Icon(icon, color: Theme.of(context).primaryColor, size: 22),
           const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              "$label: ${value ?? "-"}",
-              style: const TextStyle(fontSize: 15),
+            child: SelectableText(
+              
+                "$label: ${value ?? "-"}",
+                style: const TextStyle(fontSize: 15),
+              
             ),
           ),
         ],

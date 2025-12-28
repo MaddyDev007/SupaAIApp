@@ -15,44 +15,76 @@ SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
     raise RuntimeError("Missing Supabase environment variables")
 
-# 🔐 Service role client
+# 🔐 Service-role Supabase client
 supabase = create_client(
     SUPABASE_URL,
     SUPABASE_SERVICE_ROLE_KEY,
 )
 
+# 🔁 Helper: convert public URL → storage path
+def extract_storage_path(url: str, bucket: str) -> str:
+    marker = f"/object/public/{bucket}/"
+    if marker not in url:
+        raise ValueError(f"Invalid {bucket} URL: {url}")
+    return url.split(marker)[-1]
+
+
 @router.delete("/class")
 def delete_class(class_id: str):
     try:
         # 1️⃣ MATERIALS → lessons bucket
-        materials = supabase.table("materials") \
-            .select("file_path") \
-            .eq("class_id", class_id) \
-            .execute().data
+        materials = (
+            supabase.table("materials")
+            .select("file_url")
+            .eq("class_id", class_id)
+            .execute()
+            .data
+        )
 
         if materials:
-            supabase.storage.from_("lessons") \
-                .remove([m["file_path"] for m in materials])
+            paths = [
+                extract_storage_path(m["file_url"], "lessons")
+                for m in materials
+                if m.get("file_url")
+            ]
+            if paths:
+                supabase.storage.from_("lessons").remove(paths)
 
-        # 2️⃣ QUIZZES → questions bucket (FLAT)
-        quizzes = supabase.table("quizzes") \
-            .select("file_path") \
-            .eq("class_id", class_id) \
-            .execute().data
+        # 2️⃣ QUESTIONS → questions bucket (flat)
+        quizzes = (
+            supabase.table("questions")
+            .select("file_url")
+            .eq("class_id", class_id)
+            .execute()
+            .data
+        )
 
         if quizzes:
-            supabase.storage.from_("questions") \
-                .remove([q["file_path"] for q in quizzes])
+            paths = [
+                extract_storage_path(q["file_url"], "questions")
+                for q in quizzes
+                if q.get("file_url")
+            ]
+            if paths:
+                supabase.storage.from_("questions").remove(paths)
 
-        # 3️⃣ NOTES → notes bucket (FLAT)
-        notes = supabase.table("notes") \
-            .select("file_path") \
-            .eq("class_id", class_id) \
-            .execute().data
+        # 3️⃣ NOTES → notes bucket (flat)
+        notes = (
+            supabase.table("notes")
+            .select("image_url")
+            .eq("class_id", class_id)
+            .execute()
+            .data
+        )
 
         if notes:
-            supabase.storage.from_("notes") \
-                .remove([n["file_path"] for n in notes])
+            paths = [
+                extract_storage_path(n["image_url"], "notes")
+                for n in notes
+                if n.get("image_url")
+            ]
+            if paths:
+                supabase.storage.from_("notes").remove(paths)
 
         # 4️⃣ Delete class (DB cascade removes rows)
         supabase.table("classes") \
@@ -62,7 +94,7 @@ def delete_class(class_id: str):
 
         return {
             "status": "success",
-            "message": "Class and all related files deleted"
+            "message": "Class, database rows, and storage files deleted"
         }
 
     except Exception as e:

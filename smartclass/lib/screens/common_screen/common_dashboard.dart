@@ -9,7 +9,6 @@ import 'package:smartclass/screens/student_screen/student_dashboard.dart';
 import 'package:smartclass/screens/teacher_screen/teacher_dashboard.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-
 class CommonDashboard extends StatefulWidget {
   const CommonDashboard({super.key});
 
@@ -159,6 +158,11 @@ class _CommonDashboardState extends State<CommonDashboard>
             onPressed: () async {
               final user = supabase.auth.currentUser!;
               final code = generateCode();
+              final profile = await supabase
+                  .from('users')
+                  .select('name')
+                  .eq('id', user.id)
+                  .single();
 
               final classRes = await supabase
                   .from('classes')
@@ -166,9 +170,11 @@ class _CommonDashboardState extends State<CommonDashboard>
                     'name': controller.text.trim(),
                     'code': code,
                     'created_by': user.id,
+                    'user_name': profile['name'],
                   })
                   .select()
                   .single();
+              // 1️⃣ Fetch user profile
 
               await supabase.from('class_members').insert({
                 'class_id': classRes['id'],
@@ -292,6 +298,8 @@ class _CommonDashboardState extends State<CommonDashboard>
 
   Widget _buildMaterialCard(List<Map<String, dynamic>> list, int index) {
     final cls = list[index];
+    final teachername = cls['user_name'] ?? '';
+
     final currentUserId = supabase.auth.currentUser?.id;
     final isOwner = currentUserId != null && cls['created_by'] == currentUserId;
 
@@ -315,7 +323,7 @@ class _CommonDashboardState extends State<CommonDashboard>
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
 
-            splashColor: Theme.of(context).primaryColor.withOpacity(0.1),
+             splashColor: Theme.of(context).primaryColor.withOpacity(0.1),
             onTap: () {
               pushWithAnimation(
                 context,
@@ -328,14 +336,29 @@ class _CommonDashboardState extends State<CommonDashboard>
             },
 
             child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ListTile(
-                title: Text(cls['name']),
-                subtitle: Text('Code: ${cls['code']}'),
-                trailing: Icon(
-                  Icons.arrow_forward_ios,
-                  color: Theme.of(context).primaryColor,
-                ),
+              padding: const EdgeInsets.symmetric(
+                vertical: 20.0,
+                horizontal: 23.0,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    spacing: 5,
+                    children: [
+                      Text(cls['name']),
+                      SelectableText('Code: ${cls['code']}'),
+                      const SizedBox(height: 15),
+                      Text(teachername),
+                    ],
+                  ),
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                ],
               ),
             ),
           ),
@@ -427,4 +450,3 @@ class _CommonDashboardState extends State<CommonDashboard>
     );
   }
 }
-

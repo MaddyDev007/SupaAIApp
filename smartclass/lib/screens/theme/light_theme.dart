@@ -15,8 +15,6 @@ final ThemeData lightTheme = ThemeData(
   inputDecorationTheme: InputDecorationTheme(
     filled: true,
     labelStyle: const TextStyle(color: Colors.black),
-    // prefixStyle: TextStyle(color: Colors.black),
-    // suffixStyle: TextStyle(color: Colors.black),
       fillColor: Colors.white,
       floatingLabelStyle: const TextStyle(color: Colors.blueAccent),
       enabledBorder: OutlineInputBorder(
@@ -33,12 +31,6 @@ final ThemeData lightTheme = ThemeData(
     backgroundColor: Colors.blue,
     foregroundColor: Colors.white,
   ),
-
-  /* dropdownMenuTheme: DropdownMenuThemeData(
-    textStyle: const TextStyle(
-      color: Colors.black,
-      fontWeight: FontWeight.w500,
-  ),), */
 
   textTheme: const TextTheme(
     bodyMedium: TextStyle(color: Colors.black),
