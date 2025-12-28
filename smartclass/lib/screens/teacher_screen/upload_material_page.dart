@@ -265,8 +265,6 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       );
 
       if (storeRes.statusCode != 200) {
-        debugPrint('❌ /quiz/store status: ${storeRes.statusCode}');
-        debugPrint('❌ /quiz/store body: ${storeRes.body}');
         throw Exception('Backend /quiz/store failed(${storeRes.body})');
       }
 

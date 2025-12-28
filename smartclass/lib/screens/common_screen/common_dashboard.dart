@@ -9,16 +9,6 @@ import 'package:smartclass/screens/student_screen/student_dashboard.dart';
 import 'package:smartclass/screens/teacher_screen/teacher_dashboard.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
-import 'package:open_filex/open_filex.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 
 class CommonDashboard extends StatefulWidget {
   const CommonDashboard({super.key});

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:smartclass/models/login_model.dart';
 import 'package:smartclass/screens/common_screen/profile_page.dart';
-import 'package:smartclass/screens/student_screen/sem_result.dart';
 import 'quiz_list_page.dart';
 import '../common_screen/chatbot_page.dart';
 import 'view_materials_page.dart';

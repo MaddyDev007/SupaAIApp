@@ -63,7 +63,6 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
     return;
   }
 
-  final teacherId = user.id;
 
   if (!mounted) return;
   setState(() {

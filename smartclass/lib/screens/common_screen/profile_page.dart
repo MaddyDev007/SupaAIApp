@@ -5,6 +5,7 @@ import 'package:smartclass/screens/continueWithGoogle.dart';
 import 'package:smartclass/screens/common_screen/update.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'chatbot_page.dart' show chatHistory;
+import 'package:http/http.dart' as http;
 
 class ProfilePage extends StatelessWidget {
   final Map<String, dynamic> cls;
@@ -279,7 +280,7 @@ class ProfilePage extends StatelessWidget {
       (_) => false,
     );
   }
-  Future<void> _deleteClass(BuildContext context, String classId) async {
+  /* Future<void> _deleteClass(BuildContext context, String classId) async {
   final confirm = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
@@ -340,6 +341,94 @@ class ProfilePage extends StatelessWidget {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Failed to delete classroom: $e')),
+    );
+  }
+}
+ */
+ 
+ Future<void> _deleteClass(BuildContext context, String classId) async {
+  final confirm = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: Row(
+        children: const [
+          Icon(Icons.delete_forever, color: Color(0xFFFF5252)),
+          SizedBox(width: 10),
+          Text('Delete Classroom'),
+        ],
+      ),
+      content: const Text(
+        'This will permanently delete:\n'
+        '• All lesson materials\n'
+        '• All quizzes & question files\n'
+        '• All student notes of this class\n'
+        '• All results\n'
+        '• All students from this class\n\n'
+        'This action cannot be undone.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx, false),
+          child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+        ),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Color(0xFFFF5252),
+          ),
+          onPressed: () => Navigator.pop(ctx, true),
+          child: const Text('Delete', style: TextStyle(color: Colors.white)),
+        ),
+      ],
+    ),
+  );
+
+  if (confirm != true) return;
+
+  try {
+    // 🔄 Show loader
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    // ✅ CALL FASTAPI BACKEND
+    final response = await http.delete(
+      Uri.parse(
+        'https://supaaiapp-1.onrender.com/delete/class?class_id=$classId',
+      ),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (!context.mounted) return;
+
+    Navigator.pop(context); // close loader
+
+    if (response.statusCode != 200) {
+      throw Exception(response.body);
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('✅ Classroom deleted successfully'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+
+    Navigator.popUntil(context, (route) => route.isFirst);
+  } catch (e) {
+    if (!context.mounted) return;
+
+    Navigator.pop(context); // close loader if open
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('❌ Failed to delete classroom: $e'),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 }
