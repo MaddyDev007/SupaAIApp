@@ -147,11 +147,9 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
     }
 
     // 👇 Open in-app PDF viewer
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => PDFViewerPage(pdfUrl: url, title: title),
-      ),
+    pushWithAnimation(
+      context,PDFViewerPage(pdfUrl: url, title: title),
+     
     );
   }
 
@@ -437,6 +435,10 @@ Future<void> _downloadMaterial(String url, String filename) async {
           margin: const EdgeInsets.symmetric(vertical: 8),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: Theme.of(context).primaryColor,
+              width: 1.5,
+            ),
           ),
           child: InkWell(
             onTap: () => _openMaterial(url, subject),
@@ -485,6 +487,28 @@ Future<void> _downloadMaterial(String url, String filename) async {
             ),
           ),
         ),
+      ),
+    );
+  }
+  static const _curve = Cubic(0.22, 0.61, 0.36, 1.0);
+  static final _slideTween = Tween<Offset>(
+    begin: Offset(1, 0),
+    end: Offset.zero,
+  );
+
+  Future<dynamic> pushWithAnimation(BuildContext context, Widget page) {
+    return Navigator.push(
+      context,
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 350),
+        pageBuilder: (_, __, ___) => page,
+        transitionsBuilder: (_, animation, __, child) {
+          final curved = CurvedAnimation(parent: animation, curve: _curve);
+          return SlideTransition(
+            position: _slideTween.animate(curved),
+            child: child,
+          );
+        },
       ),
     );
   }

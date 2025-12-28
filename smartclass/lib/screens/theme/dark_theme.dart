@@ -16,6 +16,8 @@ final ThemeData darkTheme = ThemeData(
     foregroundColor: Colors.white,
   ),
 
+  indicatorColor: Color(0xFF3A7BFF),
+
   textTheme: const TextTheme(
     // labelMedium: TextStyle(color: Colors.white),
     bodyMedium: TextStyle(color: Colors.white),

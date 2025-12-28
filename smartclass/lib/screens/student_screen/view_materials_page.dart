@@ -79,7 +79,28 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
           .toList();
     });
   }
+  static const _curve = Cubic(0.22, 0.61, 0.36, 1.0);
+  static final _slideTween = Tween<Offset>(
+    begin: Offset(1, 0),
+    end: Offset.zero,
+  );
 
+  Future<dynamic> pushWithAnimation(BuildContext context, Widget page) {
+    return Navigator.push(
+      context,
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 350),
+        pageBuilder: (_, __, ___) => page,
+        transitionsBuilder: (_, animation, __, child) {
+          final curved = CurvedAnimation(parent: animation, curve: _curve);
+          return SlideTransition(
+            position: _slideTween.animate(curved),
+            child: child,
+          );
+        },
+      ),
+    );
+  }
   // ---------------- FETCH MATERIALS (CLASS-BASED) ----------------
   Future<void> _fetchMaterials() async {
     if (!mounted) return;
@@ -157,11 +178,9 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
       return;
     }
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => PDFViewerPage(pdfUrl: url, title: title),
-      ),
+    pushWithAnimation(
+      context, PDFViewerPage(pdfUrl: url, title: title),
+     
     );
   }
 
@@ -437,6 +456,10 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
           margin: const EdgeInsets.symmetric(vertical: 8),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: Theme.of(context).primaryColor,
+              width: 1.5,
+            ),
           ),
           child: InkWell(
             onTap: () => _openMaterial(url, subject),

@@ -45,7 +45,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
   // ---------------- NAV ----------------
   void _onNavTapped(int index) {
     /* if (index == 4) {
-      return pushWithAnimation(context, SemResultPage());
+      pushWithAnimation(context, SemResultPage());
+      return;
     } */
     if (_selectedIndex != index) {
       setState(() => _selectedIndex = index);
@@ -206,6 +207,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
   Widget build(BuildContext context) {
     final className = widget.cls['name'] ?? 'Class';
     final name = loginUser?.name ?? 'Student';
+    final avatarUrl = loginUser?.avatarUrl;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -237,10 +239,14 @@ class _StudentDashboardState extends State<StudentDashboard> {
             ),
             actions: [
               IconButton(
-                icon: const Icon(
-                  Icons.account_circle,
-                  color: Colors.white,
-                  size: 28,
+                icon: CircleAvatar(
+                  radius: 15, // AppBar-friendly size
+                  backgroundImage: avatarUrl != null
+                      ? NetworkImage(avatarUrl)
+                      : null,
+                  child: avatarUrl == null
+                      ? const Icon(Icons.person, size: 20)
+                      : null,
                 ),
                 onPressed: () {
                   pushWithAnimation(context, ProfilePage(cls: widget.cls));
@@ -369,14 +375,14 @@ class _StudentDashboardState extends State<StudentDashboard> {
                   color: Theme.of(context).primaryColor,
                 ),
               ),
-              NavigationDestination(
+              /* NavigationDestination(
                 icon: Icon(Icons.web_outlined),
                 label: "Sem Result",
                 selectedIcon: Icon(
                   Icons.web_asset,
                   color: Theme.of(context).primaryColor,
                 ),
-              ),
+              ), */
             ],
           ),
         ),

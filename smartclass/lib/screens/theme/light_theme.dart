@@ -10,7 +10,7 @@ final ThemeData lightTheme = ThemeData(
   canvasColor: Colors.blue.shade100,
   disabledColor: Colors.white70,
   highlightColor: Colors.black,
-
+  
 
   inputDecorationTheme: InputDecorationTheme(
     filled: true,
@@ -55,7 +55,7 @@ final ThemeData lightTheme = ThemeData(
     selectionHandleColor: Colors.blue, // Handle color
   ),
 
-  
+  indicatorColor: Colors.blue,
 
   extensions: const [
     CustomColors(

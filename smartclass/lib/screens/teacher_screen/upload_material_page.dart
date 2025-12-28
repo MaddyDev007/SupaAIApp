@@ -258,13 +258,16 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       };
 
       final storeRes = await http.post(
+        // Uri.parse("http://10.0.2.2:8000/quiz/store"),
         Uri.parse('https://supaaiapp-1.onrender.com/quiz/store'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(storePayload),
       );
 
       if (storeRes.statusCode != 200) {
-        throw Exception('Backend /quiz/store failed (${storeRes.statusCode})');
+        debugPrint('❌ /quiz/store status: ${storeRes.statusCode}');
+        debugPrint('❌ /quiz/store body: ${storeRes.body}');
+        throw Exception('Backend /quiz/store failed(${storeRes.body})');
       }
 
       if (!mounted) return;
@@ -435,7 +438,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
                 const SizedBox(height: 20),
                 ElevatedButton.icon(
                   onPressed: pickPDF,
-                  icon: const Icon(Icons.attach_file),
+                  icon: const Icon(Icons.attach_file, color: Colors.white),
                   label: const Text(
                     'Pick PDF',
                     style: TextStyle(color: Colors.white),
@@ -456,7 +459,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
                   ),
                 ),
                 const SizedBox(height: 20),
-               ElevatedButton.icon(
+                ElevatedButton.icon(
                   onPressed: uploading || uploaded ? null : uploadMaterialOnly,
                   icon: Icon(
                     uploading

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:smartclass/screens/common_screen/profile_page.dart';
+import 'package:smartclass/screens/teacher_screen/listStudent.dart';
 import 'upload_material_page.dart';
 import 'result_page.dart';
 import 'teacher_analytics_dashboard.dart';
@@ -18,8 +19,7 @@ class TeacherDashboard extends StatefulWidget {
   State<TeacherDashboard> createState() => _TeacherDashboardState();
 }
 
-class _TeacherDashboardState extends State<TeacherDashboard>
-    with SingleTickerProviderStateMixin {
+class _TeacherDashboardState extends State<TeacherDashboard> {
   int _selectedIndex = 0;
 
   // ✅ OFFLINE LOGIN MODEL
@@ -35,6 +35,14 @@ class _TeacherDashboardState extends State<TeacherDashboard>
   }
 
   void _onNavTapped(int index) {
+    if (index == 4){
+     pushWithAnimation(context, ListStudentPage(
+      classId: widget.cls['id'],
+      className: widget.cls['name'],
+    ),);
+     return;
+
+    }
     setState(() => _selectedIndex = index);
   }
 
@@ -127,8 +135,6 @@ class _TeacherDashboardState extends State<TeacherDashboard>
         return [all[2]];
       case 3:
         return [all[1]];
-      case 4:
-        return [all[5]];
       default:
         return all;
     }
@@ -200,6 +206,7 @@ class _TeacherDashboardState extends State<TeacherDashboard>
   Widget build(BuildContext context) {
     final className = widget.cls['name'] ?? 'Class';
     final name = loginUser?.name ?? 'Teacher';
+    final avatarUrl = loginUser?.avatarUrl;
 
     final allCards = _buildAllCards();
     final visibleCards = _getVisibleCards(allCards);
@@ -234,11 +241,15 @@ class _TeacherDashboardState extends State<TeacherDashboard>
             ),
             actions: [
               IconButton(
-                icon: const Icon(
-                  Icons.account_circle,
-                  color: Colors.white,
-                  size: 28,
-                ),
+                icon: CircleAvatar(
+              radius: 15, // AppBar-friendly size
+              backgroundImage: avatarUrl != null
+                  ? NetworkImage(avatarUrl)
+                  : null,
+              child: avatarUrl == null
+                  ? const Icon(Icons.person, size: 20)
+                  : null,
+            ),
                 onPressed: () async {
                   final res = await pushWithAnimation(
                     context,
@@ -383,10 +394,10 @@ class _TeacherDashboardState extends State<TeacherDashboard>
                 ),
               ),
               NavigationDestination(
-                icon: Icon(Icons.bar_chart_rounded),
-                label: "Analytics",
+                icon: Icon(Icons.people),
+                label: "People",
                 selectedIcon: Icon(
-                  Icons.bar_chart_rounded,
+                  Icons.people,
                   color: Theme.of(context).primaryColor,
                 ),
               ),

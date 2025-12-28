@@ -159,24 +159,6 @@ class _SemResultPageState extends State<SemResultPage> {
     setState(() => _loading = false);
   }
 }
-
-  /* void _err(String t, String m) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(t, style: const TextStyle(fontWeight: FontWeight.bold)),
-        content: Text(m),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("OK", style: TextStyle(color: Colors.blue)),
-          ),
-        ],
-      ),
-    );
-  } */
-
   List _filterSort(List subs) {
     final q = _query;
     final f = subs.where((s) {
@@ -375,11 +357,13 @@ class _SemResultPageState extends State<SemResultPage> {
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text(
+        title:Text(
           "Semester Results",
-          style: TextStyle(color: Colors.white),
+          style: TextStyle(color: Theme.of(context).textTheme.titleLarge?.color),
         ),
         iconTheme: const IconThemeData(color: Colors.white),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+
         centerTitle: true,
       ),
       body: SingleChildScrollView(

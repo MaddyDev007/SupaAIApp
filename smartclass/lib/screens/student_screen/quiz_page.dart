@@ -8,11 +8,7 @@ class QuizPage extends StatefulWidget {
   final dynamic quizId;
   final String classId; // ✅ NEW
 
-  const QuizPage({
-    super.key,
-    required this.quizId,
-    required this.classId,
-  });
+  const QuizPage({super.key, required this.quizId, required this.classId});
 
   @override
   State<QuizPage> createState() => _QuizPageState();
@@ -143,8 +139,7 @@ class _QuizPageState extends State<QuizPage> {
   int _computeScore() {
     int s = 0;
     for (int i = 0; i < questions.length; i++) {
-      if (userAnswers[i] ==
-          (questions[i]['answer'] as num).toInt()) {
+      if (userAnswers[i] == (questions[i]['answer'] as num).toInt()) {
         s++;
       }
     }
@@ -156,34 +151,41 @@ class _QuizPageState extends State<QuizPage> {
     userAnswers[currentIndex] = selected;
 
     final score = _computeScore();
-    final user = supabase.auth.currentUser;
+    final user = supabase.auth.currentUser!;
+    final studentName =
+        user.userMetadata?['name'] ??
+        user.userMetadata?['full_name'] ??
+        user.email?.split('@').first ??
+        'Unknown';
+    final avatar =
+        user.userMetadata?['avatar_url'] ??
+        user.userMetadata?['avatar'];
 
-    if (user != null) {
-      try {
-        await supabase.from('results').insert({
-          'quiz_id': widget.quizId,
-          'class_id': widget.classId, // ✅ NEW
-          'student_id': user.id,
-          'student_name': user.email ?? 'Unknown',
-          'subject': subject,
-          'score': score,
-          'answers': jsonEncode(userAnswers),
-        });
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error saving result: $e'),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+    try {
+      await supabase.from('results').insert({
+        'quiz_id': widget.quizId,
+        'class_id': widget.classId, // ✅ NEW
+        'student_id': user.id,
+        'student_name': studentName,
+        'subject': subject,
+        'avatar_url': avatar,
+        'score': score,
+        'answers': jsonEncode(userAnswers),
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving result: $e'),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
-          );
-        }
+          ),
+        );
       }
     }
-
+  
     if (!mounted) return;
     showDialog(
       context: context,
@@ -201,10 +203,7 @@ class _QuizPageState extends State<QuizPage> {
               Navigator.of(context).pop();
               Navigator.of(context).pop();
             },
-            child: const Text(
-              'Close',
-              style: TextStyle(color: Colors.white),
-            ),
+            child: const Text('Close', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -269,8 +268,9 @@ class _QuizPageState extends State<QuizPage> {
                           child: LinearProgressIndicator(
                             value: timeProgress.clamp(0, 1),
                             minHeight: 6,
-                            backgroundColor:
-                                Colors.blue.shade100.withAlpha(220),
+                            backgroundColor: Colors.blue.shade100.withAlpha(
+                              220,
+                            ),
                             valueColor: AlwaysStoppedAnimation<Color>(
                               Theme.of(context).primaryColor,
                             ),
@@ -281,20 +281,20 @@ class _QuizPageState extends State<QuizPage> {
                         alignment: Alignment.centerRight,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 6),
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .scaffoldBackgroundColor,
+                            color: Theme.of(context).scaffoldBackgroundColor,
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Text(
                             _formatMMSS(seconds),
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
-                              color: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.color,
+                              color: Theme.of(
+                                context,
+                              ).textTheme.bodyMedium?.color,
                             ),
                           ),
                         ),
@@ -308,10 +308,7 @@ class _QuizPageState extends State<QuizPage> {
                       fontSize: 22,
                       height: 1.3,
                       fontWeight: FontWeight.w700,
-                      color: Theme.of(context)
-                          .textTheme
-                          .bodyMedium
-                          ?.color,
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
                     ),
                   ),
                 ],
@@ -323,8 +320,7 @@ class _QuizPageState extends State<QuizPage> {
               child: ListView.separated(
                 padding: const EdgeInsets.all(16),
                 itemCount: options.length,
-                separatorBuilder: (_, __) =>
-                    const SizedBox(height: 12),
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (context, i) {
                   return _OptionCard(
                     label: options[i],
@@ -347,11 +343,9 @@ class _QuizPageState extends State<QuizPage> {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(4),
                       child: LinearProgressIndicator(
-                        value:
-                            (currentIndex + 1) / questions.length,
+                        value: (currentIndex + 1) / questions.length,
                         minHeight: 6,
-                        backgroundColor:
-                            Colors.blue.shade100.withAlpha(220),
+                        backgroundColor: Colors.blue.shade100.withAlpha(220),
                         valueColor: AlwaysStoppedAnimation<Color>(
                           Theme.of(context).primaryColor,
                         ),
@@ -364,56 +358,55 @@ class _QuizPageState extends State<QuizPage> {
                           'Q ${currentIndex + 1} of ${questions.length}',
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
-                            color: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.color,
+                            color: Theme.of(
+                              context,
+                            ).textTheme.bodyMedium?.color,
                           ),
                         ),
                         const Spacer(),
                         ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          elevation: 0,
-                          backgroundColor: currentIndex == 0
-                              ? Colors.grey.shade200
-                              : Colors.white,
-                          foregroundColor: currentIndex == 0
-                              ? Colors.grey
-                              : Colors.black87,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(color: Colors.grey),
+                          style: ElevatedButton.styleFrom(
+                            elevation: 0,
+                            backgroundColor: currentIndex == 0
+                                ? Colors.grey.shade200
+                                : Colors.white,
+                            foregroundColor: currentIndex == 0
+                                ? Colors.grey
+                                : Colors.black87,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(color: Colors.grey),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
                           ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 12,
-                          ),
+                          onPressed: currentIndex == 0 ? null : _onPrevious,
+                          child: const Text('Previous'),
                         ),
-                        onPressed: currentIndex == 0 ? null : _onPrevious,
-                        child: const Text('Previous'),
-                      ),
                         const SizedBox(width: 10),
                         ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          elevation: 0,
-                          backgroundColor: Theme.of(context).primaryColor,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                          style: ElevatedButton.styleFrom(
+                            elevation: 0,
+                            backgroundColor: Theme.of(context).primaryColor,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 12,
+                            ),
                           ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 18,
-                            vertical: 12,
+                          onPressed: selected != -1 ? _onNext : null,
+                          child: Text(
+                            currentIndex == questions.length - 1
+                                ? 'Submit'
+                                : 'Next',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
                         ),
-                        onPressed: selected != -1 ? _onNext : null,
-                        child: Text(
-                          currentIndex == questions.length - 1
-                              ? 'Submit'
-                              : 'Next',
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                      ),
                       ],
                     ),
                   ],
@@ -442,7 +435,9 @@ class _OptionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected ? Theme.of(context).splashColor.withAlpha((0.25 * 255).toInt()) : Theme.of(context).cardColor,
+      color: selected
+          ? Theme.of(context).splashColor.withAlpha((0.25 * 255).toInt())
+          : Theme.of(context).cardColor,
       elevation: 2,
       shadowColor: Colors.black.withAlpha((0.06 * 255).toInt()),
       shape: RoundedRectangleBorder(
@@ -483,4 +478,3 @@ class _OptionCard extends StatelessWidget {
     );
   }
 }
-

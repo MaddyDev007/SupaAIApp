@@ -83,7 +83,8 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
             subject,
             student_id,
             created_at,
-            users!inner(name, email)
+            student_name,
+            avatar_url
             ''',
           )
           .eq('class_id', widget.classId) // ✅ KEY CHANGE
@@ -121,8 +122,8 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
 
   void applyFilters() {
     filteredResults = results.where((result) {
-      final user = result['users'] ?? {};
-      final name = (user['name'] ?? '').toString().toLowerCase();
+      final name =
+    (result['student_name'] ?? '').toString().toLowerCase();
       return name.contains(searchQuery.toLowerCase());
     }).toList();
 
@@ -149,8 +150,8 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
   }
 
   Widget _buildResultCard(Map<String, dynamic> result, int index) {
-    final user = result['users'] ?? {};
-    final studentName = user['name'] ?? "Unknown";
+    final studentName = result['student_name'] ?? "Unknown";
+
 
     final slideTween = Tween<Offset>(
       begin: const Offset(0, 0.2),
@@ -174,9 +175,14 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
               vertical: 12,
             ),
             leading:  CircleAvatar(
-              backgroundColor: Theme.of(context).primaryColor,
-              child: Icon(Icons.person, color: Colors.white),
-            ),
+                  radius: 25,
+                  backgroundImage: result['avatar_url'] != null
+                      ? NetworkImage(result['avatar_url'])
+                      : null,
+                  child: result['avatar_url'] == null
+                      ? const Icon(Icons.person)
+                      : null,
+                ),
             title: Text(
               studentName,
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),

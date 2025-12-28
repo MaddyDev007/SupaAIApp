@@ -32,7 +32,6 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
   late final AnimationController _listController;
   late final Animation<double> _listAnimation;
 
-
   @override
   void initState() {
     super.initState();
@@ -68,8 +67,8 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
       final data = await supabase
           .from('questions')
           .select('id, subject, file_url, created_at')
-          .eq('class_id', widget.classId)      // ✅ KEY CHANGE
-          .eq('created_by', user.id)           // ✅ teacher only
+          .eq('class_id', widget.classId) // ✅ KEY CHANGE
+          // .eq('created_by', user.id)           // ✅ teacher only
           .order('created_at', ascending: false)
           .timeout(
             const Duration(seconds: 12),
@@ -106,6 +105,29 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
         return subject.contains(_searchQuery.toLowerCase());
       }).toList();
     });
+  }
+
+  static const _curve = Cubic(0.22, 0.61, 0.36, 1.0);
+  static final _slideTween = Tween<Offset>(
+    begin: Offset(1, 0),
+    end: Offset.zero,
+  );
+
+  Future<dynamic> pushWithAnimation(BuildContext context, Widget page) {
+    return Navigator.push(
+      context,
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 350),
+        pageBuilder: (_, __, ___) => page,
+        transitionsBuilder: (_, animation, __, child) {
+          final curved = CurvedAnimation(parent: animation, curve: _curve);
+          return SlideTransition(
+            position: _slideTween.animate(curved),
+            child: child,
+          );
+        },
+      ),
+    );
   }
 
   Future<bool> _showModernConfirmDialog({
@@ -290,7 +312,10 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: Theme.of(context).cardColor,
-          content: Text('Invalid material link', style: TextStyle(color: Theme.of(context).highlightColor)),
+          content: Text(
+            'Invalid material link',
+            style: TextStyle(color: Theme.of(context).highlightColor),
+          ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -301,12 +326,7 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
     }
 
     // 👇 Open in-app PDF viewer
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => PDFViewerPage(pdfUrl: url, title: title),
-      ),
-    );
+    pushWithAnimation(context, PDFViewerPage(pdfUrl: url, title: title));
   }
 
   /// 💾 Confirm + Download file
@@ -319,7 +339,6 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
 
     if (confirm) await _downloadMaterial(url, filename);
   }
-
 
   Future<void> _downloadMaterial(String url, String filename) async {
     final progress = ValueNotifier<double?>(
@@ -419,7 +438,10 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: Theme.of(context).cardColor,
-          content: Text('✅ Downloaded to: $savePath', style: TextStyle(color: Theme.of(context).highlightColor)),
+          content: Text(
+            '✅ Downloaded to: $savePath',
+            style: TextStyle(color: Theme.of(context).highlightColor),
+          ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -440,7 +462,10 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: Theme.of(context).cardColor,
-            content: Text('⛔ Download cancelled', style: TextStyle(color: Theme.of(context).highlightColor)),
+            content: Text(
+              '⛔ Download cancelled',
+              style: TextStyle(color: Theme.of(context).highlightColor),
+            ),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -451,7 +476,10 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: Theme.of(context).cardColor,
-            content: Text('❌ Download failed: ${e.message}', style: TextStyle(color: Theme.of(context).highlightColor)),
+            content: Text(
+              '❌ Download failed: ${e.message}',
+              style: TextStyle(color: Theme.of(context).highlightColor),
+            ),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -469,7 +497,10 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: Theme.of(context).cardColor,
-          content: Text('❌ Download failed: $e', style: TextStyle(color: Theme.of(context).highlightColor)),
+          content: Text(
+            '❌ Download failed: $e',
+            style: TextStyle(color: Theme.of(context).highlightColor),
+          ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -499,6 +530,10 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
           elevation: 3,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
+            side: BorderSide(
+              color: Theme.of(context).primaryColor,
+              width: 1.5,
+            ),
           ),
           margin: const EdgeInsets.symmetric(vertical: 8),
           child: InkWell(
@@ -526,16 +561,22 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
                     borderRadius: BorderRadius.circular(50),
                     child: Padding(
                       padding: const EdgeInsets.all(6),
-                      child: Icon(Icons.open_in_new, color: Theme.of(context).primaryColor),
+                      child: Icon(
+                        Icons.open_in_new,
+                        color: Theme.of(context).primaryColor,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   InkWell(
                     onTap: () => _confirmAndDownload(url, "$subject.pdf"),
                     borderRadius: BorderRadius.circular(50),
-                    child:  Padding(
+                    child: Padding(
                       padding: EdgeInsets.all(6),
-                      child: Icon(Icons.download, color: Theme.of(context).primaryColor),
+                      child: Icon(
+                        Icons.download,
+                        color: Theme.of(context).primaryColor,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -561,11 +602,13 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
     if (_loading) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        children:  [
+        children: [
           SizedBox(height: 160),
-          Center(child: CircularProgressIndicator(
-            color: Theme.of(context).primaryColor,
-          )),
+          Center(
+            child: CircularProgressIndicator(
+              color: Theme.of(context).primaryColor,
+            ),
+          ),
           SizedBox(height: 300),
         ],
       );
@@ -649,9 +692,8 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
                     decoration: InputDecoration(
                       hintText: 'Search by subject...',
                       prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                    
+
                       contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                      
                     ),
                   ),
                 ),
@@ -664,5 +706,4 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
       ),
     );
   }
-
 }

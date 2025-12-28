@@ -1,9 +1,24 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:smartclass/models/login_model.dart';
 import 'package:smartclass/screens/common_screen/new.dart';
+import 'package:smartclass/screens/student_screen/sem_result.dart';
+import 'package:smartclass/screens/student_screen/student_dashboard.dart';
+import 'package:smartclass/screens/teacher_screen/teacher_dashboard.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
+import 'package:open_filex/open_filex.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 class CommonDashboard extends StatefulWidget {
   const CommonDashboard({super.key});
@@ -13,7 +28,7 @@ class CommonDashboard extends StatefulWidget {
 }
 
 class _CommonDashboardState extends State<CommonDashboard>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final supabase = Supabase.instance.client;
 
   late TabController _tabController;
@@ -24,13 +39,27 @@ class _CommonDashboardState extends State<CommonDashboard>
   List<Map<String, dynamic>> joinedClasses = [];
   List<Map<String, dynamic>> createdClasses = [];
   bool loading = true;
+  late final AnimationController _listController;
+  late final Animation<double> _listAnimation;
 
   // ================= INIT =================
   @override
   void initState() {
     super.initState();
+    _listController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
 
-    _tabController = TabController(length: 2, vsync: this);
+    _listAnimation = CurvedAnimation(
+      parent: _listController,
+      curve: Curves.easeOut,
+    );
+
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      if (mounted) setState(() {});
+    });
 
     loginBox = Hive.box<LoginModel>('loginBox');
     // Use the same key as other parts of the app (UpdatePage writes to 'profile')
@@ -42,6 +71,7 @@ class _CommonDashboardState extends State<CommonDashboard>
   @override
   void dispose() {
     _tabController.dispose();
+    _listController.dispose();
     super.dispose();
   }
 
@@ -71,13 +101,18 @@ class _CommonDashboardState extends State<CommonDashboard>
 
   // ================= FETCH CLASSES =================
   Future<void> fetchClasses() async {
+    setState(() => loading = true);
     final user = supabase.auth.currentUser;
     if (user == null) return;
 
     final joinedRes = await supabase
         .from('class_members')
         .select('classes(*)')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .timeout(
+          const Duration(seconds: 12),
+          onTimeout: () => throw TimeoutException('Class fetch timed out'),
+        );
 
     final joined = joinedRes
         .map<Map<String, dynamic>>((e) => e['classes'])
@@ -93,6 +128,7 @@ class _CommonDashboardState extends State<CommonDashboard>
       createdClasses = createdRes;
       loading = false;
     });
+    _listController.forward(from: 0);
   }
 
   // ================= CLASS CODE =================
@@ -109,6 +145,7 @@ class _CommonDashboardState extends State<CommonDashboard>
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: Theme.of(context).cardColor,
         title: const Text('Create Class'),
         content: TextField(
           controller: controller,
@@ -117,10 +154,18 @@ class _CommonDashboardState extends State<CommonDashboard>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: Theme.of(context).textTheme.bodySmall?.color,
+              ),
+            ),
           ),
           ElevatedButton(
-            child: const Text('Create'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+            ),
+            child: const Text('Create', style: TextStyle(color: Colors.white)),
             onPressed: () async {
               final user = supabase.auth.currentUser!;
               final code = generateCode();
@@ -138,6 +183,7 @@ class _CommonDashboardState extends State<CommonDashboard>
               await supabase.from('class_members').insert({
                 'class_id': classRes['id'],
                 'user_id': user.id,
+                'student': false,
               });
 
               if (!mounted) return;
@@ -157,6 +203,7 @@ class _CommonDashboardState extends State<CommonDashboard>
     await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: Theme.of(context).cardColor,
         title: const Text('Join Class'),
         content: TextField(
           controller: controller,
@@ -165,10 +212,18 @@ class _CommonDashboardState extends State<CommonDashboard>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                color: Theme.of(context).textTheme.bodySmall?.color,
+              ),
+            ),
           ),
           ElevatedButton(
-            child: const Text('Join'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor,
+            ),
+            child: const Text('Join', style: TextStyle(color: Colors.white)),
             onPressed: () async {
               final user = supabase.auth.currentUser!;
               final code = controller.text.trim().toUpperCase();
@@ -199,6 +254,7 @@ class _CommonDashboardState extends State<CommonDashboard>
                 await supabase.from('class_members').insert({
                   'class_id': cls['id'],
                   'user_id': user.id,
+                  'student': true,
                 });
 
                 if (!mounted) return;
@@ -219,34 +275,82 @@ class _CommonDashboardState extends State<CommonDashboard>
   // ================= CLASS LIST =================
   Widget buildClassList(List<Map<String, dynamic>> list) {
     if (loading) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(
+        child: CircularProgressIndicator(color: Theme.of(context).primaryColor),
+      );
     }
 
     if (list.isEmpty) {
-      return const Center(child: Text('No classes'));
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: const [
+          SizedBox(height: 200),
+          Center(child: Text('No classes')),
+        ],
+      );
     }
 
     return ListView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16),
       itemCount: list.length,
       itemBuilder: (ctx, i) {
-        final cls = list[i];
-        final isOwner = cls['created_by'] == supabase.auth.currentUser!.id;
-
-        return Card(
-          child: ListTile(
-            title: Text(cls['name']),
-            subtitle: Text('Code: ${cls['code']}'),
-            onTap: () {
-              Navigator.pushNamed(
-                context,
-                isOwner ? '/teacher-dashboard' : '/student-dashboard',
-                arguments: cls,
-              );
-            },
-          ),
-        );
+        return _buildMaterialCard(list, i);
       },
+    );
+  }
+
+  Widget _buildMaterialCard(List<Map<String, dynamic>> list, int index) {
+    final cls = list[index];
+    final currentUserId = supabase.auth.currentUser?.id;
+    final isOwner = currentUserId != null && cls['created_by'] == currentUserId;
+
+    final slideTween = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).chain(CurveTween(curve: Curves.easeOut));
+
+    return FadeTransition(
+      opacity: _listAnimation,
+      child: SlideTransition(
+        position: _listAnimation.drive(slideTween),
+        child: Card(
+          color: Theme.of(context).cardColor,
+          elevation: 3,
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          shape: RoundedRectangleBorder(
+            side: BorderSide(color: Theme.of(context).primaryColor, width: 1.5),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+
+            splashColor: Theme.of(context).primaryColor.withOpacity(0.1),
+            onTap: () {
+              pushWithAnimation(
+                context,
+                isOwner
+                    ? TeacherDashboard(cls: cls)
+                    : StudentDashboard(cls: cls),
+              ).then((_) {
+                if (mounted) fetchClasses();
+              });
+            },
+
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ListTile(
+                title: Text(cls['name']),
+                subtitle: Text('Code: ${cls['code']}'),
+                trailing: Icon(
+                  Icons.arrow_forward_ios,
+                  color: Theme.of(context).primaryColor,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -254,6 +358,7 @@ class _CommonDashboardState extends State<CommonDashboard>
   @override
   Widget build(BuildContext context) {
     final user = supabase.auth.currentUser;
+    final avatarUrl = loginUser?.avatarUrl;
     if (user == null) {
       Future.microtask(() {
         Navigator.pushReplacementNamed(context, '/loginGoogle');
@@ -265,20 +370,30 @@ class _CommonDashboardState extends State<CommonDashboard>
       appBar: AppBar(
         title: const Text('Classes'),
         bottom: TabBar(
+          unselectedLabelColor: Colors.white60,
+          labelColor: Colors.white,
+          indicatorColor: Colors.white,
+          physics: const BouncingScrollPhysics(),
           controller: _tabController,
           tabs: const [
             Tab(text: 'Joined'),
             Tab(text: 'Created'),
+            Tab(text: 'semester'),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.account_circle, size: 28),
+            icon: CircleAvatar(
+              radius: 15, // AppBar-friendly size
+              backgroundImage: avatarUrl != null
+                  ? NetworkImage(avatarUrl)
+                  : null,
+              child: avatarUrl == null
+                  ? const Icon(Icons.person, size: 20)
+                  : null,
+            ),
             onPressed: () async {
-              final res = await pushWithAnimation(
-                context,
-                ProfilePageNew(),
-              );
+              final res = await pushWithAnimation(context, ProfilePageNew());
               if (res == true) {
                 setState(() {
                   loginUser = loginBox.get('profile');
@@ -291,16 +406,35 @@ class _CommonDashboardState extends State<CommonDashboard>
       body: TabBarView(
         controller: _tabController,
         children: [
-          buildClassList(joinedClasses),
-          buildClassList(createdClasses),
+          RefreshIndicator(
+            onRefresh: fetchClasses,
+            color: Theme.of(context).primaryColor,
+            child: buildClassList(joinedClasses),
+          ),
+          RefreshIndicator(
+            onRefresh: fetchClasses,
+            color: Theme.of(context).primaryColor,
+            child: buildClassList(createdClasses),
+          ),
+          SemResultPage(),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _tabController.index == 0 ? joinClass() : createClass();
-        },
-        child: const Icon(Icons.add),
-      ),
+
+      floatingActionButton: _tabController.index == 2
+          ? null
+          : FloatingActionButton(
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+              onPressed: () {
+                if (_tabController.index == 0) {
+                  joinClass();
+                } else {
+                  createClass();
+                }
+              },
+              child: const Icon(Icons.add),
+            ),
     );
   }
 }
+

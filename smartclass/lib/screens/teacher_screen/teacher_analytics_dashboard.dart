@@ -8,10 +8,7 @@ import 'package:intl/intl.dart';
 class TeacherAnalyticsPage extends StatefulWidget {
   final String classId; // ✅ NEW
 
-  const TeacherAnalyticsPage({
-    super.key,
-    required this.classId,
-  });
+  const TeacherAnalyticsPage({super.key, required this.classId});
 
   @override
   State<TeacherAnalyticsPage> createState() => _TeacherAnalyticsPageState();
@@ -47,16 +44,14 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
 
       final data = await supabase
           .from('results')
-          .select(
-            '''
+          .select('''
             score,
             subject,
             quiz_id,
             created_at,
-            users!inner(name)
-            ''',
-          )
-          .eq('class_id', widget.classId) // ✅ KEY CHANGE
+            student_name
+            ''')
+          .eq('class_id', widget.classId)
           .order('created_at', ascending: true)
           .timeout(
             const Duration(seconds: 15),
@@ -91,17 +86,12 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
   }
 
   int _uniqueStudents() {
-    return studentPerformance
-        .map((e) => e['users']?['name'])
-        .toSet()
-        .length;
+    return studentPerformance.map((e) => e['student_name']).toSet().length;
+
   }
 
   int _uniqueQuizzes() {
-    return studentPerformance
-        .map((e) => e['quiz_id'])
-        .toSet()
-        .length;
+    return studentPerformance.map((e) => e['quiz_id']).toSet().length;
   }
 
   // ---------------- BUILD ----------------
@@ -111,9 +101,7 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
 
     if (_isLoading) {
       bodyChild = Center(
-        child: CircularProgressIndicator(
-          color: Theme.of(context).primaryColor,
-        ),
+        child: CircularProgressIndicator(color: Theme.of(context).primaryColor),
       );
     } else if (_hasError) {
       bodyChild = SmartClassErrorPage(
@@ -223,21 +211,23 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
                       },
                     ),
                   ),
-                  rightTitles:
-                      const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles:
-                      const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
                       getTitlesWidget: (value, _) {
                         final index = value.toInt();
-                        if (index < 0 ||
-                            index >= studentPerformance.length) {
+                        if (index < 0 || index >= studentPerformance.length) {
                           return const SizedBox();
                         }
                         return Text(
-                          studentPerformance[index]['users']?['name'] ?? "-",
+                          studentPerformance[index]['student_name'] ?? "-",
+
                           style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.w500,
@@ -247,8 +237,7 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
                     ),
                   ),
                 ),
-                barGroups:
-                    studentPerformance.asMap().entries.map((entry) {
+                barGroups: studentPerformance.asMap().entries.map((entry) {
                   final index = entry.key;
                   final score = (entry.value['score'] ?? 0) as int;
                   return BarChartGroupData(
@@ -301,8 +290,9 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: DataTable(
-          headingRowColor:
-              WidgetStateProperty.all(Theme.of(context).scaffoldBackgroundColor),
+          headingRowColor: WidgetStateProperty.all(
+            Theme.of(context).scaffoldBackgroundColor,
+          ),
           border: TableBorder.all(color: Colors.grey.shade200),
           columns: const [
             DataColumn(label: Text("Student")),
@@ -313,14 +303,15 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
           rows: studentPerformance.map((e) {
             return DataRow(
               cells: [
-                DataCell(Text(e['users']?['name'] ?? "")),
+                DataCell(Text(e['student_name'] ?? "")),
                 DataCell(Text(e['subject'] ?? "")),
                 DataCell(Text("${e['score']}/10")),
                 DataCell(
                   Text(
                     e['created_at'] != null
-                        ? DateFormat('dd-MM-yyyy')
-                            .format(DateTime.parse(e['created_at']))
+                        ? DateFormat(
+                            'dd-MM-yyyy',
+                          ).format(DateTime.parse(e['created_at']))
                         : "",
                   ),
                 ),
@@ -352,8 +343,7 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
         children: [
           Text(
             title,
-            style:
-                const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           child,
@@ -388,8 +378,7 @@ class _TeacherAnalyticsPageState extends State<TeacherAnalyticsPage> {
           ],
         ),
         child: Padding(
-          padding:
-              const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

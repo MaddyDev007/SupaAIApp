@@ -9,8 +9,6 @@ import 'package:smartclass/screens/theme/dark_theme.dart';
 import 'package:smartclass/screens/theme/light_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'secrets.dart';
-import 'screens/login_page.dart';
-import 'screens/signup_page.dart';
 import 'screens/teacher_screen/teacher_dashboard.dart';
 import 'screens/student_screen/student_dashboard.dart';
 import 'screens/teacher_screen/upload_material_page.dart';

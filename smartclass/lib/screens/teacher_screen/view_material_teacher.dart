@@ -32,7 +32,6 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
 
   final TextEditingController _searchController = TextEditingController();
 
-
   late final AnimationController _listController;
   late final Animation<double> _listAnimation;
 
@@ -62,11 +61,10 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
     final query = _searchController.text.toLowerCase();
     setState(() {
       _filteredMaterials = _materials
-          .where((m) =>
-              (m['subject'] ?? '')
-                  .toString()
-                  .toLowerCase()
-                  .contains(query))
+          .where(
+            (m) =>
+                (m['subject'] ?? '').toString().toLowerCase().contains(query),
+          )
           .toList();
     });
   }
@@ -110,8 +108,11 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-           backgroundColor: Theme.of(context).cardColor,
-          content: Text('Invalid material link',style: TextStyle(color: Theme.of(context).highlightColor)),
+          backgroundColor: Theme.of(context).cardColor,
+          content: Text(
+            'Invalid material link',
+            style: TextStyle(color: Theme.of(context).highlightColor),
+          ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -122,12 +123,7 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
     }
 
     // 👇 Open in-app PDF viewer
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => PDFViewerPage(pdfUrl: url, title: title),
-      ),
-    );
+    pushWithAnimation(context, PDFViewerPage(pdfUrl: url, title: title));
   }
 
   Future<void> _fetchMaterials() async {
@@ -148,14 +144,13 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
           .from('materials')
           .select('id, subject, file_url, created_at')
           .eq('class_id', widget.classId) // ✅ KEY CHANGE
-          .eq('uploaded_by', user.id)     // ✅ only creator
+          .eq('uploaded_by', user.id) // ✅ only creator
           .order('created_at', ascending: false)
           .timeout(
             const Duration(seconds: 12),
             onTimeout: () =>
                 throw TimeoutException('Materials fetch timed out'),
           );
-
 
       _materials = List<Map<String, dynamic>>.from(data);
       _filteredMaterials = _materials;
@@ -194,14 +189,8 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-            title: Text(
-              title,
-              style: theme.textTheme.titleLarge
-            ),
-            content: Text(
-              message,
-
-            ),
+            title: Text(title, style: theme.textTheme.titleLarge),
+            content: Text(message),
             actionsPadding: const EdgeInsets.symmetric(
               horizontal: 12,
               vertical: 8,
@@ -218,7 +207,9 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
                 ),
               ),
               FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: Theme.of(context).primaryColor),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(context).primaryColor,
+                ),
                 onPressed: () => Navigator.pop(context, true),
                 child: Text(
                   confirmText,
@@ -278,8 +269,11 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-             backgroundColor: Theme.of(context).cardColor,
-            content: Text("Material & Questions deleted successfully.",style: TextStyle(color: Theme.of(context).highlightColor)),
+            backgroundColor: Theme.of(context).cardColor,
+            content: Text(
+              "Material & Questions deleted successfully.",
+              style: TextStyle(color: Theme.of(context).highlightColor),
+            ),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -291,8 +285,11 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-           backgroundColor: Theme.of(context).cardColor,
-          content: Text("Error deleting material: $e",style: TextStyle(color: Theme.of(context).highlightColor)),
+          backgroundColor: Theme.of(context).cardColor,
+          content: Text(
+            "Error deleting material: $e",
+            style: TextStyle(color: Theme.of(context).highlightColor),
+          ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -314,7 +311,7 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
     if (confirm) await _downloadMaterial(url, filename);
   }
 
-   Future<void> _downloadMaterial(String url, String filename) async {
+  Future<void> _downloadMaterial(String url, String filename) async {
     final progress = ValueNotifier<double?>(
       0.0,
     ); // 0..1, or null = indeterminate
@@ -358,7 +355,7 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
                 onPressed: () {
                   cancelToken.cancel('Cancelled by user');
                 },
-                child:  Text(
+                child: Text(
                   'Cancel',
                   style: TextStyle(color: Theme.of(context).primaryColor),
                 ),
@@ -418,8 +415,11 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-           backgroundColor: Theme.of(context).cardColor,
-          content: Text('✅ Downloaded to: $savePath',style: TextStyle(color: Theme.of(context).highlightColor)),
+          backgroundColor: Theme.of(context).cardColor,
+          content: Text(
+            '✅ Downloaded to: $savePath',
+            style: TextStyle(color: Theme.of(context).highlightColor),
+          ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -440,7 +440,10 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: Theme.of(context).cardColor,
-            content: Text('⛔ Download cancelled',style: TextStyle(color: Theme.of(context).highlightColor),),
+            content: Text(
+              '⛔ Download cancelled',
+              style: TextStyle(color: Theme.of(context).highlightColor),
+            ),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -451,7 +454,10 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: Theme.of(context).cardColor,
-            content: Text('❌ Download failed: ${e.message}',style: TextStyle(color: Theme.of(context).highlightColor)),
+            content: Text(
+              '❌ Download failed: ${e.message}',
+              style: TextStyle(color: Theme.of(context).highlightColor),
+            ),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -466,8 +472,11 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-           backgroundColor: Theme.of(context).cardColor,
-          content: Text('❌ Download failed: $e',style: TextStyle(color: Theme.of(context).highlightColor)),
+          backgroundColor: Theme.of(context).cardColor,
+          content: Text(
+            '❌ Download failed: $e',
+            style: TextStyle(color: Theme.of(context).highlightColor),
+          ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -476,11 +485,31 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
       );
     }
   }
- 
-  
-  
-  Widget _buildMaterialCard(Map<String, dynamic> material, int index) {
 
+  static const _curve = Cubic(0.22, 0.61, 0.36, 1.0);
+  static final _slideTween = Tween<Offset>(
+    begin: Offset(1, 0),
+    end: Offset.zero,
+  );
+
+  Future<dynamic> pushWithAnimation(BuildContext context, Widget page) {
+    return Navigator.push(
+      context,
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 350),
+        pageBuilder: (_, __, ___) => page,
+        transitionsBuilder: (_, animation, __, child) {
+          final curved = CurvedAnimation(parent: animation, curve: _curve);
+          return SlideTransition(
+            position: _slideTween.animate(curved),
+            child: child,
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildMaterialCard(Map<String, dynamic> material, int index) {
     final subject = material['subject'] ?? 'Untitled';
     final url = material['file_url'] as String;
     final id = material['id'] as String;
@@ -499,6 +528,7 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
           elevation: 3,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
+            side: BorderSide(color: Theme.of(context).primaryColor, width: 1.5),
           ),
           margin: const EdgeInsets.symmetric(vertical: 8),
           child: InkWell(
@@ -526,16 +556,22 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
                     borderRadius: BorderRadius.circular(50),
                     child: Padding(
                       padding: const EdgeInsets.all(6),
-                      child: Icon(Icons.open_in_new, color:Theme.of(context).primaryColor),
+                      child: Icon(
+                        Icons.open_in_new,
+                        color: Theme.of(context).primaryColor,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   InkWell(
                     onTap: () => _confirmAndDownload(url, "$subject.pdf"),
                     borderRadius: BorderRadius.circular(50),
-                    child:Padding(
+                    child: Padding(
                       padding: EdgeInsets.all(6),
-                      child: Icon(Icons.download, color:Theme.of(context).primaryColor),
+                      child: Icon(
+                        Icons.download,
+                        color: Theme.of(context).primaryColor,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -561,11 +597,13 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
     if (_loading) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        children:  [
+        children: [
           SizedBox(height: 160),
-          Center(child: CircularProgressIndicator(
-            color: Theme.of(context).primaryColor,
-          )),
+          Center(
+            child: CircularProgressIndicator(
+              color: Theme.of(context).primaryColor,
+            ),
+          ),
           SizedBox(height: 300),
         ],
       );
@@ -618,7 +656,6 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -632,8 +669,8 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
       ),
       body: Container(
         decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
-          ),
+          color: Theme.of(context).scaffoldBackgroundColor,
+        ),
         child: RefreshIndicator(
           onRefresh: _fetchMaterials,
           color: Theme.of(context).primaryColor,
@@ -646,13 +683,12 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
                   decoration: InputDecoration(
                     hintText: 'Search materials by name...',
                     prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                    
+
                     contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                  
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 8),
               Expanded(child: _buildContent()),
             ],
@@ -661,5 +697,4 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
       ),
     );
   }
-
 }
