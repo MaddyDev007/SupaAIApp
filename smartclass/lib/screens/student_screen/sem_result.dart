@@ -80,7 +80,7 @@ class _SemResultPageState extends State<SemResultPage> {
           body: jsonEncode({"register_number": reg, "dob": dob}),
         )
         .timeout(
-          const Duration(seconds: 15),
+          const Duration(seconds: 20),
           onTimeout: () => throw TimeoutException('Request timed out'),
         );
 

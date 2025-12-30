@@ -72,7 +72,7 @@ class _EditNotePageState extends State<EditNotePage> {
           .from('notes')
           .uploadBinary(filename, bytes)
           .timeout(
-            const Duration(seconds: 10),
+            const Duration(seconds: 30),
             onTimeout: () => throw TimeoutException('Image upload timed out'),
           );
 
@@ -158,7 +158,7 @@ class _EditNotePageState extends State<EditNotePage> {
           .from('notes')
           .remove([fileName])
           .timeout(
-            const Duration(seconds: 15),
+            const Duration(seconds: 30),
             onTimeout: () => throw TimeoutException('Image delete timed out'),
           );
 
@@ -420,7 +420,7 @@ class _EditNotePageState extends State<EditNotePage> {
                         shape: BoxShape.circle,
                         border: Border.all(
                           color: isSelected
-                              ? Theme.of( context).highlightColor
+                              ? Theme.of( context).dividerColor
                               : Colors.transparent,
                           width: 2,
                         ),

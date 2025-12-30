@@ -29,6 +29,7 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
 
   late final AnimationController _listController;
   late final Animation<double> _listAnimation;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -47,6 +48,7 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
   @override
   void dispose() {
     _listController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -89,7 +91,7 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
           .eq('class_id', widget.classId) // ✅ KEY CHANGE
           .order('created_at', ascending: false)
           .timeout(
-            const Duration(seconds: 12),
+            const Duration(seconds: 20),
             onTimeout: () =>
                 throw TimeoutException('Results fetch timed out'),
           );
@@ -209,6 +211,12 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
       ),
     );
   }
+  void _resetSearchAndFetch() {
+  searchQuery = '';
+  _searchController.clear(); // clears TextField
+  filteredResults = List.from(results);
+  fetchResults();
+}
 
   Widget _buildContent() {
     // Always return a scrollable so RefreshIndicator works
@@ -235,7 +243,7 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
             type: SmartClassErrorPage.mapToType(_errorObj),
             error: _errorObj,
             stackTrace: _errorStack,
-            onRetry: fetchResults,
+            onRetry: _resetSearchAndFetch,
           ),
           // const SizedBox(height: 300),
         ],
@@ -244,6 +252,7 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
 
     if (filteredResults.isEmpty) {
       return ListView(
+        
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
           // SizedBox(height: 120),
@@ -252,6 +261,7 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
             standalone: false,
             type: SmartErrorType.notFound,
             title: 'No materials yet',
+            onRetry: _resetSearchAndFetch,
             message: 'Try a different search or pull to refresh.',
           ),
           // const SizedBox(height: 300),
@@ -302,6 +312,7 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
           Padding(
             padding: const EdgeInsets.all(12.0),
             child: TextField(
+              controller: _searchController,
               onChanged: (val) {
                 searchQuery = val;
                 applyFilters();

@@ -38,7 +38,7 @@ class _QuizPageState extends State<QuizPage> {
   void initState() {
     super.initState();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-    _fetchQuiz();
+    _verifyMembershipAndFetch();
   }
 
   @override
@@ -57,7 +57,7 @@ class _QuizPageState extends State<QuizPage> {
           .eq('id', widget.quizId)
           .maybeSingle()
           .timeout(
-            const Duration(seconds: 12),
+            const Duration(seconds: 20),
             onTimeout: () => throw TimeoutException('Quiz fetch timed out'),
           );
 
@@ -145,6 +145,46 @@ class _QuizPageState extends State<QuizPage> {
     }
     return s;
   }
+  Future<void> _verifyMembershipAndFetch() async {
+  try {
+    final user = supabase.auth.currentUser;
+
+    if (user == null) {
+      Navigator.pop(context);
+      return;
+    }
+
+    final membership = await supabase
+        .from('class_members')
+        .select('id')
+        .eq('class_id', widget.classId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+    if (membership == null) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You are no longer part of this class'),
+        ),
+      );
+
+      Navigator.pop(context);
+      return;
+    }
+
+    // ✅ Still enrolled → load quiz
+    await _fetchQuiz();
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Access check failed: $e')),
+    );
+    Navigator.pop(context);
+  }
+}
+
 
   Future<void> _submitQuiz() async {
     _timer?.cancel();
@@ -162,6 +202,7 @@ class _QuizPageState extends State<QuizPage> {
         user.userMetadata?['avatar'];
 
     try {
+      
       await supabase.from('results').insert({
         'quiz_id': widget.quizId,
         'class_id': widget.classId, // ✅ NEW
@@ -448,6 +489,9 @@ class _OptionCard extends StatelessWidget {
         ),
       ),
       child: InkWell(
+        highlightColor: Colors.transparent,
+            splashFactory: InkRipple.splashFactory,
+        
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
         child: Padding(

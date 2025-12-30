@@ -127,7 +127,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
             }),
           )
           .timeout(
-            const Duration(seconds: 25),
+            const Duration(seconds: 30),
             onTimeout: () => throw TimeoutException('Request timed out'),
           );
 

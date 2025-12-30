@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:smartclass/main.dart';
 import 'package:smartclass/models/login_model.dart';
+import 'package:smartclass/screens/common_screen/update.dart';
 import 'package:smartclass/screens/continueWithGoogle.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'chatbot_page.dart' show chatHistory;
@@ -21,18 +23,42 @@ class ProfilePageNew extends StatelessWidget {
         return Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           appBar: AppBar(
-            centerTitle: true,
-            iconTheme: const IconThemeData(color: Colors.white),
-            title: const Text(
-              "My Profile",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w500,
-                color: Colors.white,
-                letterSpacing: 1.1,
-              ),
-            ),
-          ),
+  centerTitle: true,
+  iconTheme: const IconThemeData(color: Colors.white),
+  title: const Text(
+    "My Profile",
+    style: TextStyle(
+      fontSize: 20,
+      fontWeight: FontWeight.w500,
+      color: Colors.white,
+      letterSpacing: 1.1,
+    ),
+  ),
+  actions: [
+    PopupMenuButton<ThemeMode>(
+      color: Theme.of(context).cardColor,
+      icon: const Icon(Icons.brightness_6, color: Colors.white),
+      onSelected: (mode) {
+        themeModeNotifier.value = mode;
+      },
+      itemBuilder: (_) => const [
+        PopupMenuItem(
+          value: ThemeMode.system,
+          child: Text("System default"),
+        ),
+        PopupMenuItem(
+          value: ThemeMode.light,
+          child: Text("Light mode"),
+        ),
+        PopupMenuItem(
+          value: ThemeMode.dark,
+          child: Text("Dark mode"),
+        ),
+      ],
+    ),
+  ],
+),
+
           body: profile == null
               ? _buildNoProfile(context)
               : _buildProfile(context, profile),
@@ -76,12 +102,13 @@ class ProfilePageNew extends StatelessWidget {
                 child: Column(
                   children: [
                     CircleAvatar(
+                      backgroundColor: Colors.blueAccent,
                       radius: 50,
                       backgroundImage: profile.avatarUrl != null
                           ? NetworkImage(profile.avatarUrl!)
                           : null,
                       child: profile.avatarUrl == null
-                          ? const Icon(Icons.person, size: 48)
+                          ? const Icon(Icons.person, size: 48,color: Colors.white,)
                           : null,
                     ),
           
@@ -107,13 +134,39 @@ class ProfilePageNew extends StatelessWidget {
           
                     const SizedBox(height: 30),
           
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.logout, color: Colors.white),
-                      label: const Text("Logout", style: TextStyle(color: Colors.white)),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      spacing: 10,
+                      children: [
+                        ElevatedButton.icon(
+                      icon: const Icon(Icons.update, color: Colors.white),
+                      label: const Text("Update Profile", style: TextStyle(color: Colors.white)),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent,
+                        backgroundColor: Theme.of(context).primaryColor,
                       ),
-                      onPressed: () => _logout(context),
+                      onPressed: () {
+                        _pushAnimation(
+                          context,
+                          UpdatePage(profile: {
+                              'name': profile.name,
+                              'email': profile.email,
+                              'reg_no': profile.reg_no,
+                              'avatar_url': profile.avatarUrl,
+                              'role': profile.role,
+                            }),
+                          
+                        );
+                      },
+                    ),
+                        ElevatedButton.icon(
+                          icon: const Icon(Icons.logout, color: Colors.white),
+                          label: const Text("Logout", style: TextStyle(color: Colors.white)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.redAccent,
+                          ),
+                          onPressed: () => _logout(context),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -121,6 +174,30 @@ class ProfilePageNew extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  static const _curve = Cubic(0.22, 0.61, 0.36, 1.0);
+
+  void _pushAnimation(BuildContext context, Widget page) {
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 350),
+        pageBuilder: (_, __, ___) => page,
+        transitionsBuilder: (_, animation, __, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: _curve,
+          );
+
+          return SlideTransition(
+            position: Tween(begin: const Offset(1, 0), end: Offset.zero)
+                .animate(curved),
+            child: child,
+          );
+        },
       ),
     );
   }

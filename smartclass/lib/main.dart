@@ -20,6 +20,9 @@ import 'dart:math';
 
 /* late Box<UserModel> userBox;
 UserModel? userModel; */
+final ValueNotifier<ThemeMode> themeModeNotifier = ValueNotifier(
+  ThemeMode.system,
+);
 
 void main() async {
   final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
@@ -30,8 +33,6 @@ void main() async {
   Hive.registerAdapter(LoginModelAdapter());
 
   await Hive.openBox<LoginModel>('loginBox');
-  // Hive.registerAdapter(UserModelAdapter());
-  // userBox = await Hive.openBox<UserModel>('userBox');
 
   // ✅ Initialize Supabase
   await Supabase.initialize(
@@ -62,87 +63,111 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Smart Classroom',
-      debugShowCheckedModeBanner: false,
-      // theme: ThemeData(primarySwatch: Colors.blue),
-      theme: lightTheme, // Light Mode
-      darkTheme: darkTheme, // Dark Mode
-      themeMode: ThemeMode.system,
-      home: const SplashRedirector(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeModeNotifier,
+      builder: (_, mode, __) {
+        final brightness =
+            mode == ThemeMode.system
+                ? MediaQuery.platformBrightnessOf(context)
+                : (mode == ThemeMode.dark
+                    ? Brightness.dark
+                    : Brightness.light);
 
-      onGenerateRoute: (settings) {
-        switch (settings.name) {
-          case '/commondashboard':
-            return MaterialPageRoute(builder: (_) => const CommonDashboard());
-
-          /* case '/login':
-            return MaterialPageRoute(builder: (_) => const LoginPage()); */
-
-          case '/loginGoogle':
-            return MaterialPageRoute(
-              builder: (_) => const ContinueWithGoogle(),
-            );
-
-          /* case '/signup':
-            return MaterialPageRoute(builder: (_) => const SignupPage());
- */
-          // ❌ DO NOT open dashboards without classId
-          case '/teacher-dashboard':
-            {
-              final cls = settings.arguments as Map<String, dynamic>;
-              return MaterialPageRoute(
-                builder: (_) => TeacherDashboard(cls: cls),
-              );
-            }
-
-          case '/student-dashboard':
-            {
-              final cls = settings.arguments as Map<String, dynamic>;
-              return MaterialPageRoute(
-                builder: (_) => StudentDashboard(cls: cls),
-              );
-            }
-
-          case '/upload':
-            {
-              final cls = settings.arguments as Map<String, dynamic>;
-              return MaterialPageRoute(
-                builder: (_) => UploadMaterialPage(classId: cls['id']),
-              );
-            }
-
-          case '/quiz':
-            {
-              final args = settings.arguments as Map<String, dynamic>;
-              return MaterialPageRoute(
-                builder: (_) =>
-                    QuizPage(quizId: args['quizId'], classId: args['classId']),
-              );
-            }
-
-          case '/results':
-            {
-              final args = settings.arguments as Map<String, dynamic>;
-              return MaterialPageRoute(
-                builder: (_) => ResultPage(classId: args['classId']),
-              );
-            }
-
-          case '/chatbot':
-            {
-              final args = settings.arguments as Map<String, dynamic>;
-              return MaterialPageRoute(
-                builder: (_) => ChatbotPage(classId: args['classId']),
-              );
-            }
-
-          case '/onboarding':
-            return MaterialPageRoute(builder: (_) => const OnboardingScreen());
-
-          default:
-            return null;
-        }
+        final theme =
+            brightness == Brightness.dark ? darkTheme : lightTheme;
+        return AnimatedTheme(
+          data: theme,
+          duration: const Duration(milliseconds: 350), // 👈 animation speed
+          curve: Curves.easeInOutCubic,
+          child: MaterialApp(
+            title: 'Smart Classroom',
+            debugShowCheckedModeBanner: false,
+            theme: lightTheme,
+            darkTheme: darkTheme,
+            themeMode: mode,
+            home: const SplashRedirector(),
+          
+            onGenerateRoute: (settings) {
+              switch (settings.name) {
+                case '/commondashboard':
+                  return MaterialPageRoute(
+                    builder: (_) => const CommonDashboard(),
+                  );
+          
+                /* case '/login':
+              return MaterialPageRoute(builder: (_) => const LoginPage()); */
+          
+                case '/loginGoogle':
+                  return MaterialPageRoute(
+                    builder: (_) => const ContinueWithGoogle(),
+                  );
+          
+                /* case '/signup':
+              return MaterialPageRoute(builder: (_) => const SignupPage());
+           */
+                // ❌ DO NOT open dashboards without classId
+                case '/teacher-dashboard':
+                  {
+                    final cls = settings.arguments as Map<String, dynamic>;
+                    return MaterialPageRoute(
+                      builder: (_) => TeacherDashboard(cls: cls),
+                    );
+                  }
+          
+                case '/student-dashboard':
+                  {
+                    final cls = settings.arguments as Map<String, dynamic>;
+                    return MaterialPageRoute(
+                      builder: (_) => StudentDashboard(cls: cls),
+                    );
+                  }
+          
+                case '/upload':
+                  {
+                    final cls = settings.arguments as Map<String, dynamic>;
+                    return MaterialPageRoute(
+                      builder: (_) => UploadMaterialPage(classId: cls['id']),
+                    );
+                  }
+          
+                case '/quiz':
+                  {
+                    final args = settings.arguments as Map<String, dynamic>;
+                    return MaterialPageRoute(
+                      builder: (_) => QuizPage(
+                        quizId: args['quizId'],
+                        classId: args['classId'],
+                      ),
+                    );
+                  }
+          
+                case '/results':
+                  {
+                    final args = settings.arguments as Map<String, dynamic>;
+                    return MaterialPageRoute(
+                      builder: (_) => ResultPage(classId: args['classId']),
+                    );
+                  }
+          
+                case '/chatbot':
+                  {
+                    final args = settings.arguments as Map<String, dynamic>;
+                    return MaterialPageRoute(
+                      builder: (_) => ChatbotPage(classId: args['classId']),
+                    );
+                  }
+          
+                case '/onboarding':
+                  return MaterialPageRoute(
+                    builder: (_) => const OnboardingScreen(),
+                  );
+          
+                default:
+                  return null;
+              }
+            },
+          ),
+        );
       },
     );
   }

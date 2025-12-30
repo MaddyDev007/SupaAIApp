@@ -90,7 +90,7 @@ class _QuizListPageState extends State<QuizListPage>
           .eq('class_id', widget.classId)
           .order('created_at', ascending: false)
           .timeout(
-            const Duration(seconds: 12),
+            const Duration(seconds: 20),
             onTimeout: () => throw TimeoutException('Quiz fetch timed out'),
           );
 
@@ -101,7 +101,7 @@ class _QuizListPageState extends State<QuizListPage>
           .eq('student_id', user.id)
           .order('created_at', ascending: false)
           .timeout(
-            const Duration(seconds: 12),
+            const Duration(seconds: 20),
             onTimeout: () => throw TimeoutException('Result fetch timed out'),
           );
 
@@ -162,11 +162,13 @@ class _QuizListPageState extends State<QuizListPage>
       child: SlideTransition(
         position: _listAnimation.drive(slideTween),
         child: Card(
+          
+          clipBehavior: Clip.antiAlias,
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
             side: BorderSide(
-              color: attempted ? Colors.green : Colors.transparent,
+              color: attempted ? Colors.green : Colors.blue,
               width: 1.5,
             ),
           ),
@@ -174,6 +176,7 @@ class _QuizListPageState extends State<QuizListPage>
               ? Theme.of(context).disabledColor
               : Theme.of(context).cardColor,
           child: ListTile(
+            splashColor: Theme.of(context).primaryColor.withOpacity(0.1),
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             title: Text(
@@ -213,6 +216,7 @@ class _QuizListPageState extends State<QuizListPage>
                       });
                     });
                   },
+            style: null,
           ),
         ),
       ),

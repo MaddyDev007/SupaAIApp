@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:smartclass/screens/student_screen/analytics_dashboard.dart';
+import 'package:smartclass/screens/teacher_screen/StudentPerformancePage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:smartclass/screens/common_screen/error_page.dart';
 
@@ -30,11 +32,18 @@ class _ListStudentPageState extends State<ListStudentPage> {
 
   String _searchQuery = '';
   int get totalStudents => _students.length;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _fetchStudents();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   // ---------------- FETCH STUDENTS ----------------
@@ -65,7 +74,7 @@ class _ListStudentPageState extends State<ListStudentPage> {
           .eq('student', true) // ✅ KEY FILTER
           .order('joined_at', ascending: true)
           .timeout(
-            const Duration(seconds: 12),
+            const Duration(seconds: 20),
             onTimeout: () => throw TimeoutException('Student fetch timed out'),
           );
 
@@ -100,6 +109,129 @@ class _ListStudentPageState extends State<ListStudentPage> {
     setState(() {});
   }
 
+  Future<void> _confirmRemoveStudent(
+    String studentId,
+    String? studentName,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Remove student',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          'Are you sure you want to remove: \n'
+          '• The Student can no longer attend quizs\n'
+          '• The Result of that student also be delete'
+          '• The Notes that the student saved also be delete'
+          '${studentName ?? "this student"} from this class?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Remove', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      _removeStudent(studentId);
+    }
+  }
+
+  String? extractStoragePath(String? url, String bucket) {
+    if (url == null) return null;
+    final uri = Uri.parse(url);
+    final index = uri.path.indexOf(bucket);
+    if (index == -1) return null;
+    return uri.path.substring(index + bucket.length + 1);
+  }
+
+  Future<void> _removeStudent(String studentId) async {
+    try {
+      // 🔹 Fetch notes
+      final List<Map<String, dynamic>> notes = List<Map<String, dynamic>>.from(
+        await supabase
+            .from('notes')
+            .select('image_url')
+            .eq('class_id', widget.classId)
+            .eq('user_id', studentId),
+      );
+
+      // 🔹 Delete note images
+      final paths = <String>[];
+      for (final n in notes) {
+        final path = extractStoragePath(n['image_url'], 'notes');
+        if (path != null) paths.add(path);
+      }
+
+      if (paths.isNotEmpty) {
+        await supabase.storage.from('notes').remove(paths);
+      }
+
+      // 🔹 Delete results
+      await supabase
+          .from('results')
+          .delete()
+          .eq('class_id', widget.classId)
+          .eq('student_id', studentId);
+
+      // 🔹 Delete notes rows
+      await supabase
+          .from('notes')
+          .delete()
+          .eq('class_id', widget.classId)
+          .eq('user_id', studentId);
+
+      // 🔹 Remove membership
+      await supabase
+          .from('class_members')
+          .delete()
+          .eq('class_id', widget.classId)
+          .eq('user_id', studentId);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Student and related data removed',
+            style: TextStyle(color: Theme.of(context).dividerColor),
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      _fetchStudents();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Failed: $e',
+            style: TextStyle(color: Theme.of(context).dividerColor),
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+  void _resetSearchAndFetch() {
+  _searchQuery = '';
+  _searchController.clear(); // clears TextField
+  _filteredStudents = List.from(_students);
+  _fetchStudents();
+}
+
+
   // ---------------- BUILD ----------------
   @override
   Widget build(BuildContext context) {
@@ -114,6 +246,7 @@ class _ListStudentPageState extends State<ListStudentPage> {
           Padding(
             padding: const EdgeInsets.all(12),
             child: TextField(
+              controller: _searchController,
               onChanged: _applySearch,
               decoration: InputDecoration(
                 hintText: 'Search students',
@@ -133,7 +266,6 @@ class _ListStudentPageState extends State<ListStudentPage> {
             child: Align(
               alignment: Alignment.centerLeft,
               child: Chip(
-                
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                   side: BorderSide(
@@ -175,7 +307,7 @@ class _ListStudentPageState extends State<ListStudentPage> {
         type: SmartClassErrorPage.mapToType(_errorObj),
         error: _errorObj,
         stackTrace: _errorStack,
-        onRetry: _fetchStudents,
+        onRetry: _resetSearchAndFetch,
       );
     }
 
@@ -184,7 +316,7 @@ class _ListStudentPageState extends State<ListStudentPage> {
         type: SmartErrorType.notFound,
         title: 'No students enrolled',
         message: 'Students have not joined this class yet.',
-        onRetry: _fetchStudents,
+        onRetry: _resetSearchAndFetch,
       );
     }
 
@@ -200,7 +332,31 @@ class _ListStudentPageState extends State<ListStudentPage> {
             index + 1,
             user['name'],
             user['email'],
+            _filteredStudents[index]['user_id'],
             user,
+          );
+        },
+      ),
+    );
+  }
+
+  static const _curve = Cubic(0.22, 0.61, 0.36, 1.0);
+  static final _slideTween = Tween<Offset>(
+    begin: const Offset(1, 0),
+    end: Offset.zero,
+  );
+
+  Future<dynamic> pushWithAnimation(BuildContext context, Widget page) {
+    return Navigator.push(
+      context,
+      PageRouteBuilder(
+        transitionDuration: const Duration(milliseconds: 350),
+        pageBuilder: (_, __, ___) => page,
+        transitionsBuilder: (_, animation, __, child) {
+          final curved = CurvedAnimation(parent: animation, curve: _curve);
+          return SlideTransition(
+            position: _slideTween.animate(curved),
+            child: child,
           );
         },
       ),
@@ -212,6 +368,7 @@ class _ListStudentPageState extends State<ListStudentPage> {
     int index,
     String? name,
     String? email,
+    String studentId,
     Map<String, dynamic> user,
   ) {
     final theme = Theme.of(context);
@@ -219,18 +376,67 @@ class _ListStudentPageState extends State<ListStudentPage> {
 
     return Card(
       color: theme.cardColor,
+      clipBehavior: Clip.antiAlias,
       elevation: 3,
       margin: const EdgeInsets.symmetric(vertical: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14),
-      side: BorderSide(
-        color: theme.primaryColor,
-        width: 1.5,
-      ),),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: theme.primaryColor, width: 1.5),
+      ),
       child: ListTile(
+        onTap: () {
+          pushWithAnimation(
+            context,
+            StudentPerformancePage(
+              classId: widget.classId,
+              studentId: studentId,
+              studentName: name ?? 'Student',
+            ),
+          );
+        },
+        trailing: PopupMenuButton<String>(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          onSelected: (value) {
+            if (value == 'performance') {
+              pushWithAnimation(
+                context,
+                StudentPerformancePage(
+                  classId: widget.classId,
+                  studentId: studentId,
+                  studentName: name ?? 'Student',
+                ),
+              );
+            } else if (value == 'remove') {
+              _confirmRemoveStudent(studentId, name);
+            }
+          },
+          itemBuilder: (_) => [
+            PopupMenuItem(
+              value: 'performance',
+              child: Text(
+                'View performance',
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                ),
+              ),
+            ),
+            PopupMenuItem(
+              value: 'remove',
+              child: Text(
+                'Remove from class',
+                style: TextStyle(color: Theme.of(context).dividerColor),
+              ),
+            ),
+          ],
+        ),
+
         leading: CircleAvatar(
+          backgroundColor: Colors.blueAccent,
           radius: 15, // AppBar-friendly size
           backgroundImage: avatarUrl != null ? NetworkImage(avatarUrl) : null,
-          child: avatarUrl == null ? const Icon(Icons.person, size: 20) : null,
+          child: avatarUrl == null
+              ? const Icon(Icons.person, size: 20, color: Colors.white)
+              : null,
         ),
         title: Text(
           name ?? 'Unknown',

@@ -52,7 +52,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
           .eq('class_id', widget.classId) // ✅ KEY CHANGE
           .order('created_at', ascending: true)
           .timeout(
-            const Duration(seconds: 8),
+            const Duration(seconds: 30),
             onTimeout: () => throw TimeoutException('Results fetch timed out'),
           );
 
@@ -368,7 +368,7 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
   }
 
   // ---------------- STAT CARD ----------------
-  Widget _buildStatCard(
+  /* Widget _buildStatCard(
     String title,
     String value,
     Color color,
@@ -416,6 +416,43 @@ class _AnalyticsDashboardState extends State<AnalyticsDashboard> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+ */
+
+Widget _buildStatCard(
+    String title,
+    String value,
+    Color color,
+    IconData icon,
+  ) {
+    return Expanded(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 6),
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [color.withValues(alpha: 0.8), color],
+          ),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: Colors.white),
+            const SizedBox(height: 8),
+            Text(title, style: const TextStyle(color: Colors.white70)),
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
       ),
     );

@@ -79,6 +79,14 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
           .toList();
     });
   }
+
+  void _resetSearchAndFetch() {
+  _searchController.clear(); // ✅ clears TextField
+  setState(() {
+    _filteredMaterials = List.from(_materials); // ✅ reset filter
+  });
+  _fetchMaterials(); // optional, only if you want fresh data
+}
   static const _curve = Cubic(0.22, 0.61, 0.36, 1.0);
   static final _slideTween = Tween<Offset>(
     begin: Offset(1, 0),
@@ -124,7 +132,7 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
           .eq('class_id', widget.classId) // ✅ NEW
           .order('created_at', ascending: false)
           .timeout(
-            const Duration(seconds: 12),
+            const Duration(seconds: 20),
             onTimeout: () =>
                 throw TimeoutException('Materials fetch timed out'),
           );
@@ -168,7 +176,7 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
            backgroundColor: Theme.of(context).cardColor,
-          content: Text('Invalid material link',style: TextStyle(color: Theme.of(context).highlightColor)),
+          content: Text('Invalid material link',style: TextStyle(color: Theme.of(context).dividerColor)),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -375,7 +383,7 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
            backgroundColor: Theme.of(context).cardColor,
-          content: Text('✅ Downloaded to: $savePath',style: TextStyle(color: Theme.of(context).highlightColor)),
+          content: Text('✅ Downloaded to: $savePath',style: TextStyle(color: Theme.of(context).dividerColor)),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -396,7 +404,7 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
              backgroundColor: Theme.of(context).cardColor,
-            content: Text('⛔ Download cancelled',style: TextStyle(color: Theme.of(context).highlightColor)),
+            content: Text('⛔ Download cancelled',style: TextStyle(color: Theme.of(context).dividerColor)),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -407,7 +415,7 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
              backgroundColor: Theme.of(context).cardColor,
-            content: Text('❌ Download failed: ${e.message}',style: TextStyle(color: Theme.of(context).highlightColor)),
+            content: Text('❌ Download failed: ${e.message}',style: TextStyle(color: Theme.of(context).dividerColor)),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -425,7 +433,7 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
            backgroundColor: Theme.of(context).cardColor,
-          content: Text('❌ Download failed: $e',style: TextStyle(color: Theme.of(context).highlightColor)),
+          content: Text('❌ Download failed: $e',style: TextStyle(color: Theme.of(context).dividerColor)),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -462,8 +470,10 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
             ),
           ),
           child: InkWell(
+            highlightColor: Colors.transparent,
+            splashFactory: InkRipple.splashFactory,
             onTap: () => _openMaterial(url, subject),
-            splashColor: Color.fromARGB(255, 196, 221, 254),
+            splashColor: Theme.of(context).primaryColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
             child: ListTile(
               contentPadding:
@@ -530,7 +540,7 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
             type: SmartClassErrorPage.mapToType(_errorObj),
             error: _errorObj,
             stackTrace: _errorStack,
-            onRetry: _fetchMaterials,
+            onRetry: _resetSearchAndFetch,
           ),
           // const SizedBox(height: 300),
         ],
@@ -548,7 +558,7 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
             type: SmartErrorType.notFound,
             title: 'No materials yet',
             message: 'Try a different search or pull to refresh.',
-            onRetry: _fetchMaterials,
+            onRetry: _resetSearchAndFetch,
           ),
           // const SizedBox(height: 300),
         ],

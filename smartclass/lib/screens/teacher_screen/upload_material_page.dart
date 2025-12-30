@@ -3,6 +3,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:smartclass/secrets.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:supabase_progress_uploads/supabase_progress_uploads.dart';
 
@@ -77,7 +78,9 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  LinearProgressIndicator(value: p == 0 ? null : v),
+                  LinearProgressIndicator(
+                    color: Theme.of(context).primaryColor,
+                    value: p == 0 ? null : v),
                   const SizedBox(height: 12),
                   Text('${p.toStringAsFixed(0)}%'),
                 ],
@@ -97,7 +100,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           backgroundColor: Theme.of(context).cardColor,
           content: Text(
             '⚠️ Fill Title and pick a PDF',
-            style: TextStyle(color: Theme.of(context).highlightColor),
+            style: TextStyle(color: Theme.of(context).dividerColor),
           ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -160,7 +163,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           backgroundColor: Theme.of(context).cardColor,
           content: Text(
             '✅ Material uploaded successfully',
-            style: TextStyle(color: Theme.of(context).highlightColor),
+            style: TextStyle(color: Theme.of(context).dividerColor),
           ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -179,7 +182,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           backgroundColor: Theme.of(context).cardColor,
           content: Text(
             '❌ Upload Error: $e',
-            style: TextStyle(color: Theme.of(context).highlightColor),
+            style: TextStyle(color: Theme.of(context).dividerColor),
           ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -199,7 +202,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           backgroundColor: Theme.of(context).cardColor,
           content: Text(
             '⚠️ Upload material first',
-            style: TextStyle(color: Theme.of(context).highlightColor),
+            style: TextStyle(color: Theme.of(context).dividerColor),
           ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -233,7 +236,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       };
 
       final uploadRes = await http.post(
-        Uri.parse('https://supaaiapp-1.onrender.com/upload/'),
+        Uri.parse('${AppSecrets.backendURL}/upload/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(uploadPayload),
       );
@@ -259,7 +262,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
 
       final storeRes = await http.post(
         // Uri.parse("http://10.0.2.2:8000/quiz/store"),
-        Uri.parse('https://supaaiapp-1.onrender.com/quiz/store'),
+        Uri.parse('${AppSecrets.backendURL}/quiz/store'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(storePayload),
       );
@@ -279,7 +282,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           backgroundColor: Theme.of(context).cardColor,
           content: Text(
             '✅ Quiz generated successfully',
-            style: TextStyle(color: Theme.of(context).highlightColor),
+            style: TextStyle(color: Theme.of(context).dividerColor),
           ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -299,7 +302,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           backgroundColor: Theme.of(context).cardColor,
           content: Text(
             '❌ Quiz Generation Error: $e',
-            style: TextStyle(color: Theme.of(context).highlightColor),
+            style: TextStyle(color: Theme.of(context).dividerColor),
           ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -319,7 +322,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           backgroundColor: Theme.of(context).cardColor,
           content: Text(
             '⚠️ Upload material first',
-            style: TextStyle(color: Theme.of(context).highlightColor),
+            style: TextStyle(color: Theme.of(context).dividerColor),
           ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -348,7 +351,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
 
       final res = await http.post(
         // Uri.parse('http://127.0.0.1:8000/question/generate-exam'),
-        Uri.parse('https://supaaiapp-1.onrender.com/question/generate-exam'),
+        Uri.parse('${AppSecrets.backendURL}/question/generate-exam'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(payload),
       );
@@ -368,7 +371,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           backgroundColor: Theme.of(context).cardColor,
           content: Text(
             '✅ Exam generated successfully',
-            style: TextStyle(color: Theme.of(context).highlightColor),
+            style: TextStyle(color: Theme.of(context).dividerColor),
           ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -387,7 +390,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           backgroundColor: Theme.of(context).cardColor,
           content: Text(
             '❌ Exam Generation Error: $e',
-            style: TextStyle(color: Theme.of(context).highlightColor),
+            style: TextStyle(color: Theme.of(context).dividerColor),
           ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(

@@ -9,12 +9,12 @@ final ThemeData lightTheme = ThemeData(
   shadowColor: Color(0xFF000000),
   canvasColor: Colors.blue.shade100,
   disabledColor: Colors.white70,
-  highlightColor: Colors.black,
+  dividerColor: Colors.black,
   
 
   inputDecorationTheme: InputDecorationTheme(
     filled: true,
-    labelStyle: const TextStyle(color: Colors.black),
+    labelStyle: TextStyle(color: Colors.grey),
       fillColor: Colors.white,
       floatingLabelStyle: const TextStyle(color: Colors.blueAccent),
       enabledBorder: OutlineInputBorder(

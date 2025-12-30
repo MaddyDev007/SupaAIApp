@@ -67,7 +67,7 @@ class _UpdatePageState extends State<UpdatePage> {
           })
           .eq('id', user.id)
           .timeout(
-            const Duration(seconds: 10),
+            const Duration(seconds: 20),
             onTimeout: () =>
                 throw TimeoutException("Profile update timed out"),
           );

@@ -9,13 +9,13 @@ final ThemeData darkTheme = ThemeData(
   shadowColor: Color(0xFF474747),
   canvasColor: Color(0xFF000000),
   disabledColor: const Color.fromARGB(255, 19, 19, 19),
-  highlightColor: Colors.white,
+  dividerColor: Colors.white,
 
   appBarTheme: AppBarTheme(
     backgroundColor: Color(0xFF3A7BFF),
     foregroundColor: Colors.white,
   ),
-
+  
   indicatorColor: Color(0xFF3A7BFF),
 
   textTheme: const TextTheme(
@@ -28,7 +28,7 @@ final ThemeData darkTheme = ThemeData(
 
   inputDecorationTheme: InputDecorationTheme(
     filled: true,
-
+    labelStyle: TextStyle(color: Colors.grey),
     fillColor: const Color(0xFF1E1E1E),
     floatingLabelStyle: const TextStyle(color: Color(0xFF3A7BFF)),
     enabledBorder: OutlineInputBorder(
@@ -40,7 +40,7 @@ final ThemeData darkTheme = ThemeData(
       borderSide: BorderSide(color: Color(0xFF3A7BFF), width: 2),
     ),
   ),
-
+  
   textSelectionTheme: TextSelectionThemeData(
     cursorColor: Color(0xFF3A7BFF), // Cursor color
     selectionColor: Color(

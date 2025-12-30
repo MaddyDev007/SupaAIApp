@@ -70,6 +70,13 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
           .toList();
     });
   }
+  void _resetSearchAndFetch() {
+  _searchController.clear(); // ✅ clears TextField
+  setState(() {
+    _filteredMaterials = List.from(_materials); // ✅ reset filter
+  });
+  _fetchMaterials(); // optional, only if you want fresh data
+}
 
   // ---------------- FETCH QUESTION BANKS (CLASS-BASED) ----------------
   Future<void> _fetchMaterials() async {
@@ -89,7 +96,7 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
           .eq('class_id', widget.classId) // ✅ KEY CHANGE
           .order('created_at', ascending: false)
           .timeout(
-            const Duration(seconds: 12),
+            const Duration(seconds: 20),
             onTimeout: () =>
                 throw TimeoutException('Question bank fetch timed out'),
           );
@@ -135,7 +142,7 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
           backgroundColor: Theme.of(context).cardColor,
           content: Text(
             'Invalid material link',
-            style: TextStyle(color: Theme.of(context).highlightColor),
+            style: TextStyle(color: Theme.of(context).dividerColor),
           ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -344,7 +351,7 @@ Future<void> _downloadMaterial(String url, String filename) async {
           backgroundColor: Theme.of(context).cardColor,
           content: Text(
             '✅ Downloaded to: $savePath',
-            style: TextStyle(color: Theme.of(context).highlightColor),
+            style: TextStyle(color: Theme.of(context).dividerColor),
           ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -368,7 +375,7 @@ Future<void> _downloadMaterial(String url, String filename) async {
             backgroundColor: Theme.of(context).cardColor,
             content: Text(
               '⛔ Download cancelled',
-              style: TextStyle(color: Theme.of(context).highlightColor),
+              style: TextStyle(color: Theme.of(context).dividerColor),
             ),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -382,7 +389,7 @@ Future<void> _downloadMaterial(String url, String filename) async {
             backgroundColor: Theme.of(context).cardColor,
             content: Text(
               '❌ Download failed: ${e.message}',
-              style: TextStyle(color: Theme.of(context).highlightColor),
+              style: TextStyle(color: Theme.of(context).dividerColor),
             ),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -403,7 +410,7 @@ Future<void> _downloadMaterial(String url, String filename) async {
           backgroundColor: Theme.of(context).cardColor,
           content: Text(
             '❌ Download failed: $e',
-            style: TextStyle(color: Theme.of(context).highlightColor),
+            style: TextStyle(color: Theme.of(context).dividerColor),
           ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -441,8 +448,10 @@ Future<void> _downloadMaterial(String url, String filename) async {
             ),
           ),
           child: InkWell(
+            highlightColor: Colors.transparent,
+            splashFactory: InkRipple.splashFactory,
             onTap: () => _openMaterial(url, subject),
-            splashColor: Color.fromARGB(255, 196, 221, 254),
+            splashColor: Theme.of(context).primaryColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
             child: ListTile(
               contentPadding: const EdgeInsets.symmetric(
@@ -541,7 +550,7 @@ Future<void> _downloadMaterial(String url, String filename) async {
             type: SmartClassErrorPage.mapToType(_errorObj),
             error: _errorObj,
             stackTrace: _errorStack,
-            onRetry: _fetchMaterials,
+            onRetry: _resetSearchAndFetch,
           ),
           // const SizedBox(height: 300),
         ],
@@ -559,7 +568,7 @@ Future<void> _downloadMaterial(String url, String filename) async {
             type: SmartErrorType.notFound,
             title: 'No Question Bank yet',
             message: 'Try a different search or pull to refresh.',
-            onRetry: _fetchMaterials,
+            onRetry: _resetSearchAndFetch,
           ),
           // const SizedBox(height: 300),
         ],

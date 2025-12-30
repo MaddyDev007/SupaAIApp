@@ -206,7 +206,6 @@ class _StudentDashboardState extends State<StudentDashboard> {
   Widget build(BuildContext context) {
     final className = widget.cls['name'] ?? 'Class';
     final name = loginUser?.name ?? 'Student';
-    final avatarUrl = loginUser?.avatarUrl;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -238,15 +237,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
             ),
             actions: [
               IconButton(
-                icon: CircleAvatar(
-                  radius: 15, // AppBar-friendly size
-                  backgroundImage: avatarUrl != null
-                      ? NetworkImage(avatarUrl)
-                      : null,
-                  child: avatarUrl == null
-                      ? const Icon(Icons.person, size: 20)
-                      : null,
-                ),
+                icon: Icon(Icons.info_outline_rounded),
                 onPressed: () {
                   pushWithAnimation(context, ProfilePage(cls: widget.cls));
                 },

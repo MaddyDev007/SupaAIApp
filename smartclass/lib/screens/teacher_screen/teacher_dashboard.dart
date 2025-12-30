@@ -206,7 +206,6 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   Widget build(BuildContext context) {
     final className = widget.cls['name'] ?? 'Class';
     final name = loginUser?.name ?? 'Teacher';
-    final avatarUrl = loginUser?.avatarUrl;
 
     final allCards = _buildAllCards();
     final visibleCards = _getVisibleCards(allCards);
@@ -241,15 +240,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
             ),
             actions: [
               IconButton(
-                icon: CircleAvatar(
-              radius: 15, // AppBar-friendly size
-              backgroundImage: avatarUrl != null
-                  ? NetworkImage(avatarUrl)
-                  : null,
-              child: avatarUrl == null
-                  ? const Icon(Icons.person, size: 20)
-                  : null,
-            ),
+                icon: Icon(Icons.info_outline_rounded),
                 onPressed: () async {
                   final res = await pushWithAnimation(
                     context,

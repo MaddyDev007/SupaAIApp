@@ -69,6 +69,14 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
     });
   }
 
+  void _resetSearchAndFetch() {
+  _searchController.clear(); // ✅ clears TextField
+  setState(() {
+    _filteredMaterials = List.from(_materials); // ✅ reset filter
+  });
+  _fetchMaterials(); // optional, only if you want fresh data
+}
+
   Future<void> _openMaterialExternal(String url) async {
     final uri = Uri.tryParse(url);
 
@@ -111,7 +119,7 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
           backgroundColor: Theme.of(context).cardColor,
           content: Text(
             'Invalid material link',
-            style: TextStyle(color: Theme.of(context).highlightColor),
+            style: TextStyle(color: Theme.of(context).dividerColor),
           ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -147,7 +155,7 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
           .eq('uploaded_by', user.id) // ✅ only creator
           .order('created_at', ascending: false)
           .timeout(
-            const Duration(seconds: 12),
+            const Duration(seconds: 20),
             onTimeout: () =>
                 throw TimeoutException('Materials fetch timed out'),
           );
@@ -272,7 +280,7 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
             backgroundColor: Theme.of(context).cardColor,
             content: Text(
               "Material & Questions deleted successfully.",
-              style: TextStyle(color: Theme.of(context).highlightColor),
+              style: TextStyle(color: Theme.of(context).dividerColor),
             ),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -288,7 +296,7 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
           backgroundColor: Theme.of(context).cardColor,
           content: Text(
             "Error deleting material: $e",
-            style: TextStyle(color: Theme.of(context).highlightColor),
+            style: TextStyle(color: Theme.of(context).dividerColor),
           ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -418,7 +426,7 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
           backgroundColor: Theme.of(context).cardColor,
           content: Text(
             '✅ Downloaded to: $savePath',
-            style: TextStyle(color: Theme.of(context).highlightColor),
+            style: TextStyle(color: Theme.of(context).dividerColor),
           ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -442,7 +450,7 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
             backgroundColor: Theme.of(context).cardColor,
             content: Text(
               '⛔ Download cancelled',
-              style: TextStyle(color: Theme.of(context).highlightColor),
+              style: TextStyle(color: Theme.of(context).dividerColor),
             ),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -456,7 +464,7 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
             backgroundColor: Theme.of(context).cardColor,
             content: Text(
               '❌ Download failed: ${e.message}',
-              style: TextStyle(color: Theme.of(context).highlightColor),
+              style: TextStyle(color: Theme.of(context).dividerColor),
             ),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -475,7 +483,7 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
           backgroundColor: Theme.of(context).cardColor,
           content: Text(
             '❌ Download failed: $e',
-            style: TextStyle(color: Theme.of(context).highlightColor),
+            style: TextStyle(color: Theme.of(context).dividerColor),
           ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -532,9 +540,11 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
           ),
           margin: const EdgeInsets.symmetric(vertical: 8),
           child: InkWell(
+            highlightColor: Colors.transparent,
+            splashFactory: InkRipple.splashFactory,
             // Added InkWell for card tap
             onTap: () => _openMaterial(url, subject),
-            splashColor: Color.fromARGB(255, 196, 221, 254),
+            splashColor: Theme.of(context).primaryColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
             child: ListTile(
               contentPadding: const EdgeInsets.symmetric(
@@ -619,7 +629,7 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
             type: SmartClassErrorPage.mapToType(_errorObj),
             error: _errorObj,
             stackTrace: _errorStack,
-            onRetry: _fetchMaterials,
+            onRetry: _resetSearchAndFetch,
           ),
           // const SizedBox(height: 300),
         ],
@@ -637,7 +647,7 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
             type: SmartErrorType.notFound,
             title: 'No materials yet',
             message: 'Try a different search or pull to refresh.',
-            onRetry: _fetchMaterials,
+            onRetry:_resetSearchAndFetch,
           ),
           // const SizedBox(height: 300),
         ],

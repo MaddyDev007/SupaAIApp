@@ -12,8 +12,6 @@ class ProfilePage extends StatelessWidget {
 
   const ProfilePage({super.key, required this.cls});
 
- 
-
   @override
   Widget build(BuildContext context) {
     final box = Hive.box<LoginModel>('loginBox');
@@ -51,11 +49,7 @@ class ProfilePage extends StatelessWidget {
   }
 
   // ---------------- PROFILE UI ----------------
-  Widget _buildProfile(
-    BuildContext context,
-    LoginModel profile,
-    bool isOwner,
-  ) {
+  Widget _buildProfile(BuildContext context, LoginModel profile, bool isOwner) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Center(
@@ -68,9 +62,11 @@ class ProfilePage extends StatelessWidget {
               color: Theme.of(context).primaryColor,
               width: 1.5,
             ),
-            boxShadow:  [
+            boxShadow: [
               BoxShadow(
-                color: Theme.of(context).primaryColor.withAlpha((0.15 * 255).toInt()),
+                color: Theme.of(
+                  context,
+                ).primaryColor.withAlpha((0.15 * 255).toInt()),
                 blurRadius: 15,
                 offset: const Offset(0, 8),
               ),
@@ -81,12 +77,13 @@ class ProfilePage extends StatelessWidget {
             child: Column(
               children: [
                 CircleAvatar(
+                  backgroundColor: Colors.blueAccent,
                   radius: 48,
                   backgroundImage: profile.avatarUrl != null
                       ? NetworkImage(profile.avatarUrl!)
                       : null,
                   child: profile.avatarUrl == null
-                      ? const Icon(Icons.person, size: 48)
+                      ? const Icon(Icons.person, size: 48, color: Colors.white)
                       : null,
                 ),
 
@@ -136,6 +133,15 @@ class ProfilePage extends StatelessWidget {
                   "Code",
                   cls['code'] ?? "Not Assigned",
                 ),
+                isOwner ?  const SizedBox.shrink() :
+                  const SizedBox(height: 14),
+                isOwner ?  const SizedBox.shrink() :
+                  _infoTile(
+                  context,
+                  Icons.person_pin_circle_sharp,
+                  "Teacher",
+                  cls["user_name"] ?? "Unknown",
+                ),
 
                 const SizedBox(height: 14),
 
@@ -146,44 +152,53 @@ class ProfilePage extends StatelessWidget {
                   isOwner ? "Teacher" : "Student",
                 ),
 
+                
+
                 const SizedBox(height: 28),
 
                 Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   spacing: 10,
-                 
+
                   children: [
-                    ElevatedButton.icon(
+                    /* ElevatedButton.icon(
                       icon: const Icon(Icons.update, color: Colors.white),
-                      label: const Text("Update Profile", style: TextStyle(color: Colors.white)),
+                      label: const Text(
+                        "Update Profile",
+                        style: TextStyle(color: Colors.white),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).primaryColor,
                       ),
                       onPressed: () {
                         _pushAnimation(
                           context,
-                          UpdatePage(profile: {
+                          UpdatePage(
+                            profile: {
                               'name': profile.name,
                               'email': profile.email,
                               'reg_no': profile.reg_no,
                               'avatar_url': profile.avatarUrl,
                               'role': profile.role,
-                            }),
-                          
+                            },
+                          ),
                         );
                       },
-                    ),
-                    isOwner ?
-                    ElevatedButton.icon(
-                      icon: const Icon(Icons.logout, color: Colors.white),
-                      label: const Text("Delete Classroom", style: TextStyle(color: Colors.white),),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent,
-                      ),
-                      onPressed: () => _deleteClass(context, cls['id']),
-                    ) : 
-                    const SizedBox.shrink(),
+                    ), */
+                    isOwner
+                        ? ElevatedButton.icon(
+                            icon: const Icon(Icons.logout, color: Colors.white),
+                            label: const Text(
+                              "Delete Classroom",
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.redAccent,
+                            ),
+                            onPressed: () => _deleteClass(context, cls['id']),
+                          )
+                        : const SizedBox.shrink(),
                   ],
                 ),
               ],
@@ -193,6 +208,7 @@ class ProfilePage extends StatelessWidget {
       ),
     );
   }
+
   static const _curve = Cubic(0.22, 0.61, 0.36, 1.0);
 
   void _pushAnimation(BuildContext context, Widget page) {
@@ -202,14 +218,13 @@ class ProfilePage extends StatelessWidget {
         transitionDuration: const Duration(milliseconds: 350),
         pageBuilder: (_, __, ___) => page,
         transitionsBuilder: (_, animation, __, child) {
-          final curved = CurvedAnimation(
-            parent: animation,
-            curve: _curve,
-          );
+          final curved = CurvedAnimation(parent: animation, curve: _curve);
 
           return SlideTransition(
-            position: Tween(begin: const Offset(1, 0), end: Offset.zero)
-                .animate(curved),
+            position: Tween(
+              begin: const Offset(1, 0),
+              end: Offset.zero,
+            ).animate(curved),
             child: child,
           );
         },
@@ -217,17 +232,19 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-
   // ---------------- NO PROFILE ----------------
-   Widget _buildNoProfile(BuildContext context) {
+  Widget _buildNoProfile(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
             'No profile found.',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500,
-            color: Theme.of(context).textTheme.bodySmall?.color,),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: Theme.of(context).textTheme.bodySmall?.color,
+            ),
           ),
           const SizedBox(height: 20),
 
@@ -264,12 +281,15 @@ class ProfilePage extends StatelessWidget {
         content: const Text('Are you sure you want to logout?'),
         actions: [
           TextButton(
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey),),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
             onPressed: () => Navigator.pop(ctx, false),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Color(0xFFFF5252)),
-            child: const Text('Yes, Logout', style: TextStyle(color: Colors.white),),
+            child: const Text(
+              'Yes, Logout',
+              style: TextStyle(color: Colors.white),
+            ),
             onPressed: () => Navigator.pop(ctx, true),
           ),
         ],
@@ -353,97 +373,100 @@ class ProfilePage extends StatelessWidget {
   }
 }
  */
- 
- Future<void> _deleteClass(BuildContext context, String classId) async {
-  final confirm = await showDialog<bool>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Row(
-        children: const [
-          Icon(Icons.delete_forever, color: Color(0xFFFF5252)),
-          SizedBox(width: 10),
-          Text('Delete Classroom'),
+
+  Future<void> _deleteClass(BuildContext context, String classId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: const [
+            Icon(Icons.delete_forever, color: Color(0xFFFF5252)),
+            SizedBox(width: 10),
+            Text('Delete Classroom'),
+          ],
+        ),
+        content: const Text(
+          'This will permanently delete:\n'
+          '• All lesson materials\n'
+          '• All quizzes & question files\n'
+          '• All student notes of this class\n'
+          '• All results\n'
+          '• All students from this class\n\n'
+          'This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Color(0xFFFF5252)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
         ],
       ),
-      content: const Text(
-        'This will permanently delete:\n'
-        '• All lesson materials\n'
-        '• All quizzes & question files\n'
-        '• All student notes of this class\n'
-        '• All results\n'
-        '• All students from this class\n\n'
-        'This action cannot be undone.',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx, false),
-          child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-        ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Color(0xFFFF5252),
-          ),
-          onPressed: () => Navigator.pop(ctx, true),
-          child: const Text('Delete', style: TextStyle(color: Colors.white)),
-        ),
-      ],
-    ),
-  );
-
-  if (confirm != true) return;
-
-  try {
-    // 🔄 Show loader
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
     );
 
-    // ✅ CALL FASTAPI BACKEND
-    final response = await http.delete(
-      Uri.parse(
-        'https://supaaiapp-1.onrender.com/delete/class?class_id=$classId',
-      ),
-      // Uri.parse('http://10.0.2.2:8000/delete/class?class_id=$classId'),
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    );
+    if (confirm != true) return;
 
-    if (!context.mounted) return;
+    try {
+      // 🔄 Show loader
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => Center(child: CircularProgressIndicator(
+          color: Theme.of(context).primaryColor,
+        )),
+      );
 
-    Navigator.pop(context); // close loader
+      // ✅ CALL FASTAPI BACKEND
+      final response = await http.delete(
+        Uri.parse(
+          'https://supaaiapp-1.onrender.com/delete/class?class_id=$classId',
+        ),
+        // Uri.parse('http://10.0.2.2:8000/delete/class?class_id=$classId'),
+        headers: {'Content-Type': 'application/json'},
+      );
 
-    if (response.statusCode != 200) {
-      throw Exception(response.body);
+      if (!context.mounted) return;
+
+      Navigator.pop(context); // close loader
+
+      if (response.statusCode != 200) {
+        throw Exception(response.body);
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+         SnackBar(
+          content: Text('✅ Classroom deleted successfully',style: TextStyle(color: Theme.of(context).dividerColor)),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      Navigator.popUntil(context, (route) => route.isFirst);
+    } catch (e) {
+      if (!context.mounted) return;
+
+      Navigator.pop(context); // close loader if open
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Failed to delete classroom: $e',style: TextStyle(color: Theme.of(context).dividerColor)),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('✅ Classroom deleted successfully'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-
-    Navigator.popUntil(context, (route) => route.isFirst);
-  } catch (e) {
-    if (!context.mounted) return;
-
-    Navigator.pop(context); // close loader if open
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('❌ Failed to delete classroom: $e'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
   }
-}
 
   // ---------------- INFO TILE ----------------
-  Widget _infoTile(BuildContext context,IconData icon, String label, dynamic value) {
+  Widget _infoTile(
+    BuildContext context,
+    IconData icon,
+    String label,
+    dynamic value,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
@@ -456,10 +479,8 @@ class ProfilePage extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: SelectableText(
-              
-                "$label: ${value ?? "-"}",
-                style: const TextStyle(fontSize: 15),
-              
+              "$label: ${value ?? "-"}",
+              style: const TextStyle(fontSize: 15),
             ),
           ),
         ],

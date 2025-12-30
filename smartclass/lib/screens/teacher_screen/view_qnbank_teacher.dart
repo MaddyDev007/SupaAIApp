@@ -31,6 +31,7 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
 
   late final AnimationController _listController;
   late final Animation<double> _listAnimation;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -49,6 +50,7 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
   @override
   void dispose() {
     _listController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -71,7 +73,7 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
           // .eq('created_by', user.id)           // ✅ teacher only
           .order('created_at', ascending: false)
           .timeout(
-            const Duration(seconds: 12),
+            const Duration(seconds: 20),
             onTimeout: () =>
                 throw TimeoutException('Question bank fetch timed out'),
           );
@@ -106,6 +108,13 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
       }).toList();
     });
   }
+
+  void _resetSearchAndFetch() {
+  _searchQuery = '';
+  _searchController.clear(); // clears TextField
+  _filteredMaterials = List.from(_materials);
+  _fetchMaterials();
+}
 
   static const _curve = Cubic(0.22, 0.61, 0.36, 1.0);
   static final _slideTween = Tween<Offset>(
@@ -214,7 +223,7 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
             backgroundColor: Theme.of(context).cardColor,
             content: Text(
               "File deleted successfully.",
-              style: TextStyle(color: Theme.of(context).highlightColor),
+              style: TextStyle(color: Theme.of(context).dividerColor),
             ),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -230,7 +239,7 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
           backgroundColor: Theme.of(context).cardColor,
           content: Text(
             "Failed to delete: $e",
-            style: TextStyle(color: Theme.of(context).highlightColor),
+            style: TextStyle(color: Theme.of(context).dividerColor),
           ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -252,7 +261,7 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
           backgroundColor: Theme.of(context).cardColor,
           content: Text(
             'Invalid URL.',
-            style: TextStyle(color: Theme.of(context).highlightColor),
+            style: TextStyle(color: Theme.of(context).dividerColor),
           ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -276,7 +285,7 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
             backgroundColor: Theme.of(context).cardColor,
             content: Text(
               'Could not open the material.',
-              style: TextStyle(color: Theme.of(context).highlightColor),
+              style: TextStyle(color: Theme.of(context).dividerColor),
             ),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -292,7 +301,7 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
             backgroundColor: Theme.of(context).cardColor,
             content: Text(
               'Error opening material: $e',
-              style: TextStyle(color: Theme.of(context).highlightColor),
+              style: TextStyle(color: Theme.of(context).dividerColor),
             ),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -314,7 +323,7 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
           backgroundColor: Theme.of(context).cardColor,
           content: Text(
             'Invalid material link',
-            style: TextStyle(color: Theme.of(context).highlightColor),
+            style: TextStyle(color: Theme.of(context).dividerColor),
           ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -440,7 +449,7 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
           backgroundColor: Theme.of(context).cardColor,
           content: Text(
             '✅ Downloaded to: $savePath',
-            style: TextStyle(color: Theme.of(context).highlightColor),
+            style: TextStyle(color: Theme.of(context).dividerColor),
           ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -464,7 +473,7 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
             backgroundColor: Theme.of(context).cardColor,
             content: Text(
               '⛔ Download cancelled',
-              style: TextStyle(color: Theme.of(context).highlightColor),
+              style: TextStyle(color: Theme.of(context).dividerColor),
             ),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -478,7 +487,7 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
             backgroundColor: Theme.of(context).cardColor,
             content: Text(
               '❌ Download failed: ${e.message}',
-              style: TextStyle(color: Theme.of(context).highlightColor),
+              style: TextStyle(color: Theme.of(context).dividerColor),
             ),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -499,7 +508,7 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
           backgroundColor: Theme.of(context).cardColor,
           content: Text(
             '❌ Download failed: $e',
-            style: TextStyle(color: Theme.of(context).highlightColor),
+            style: TextStyle(color: Theme.of(context).dividerColor),
           ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -537,9 +546,11 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
           ),
           margin: const EdgeInsets.symmetric(vertical: 8),
           child: InkWell(
+            highlightColor: Colors.transparent,
+            splashFactory: InkRipple.splashFactory,
             // Added InkWell for card tap
             onTap: () => _openMaterial(url, subject),
-            splashColor: Color.fromARGB(255, 196, 221, 254),
+            splashColor: Theme.of(context).primaryColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
             child: ListTile(
               contentPadding: const EdgeInsets.symmetric(
@@ -624,7 +635,7 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
             type: SmartClassErrorPage.mapToType(_errorObj),
             error: _errorObj,
             stackTrace: _errorStack,
-            onRetry: _fetchMaterials,
+            onRetry: _resetSearchAndFetch,
           ),
           // const SizedBox(height: 300),
         ],
@@ -642,7 +653,7 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
             type: SmartErrorType.notFound,
             title: 'No Question Bank yet',
             message: 'Try a different search or pull to refresh.',
-            onRetry: _fetchMaterials,
+            onRetry: _resetSearchAndFetch,
           ),
           // const SizedBox(height: 300),
         ],
@@ -685,6 +696,7 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                   child: TextField(
+                    controller: _searchController,
                     onChanged: (value) {
                       _searchQuery = value;
                       _applyFilters();

@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 import 'package:smartclass/models/login_model.dart';
+import 'package:smartclass/screens/common_screen/error_page.dart';
 import 'package:smartclass/screens/common_screen/new.dart';
 import 'package:smartclass/screens/student_screen/sem_result.dart';
 import 'package:smartclass/screens/student_screen/student_dashboard.dart';
@@ -28,6 +29,9 @@ class _CommonDashboardState extends State<CommonDashboard>
   List<Map<String, dynamic>> joinedClasses = [];
   List<Map<String, dynamic>> createdClasses = [];
   bool loading = true;
+  bool _hasError = false;
+  Object? _errorObj;
+  StackTrace? _errorStack;
   late final AnimationController _listController;
   late final Animation<double> _listAnimation;
 
@@ -90,44 +94,74 @@ class _CommonDashboardState extends State<CommonDashboard>
 
   // ================= FETCH CLASSES =================
   Future<void> fetchClasses() async {
-    setState(() => loading = true);
-    final user = supabase.auth.currentUser;
-    if (user == null) return;
-
-    final joinedRes = await supabase
-        .from('class_members')
-        .select('classes(*)')
-        .eq('user_id', user.id)
-        .timeout(
-          const Duration(seconds: 12),
-          onTimeout: () => throw TimeoutException('Class fetch timed out'),
-        );
-
-    final joined = joinedRes
-        .map<Map<String, dynamic>>((e) => e['classes'])
-        .toList();
-
-    final createdRes = await supabase
-        .from('classes')
-        .select()
-        .eq('created_by', user.id);
-
     setState(() {
-      joinedClasses = joined.where((c) => c['created_by'] != user.id).toList();
-      createdClasses = createdRes;
-      loading = false;
+      loading = true;
+      _hasError = false;
+      _errorObj = null;
+      _errorStack = null;
     });
-    _listController.forward(from: 0);
+
+    try {
+      final user = supabase.auth.currentUser;
+      if (user == null) return;
+
+      final joinedRes = await supabase
+          .from('class_members')
+          .select('classes(*)')
+          .eq('user_id', user.id)
+          .timeout(
+            const Duration(seconds: 20),
+            onTimeout: () => throw TimeoutException('Class fetch timed out'),
+          );
+
+      final joined = joinedRes
+          .map<Map<String, dynamic>>((e) => e['classes'])
+          .toList();
+
+      final createdRes = await supabase
+          .from('classes')
+          .select()
+          .eq('created_by', user.id);
+
+      setState(() {
+        joinedClasses = joined
+            .where((c) => c['created_by'] != user.id)
+            .toList();
+        createdClasses = createdRes;
+      });
+      _listController.forward(from: 0);
+    } on TimeoutException catch (e, st) {
+      if (!mounted) return;
+      setState(() {
+        _hasError = true;
+        _errorObj = e;
+        _errorStack = st;
+      });
+    } catch (e, st) {
+      if (!mounted) return;
+      setState(() {
+        _hasError = true;
+        _errorObj = e;
+        _errorStack = st;
+      });
+    } finally {
+      if (mounted) setState(() => loading = false);
+    }
   }
 
   // ================= CLASS CODE =================
-  String generateCode() {
+  String generateClassCode({int length = 6}) {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    final rand = Random();
-    return List.generate(6, (_) => chars[rand.nextInt(chars.length)]).join();
+    final random = Random.secure();
+
+    return List.generate(
+      length,
+      (_) => chars[random.nextInt(chars.length)],
+    ).join();
   }
 
   // ================= CREATE CLASS =================
+
   Future<void> createClass() async {
     final controller = TextEditingController();
 
@@ -138,7 +172,10 @@ class _CommonDashboardState extends State<CommonDashboard>
         title: const Text('Create Class'),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(labelText: 'Subject name'),
+          decoration: const InputDecoration(
+            labelText: 'Subject name',
+            labelStyle: TextStyle(color: Color(0xEE848484)),
+          ),
         ),
         actions: [
           TextButton(
@@ -157,25 +194,46 @@ class _CommonDashboardState extends State<CommonDashboard>
             child: const Text('Create', style: TextStyle(color: Colors.white)),
             onPressed: () async {
               final user = supabase.auth.currentUser!;
-              final code = generateCode();
+              final subjectName = controller.text.trim();
+
+              if (subjectName.isEmpty) return;
+
+              // 1️⃣ Fetch user profile once
               final profile = await supabase
                   .from('users')
                   .select('name')
                   .eq('id', user.id)
                   .single();
 
-              final classRes = await supabase
-                  .from('classes')
-                  .insert({
-                    'name': controller.text.trim(),
-                    'code': code,
-                    'created_by': user.id,
-                    'user_name': profile['name'],
-                  })
-                  .select()
-                  .single();
-              // 1️⃣ Fetch user profile
+              Map<String, dynamic> classRes;
 
+              // 2️⃣ Generate unique code with retry
+              while (true) {
+                final code = generateClassCode();
+
+                try {
+                  classRes = await supabase
+                      .from('classes')
+                      .insert({
+                        'name': subjectName,
+                        'code': code,
+                        'created_by': user.id,
+                        'user_name': profile['name'],
+                      })
+                      .select()
+                      .single();
+
+                  break; // ✅ success
+                } catch (e) {
+                  // 🔁 Duplicate code → retry
+                  if (e is PostgrestException && e.code == '23505') {
+                    continue;
+                  }
+                  rethrow;
+                }
+              }
+
+              // 3️⃣ Auto-add creator as teacher
               await supabase.from('class_members').insert({
                 'class_id': classRes['id'],
                 'user_id': user.id,
@@ -203,7 +261,10 @@ class _CommonDashboardState extends State<CommonDashboard>
         title: const Text('Join Class'),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(labelText: 'Class code'),
+          decoration: const InputDecoration(
+            labelText: 'Class code',
+            labelStyle: TextStyle(color: Color(0xEE848484)),
+          ),
         ),
         actions: [
           TextButton(
@@ -256,10 +317,18 @@ class _CommonDashboardState extends State<CommonDashboard>
                 if (!mounted) return;
                 Navigator.pop(ctx);
                 fetchClasses();
-              } catch (_) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Already joined this class')),
-                );
+              } catch (e) {
+                if (e is PostgrestException && e.code == '23505') {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Already joined this class')),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Something went wrong. Try again'),
+                    ),
+                  );
+                }
               }
             },
           ),
@@ -270,22 +339,58 @@ class _CommonDashboardState extends State<CommonDashboard>
 
   // ================= CLASS LIST =================
   Widget buildClassList(List<Map<String, dynamic>> list) {
+    // Always return a scrollable so RefreshIndicator works
     if (loading) {
-      return Center(
-        child: CircularProgressIndicator(color: Theme.of(context).primaryColor),
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          SizedBox(height: 160),
+          Center(
+            child: CircularProgressIndicator(
+              color: Theme.of(context).primaryColor,
+            ),
+          ),
+          SizedBox(height: 300),
+        ],
+      );
+    }
+
+    if (_hasError) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [
+          // const SizedBox(height: 80),
+          SmartClassErrorPage(
+            standalone: false,
+            type: SmartClassErrorPage.mapToType(_errorObj),
+            error: _errorObj,
+            stackTrace: _errorStack,
+            onRetry: fetchClasses,
+          ),
+          // const SizedBox(height: 300),
+        ],
       );
     }
 
     if (list.isEmpty) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        children: const [
-          SizedBox(height: 200),
-          Center(child: Text('No classes')),
+        children: [
+          // SizedBox(height: 120),
+          // Use your SmartClass not-found preset
+          SmartClassErrorPage(
+            standalone: false,
+            type: SmartErrorType.notFound,
+            title: 'No classes yet',
+            message: 'Try to refresh.',
+            onRetry: fetchClasses,
+          ),
+          // const SizedBox(height: 300),
         ],
       );
     }
 
+    // Data list
     return ListView.builder(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16),
@@ -320,10 +425,13 @@ class _CommonDashboardState extends State<CommonDashboard>
             side: BorderSide(color: Theme.of(context).primaryColor, width: 1.5),
             borderRadius: BorderRadius.circular(12),
           ),
+          // clipBehavior: Clip.antiAlias,
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
+            highlightColor: Colors.transparent,
+            splashFactory: InkRipple.splashFactory,
 
-             splashColor: Theme.of(context).primaryColor.withOpacity(0.1),
+            splashColor: Theme.of(context).primaryColor.withOpacity(0.1),
             onTap: () {
               pushWithAnimation(
                 context,
@@ -397,12 +505,13 @@ class _CommonDashboardState extends State<CommonDashboard>
         actions: [
           IconButton(
             icon: CircleAvatar(
+              backgroundColor: Colors.blueAccent,
               radius: 15, // AppBar-friendly size
               backgroundImage: avatarUrl != null
                   ? NetworkImage(avatarUrl)
                   : null,
               child: avatarUrl == null
-                  ? const Icon(Icons.person, size: 20)
+                  ? const Icon(Icons.person, size: 20, color: Colors.white)
                   : null,
             ),
             onPressed: () async {
@@ -436,7 +545,9 @@ class _CommonDashboardState extends State<CommonDashboard>
       floatingActionButton: _tabController.index == 2
           ? null
           : FloatingActionButton(
+              splashColor: Theme.of(context).primaryColor.withAlpha(100),
               backgroundColor: Theme.of(context).primaryColor,
+              
               foregroundColor: Colors.white,
               onPressed: () {
                 if (_tabController.index == 0) {

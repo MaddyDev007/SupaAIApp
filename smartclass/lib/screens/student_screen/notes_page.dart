@@ -39,10 +39,10 @@ class _NotesPageState extends State<NotesPage> {
           .from('notes')
           .select()
           .eq('user_id', user.id)
-          .eq('class_id', widget.classId) 
+          .eq('class_id', widget.classId)
           .order('created_at', ascending: false)
           .timeout(
-            const Duration(seconds: 8),
+            const Duration(seconds: 30),
             onTimeout: () => throw TimeoutException("Notes fetch timed out"),
           );
 
@@ -64,7 +64,10 @@ class _NotesPageState extends State<NotesPage> {
           children: const [
             Icon(Icons.warning_rounded, color: Colors.redAccent),
             SizedBox(width: 10),
-            Text("Confirm Delete", style: TextStyle(fontWeight: FontWeight.bold)),
+            Text(
+              "Confirm Delete",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ],
         ),
         content: const Text("Are you sure you want to delete this note?"),
@@ -81,7 +84,10 @@ class _NotesPageState extends State<NotesPage> {
               ),
             ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("Yes, Delete", style: TextStyle(color: Colors.white)),
+            child: const Text(
+              "Yes, Delete",
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -246,8 +252,10 @@ class _NotesPageState extends State<NotesPage> {
                   ),
                   margin: const EdgeInsets.symmetric(vertical: 8),
                   child: InkWell(
+                    // highlightColor: Colors.transparent,
+                    splashFactory: InkRipple.splashFactory,
                     borderRadius: BorderRadius.circular(16),
-                    splashColor: cardColor.withAlpha(120),
+                    splashColor: Theme.of(context).primaryColor.withOpacity(0.1),
                     onTap: () {
                       pushWithAnimation(
                         context,
@@ -334,7 +342,9 @@ class _NotesPageState extends State<NotesPage> {
                                         color: Colors.grey.shade200,
                                         child: Center(
                                           child: CircularProgressIndicator(
-                                            color: Theme.of(context).primaryColor,
+                                            color: Theme.of(
+                                              context,
+                                            ).primaryColor,
                                             strokeWidth: 2.5,
                                             value:
                                                 loadingProgress

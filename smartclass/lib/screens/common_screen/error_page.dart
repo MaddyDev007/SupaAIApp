@@ -212,6 +212,8 @@ class _DetailsState extends State<_Details> {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         InkWell(
+          highlightColor: Colors.transparent,
+            splashFactory: InkRipple.splashFactory,
           splashColor: Theme.of(context).primaryColor.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
           onTap: () => setState(() => expanded = !expanded),
