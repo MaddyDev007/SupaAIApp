@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:smartclass/models/login_model.dart';
 import 'package:smartclass/screens/continueWithGoogle.dart';
-import 'package:smartclass/screens/common_screen/update.dart';
+import 'package:smartclass/secrets.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'chatbot_page.dart' show chatHistory;
 import 'package:http/http.dart' as http;
@@ -209,28 +209,6 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  static const _curve = Cubic(0.22, 0.61, 0.36, 1.0);
-
-  void _pushAnimation(BuildContext context, Widget page) {
-    Navigator.push(
-      context,
-      PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 350),
-        pageBuilder: (_, __, ___) => page,
-        transitionsBuilder: (_, animation, __, child) {
-          final curved = CurvedAnimation(parent: animation, curve: _curve);
-
-          return SlideTransition(
-            position: Tween(
-              begin: const Offset(1, 0),
-              end: Offset.zero,
-            ).animate(curved),
-            child: child,
-          );
-        },
-      ),
-    );
-  }
 
   // ---------------- NO PROFILE ----------------
   Widget _buildNoProfile(BuildContext context) {
@@ -424,7 +402,7 @@ class ProfilePage extends StatelessWidget {
       // ✅ CALL FASTAPI BACKEND
       final response = await http.delete(
         Uri.parse(
-          'https://supaaiapp-1.onrender.com/delete/class?class_id=$classId',
+          '${AppSecrets.backendURL}/delete/class?class_id=$classId',
         ),
         // Uri.parse('http://10.0.2.2:8000/delete/class?class_id=$classId'),
         headers: {'Content-Type': 'application/json'},

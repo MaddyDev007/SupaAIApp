@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:smartclass/screens/student_screen/analytics_dashboard.dart';
 import 'package:smartclass/screens/teacher_screen/StudentPerformancePage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:smartclass/screens/common_screen/error_page.dart';
