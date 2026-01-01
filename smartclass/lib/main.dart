@@ -7,6 +7,7 @@ import 'package:smartclass/screens/continueWithGoogle.dart';
 import 'package:smartclass/screens/onboarding.dart';
 import 'package:smartclass/screens/theme/dark_theme.dart';
 import 'package:smartclass/screens/theme/light_theme.dart';
+import 'package:smartclass/screens/theme/theme_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'secrets.dart';
 import 'screens/teacher_screen/teacher_dashboard.dart';
@@ -20,9 +21,9 @@ import 'dart:math';
 
 /* late Box<UserModel> userBox;
 UserModel? userModel; */
-final ValueNotifier<ThemeMode> themeModeNotifier = ValueNotifier(
-  ThemeMode.system,
-);
+final ValueNotifier<ThemeMode> themeModeNotifier =
+    ValueNotifier(ThemeService.loadTheme());
+
 
 void main() async {
   final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
@@ -33,6 +34,7 @@ void main() async {
   Hive.registerAdapter(LoginModelAdapter());
 
   await Hive.openBox<LoginModel>('loginBox');
+  await ThemeService.init(); 
 
   // ✅ Initialize Supabase
   await Supabase.initialize(

@@ -181,7 +181,7 @@ async def ask_chatbot(question: str, class_id: str):
 
         def run_cohere():
             return co.chat(
-                model="command-a-03-2025",
+                model="command-r-plus-08-2024",
                 message=question,
                 chat_history=chat_history,
                 documents=documents,

@@ -316,8 +316,8 @@ class _OnboardSlide extends StatelessWidget {
 }
 
 class _SafeLottie extends StatelessWidget {
-  const _SafeLottie({this.url, this.asset});
-  final String? url;
+  const _SafeLottie({ this.asset});
+  // final String? url;
   final String? asset;
 
   @override
@@ -326,13 +326,13 @@ class _SafeLottie extends StatelessWidget {
       child: Icon(Icons.school_rounded, size: 96, color: Color(0xFF94A3B8)),
     );
 
-    if (url != null && url!.isNotEmpty) {
+    /* if (url != null && url!.isNotEmpty) {
       return Lottie.network(
         url!,
         fit: BoxFit.contain,
         errorBuilder: (context, error, stack) => fallback(),
       );
-    }
+    } */
     if (asset != null && asset!.isNotEmpty) {
       return Lottie.asset(
         asset!,

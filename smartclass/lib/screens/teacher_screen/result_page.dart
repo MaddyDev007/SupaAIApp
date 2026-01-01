@@ -295,6 +295,7 @@ class _ResultPageState extends State<ResultPage> with TickerProviderStateMixin {
         actions: [
           // Sort Popup Menu
           PopupMenuButton<String>(
+            color: Theme.of(context).cardColor,
             icon: const Icon(Icons.sort),
             onSelected: (val) {
               sortOption = val;

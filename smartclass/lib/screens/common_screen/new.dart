@@ -5,6 +5,7 @@ import 'package:smartclass/main.dart';
 import 'package:smartclass/models/login_model.dart';
 import 'package:smartclass/screens/common_screen/update.dart';
 import 'package:smartclass/screens/continueWithGoogle.dart';
+import 'package:smartclass/screens/theme/theme_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'chatbot_page.dart' show chatHistory;
 
@@ -40,19 +41,38 @@ class ProfilePageNew extends StatelessWidget {
       icon: const Icon(Icons.brightness_6, color: Colors.white),
       onSelected: (mode) {
         themeModeNotifier.value = mode;
+        ThemeService.saveTheme(mode);
       },
-      itemBuilder: (_) => const [
+      itemBuilder: (_) =>  [
         PopupMenuItem(
           value: ThemeMode.system,
-          child: Text("System default"),
+          child: Row(
+            spacing: 10,
+            children: [
+              Icon(Icons.computer,color: Theme.of(context).dividerColor,),
+              Text("System default"),
+            ],
+          ),
         ),
         PopupMenuItem(
           value: ThemeMode.light,
-          child: Text("Light mode"),
+          child: Row(
+            spacing: 10,
+            children: [
+              Icon(Icons.sunny,color: Theme.of(context).dividerColor,),
+              Text("Light mode"),
+            ],
+          ),
         ),
         PopupMenuItem(
           value: ThemeMode.dark,
-          child: Text("Dark mode"),
+          child:  Row(
+            spacing: 10,
+            children: [
+              Icon(Icons.nights_stay,color: Theme.of(context).dividerColor,),
+              Text("Dark mode"),
+            ],
+          ),
         ),
       ],
     ),

@@ -4,15 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:http/http.dart' as http;
+import 'package:smartclass/secrets.dart';
 
 // ---------------- GLOBAL CHAT MEMORY ----------------
 // (kept global intentionally for persistent chat)
 final List<Map<String, String>> chatHistory = [];
 
 class ChatbotPage extends StatefulWidget {
-  final String classId; 
-  const ChatbotPage({super.key,
-  required this.classId,});
+  final String classId;
+  const ChatbotPage({super.key, required this.classId});
 
   @override
   State<ChatbotPage> createState() => _ChatbotPageState();
@@ -118,12 +118,11 @@ class _ChatbotPageState extends State<ChatbotPage> {
     try {
       final res = await http
           .post(
-            Uri.parse('https://supaaiapp-1.onrender.com/chatbot/'),
+            Uri.parse('${AppSecrets.backendURL}/chatbot/'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
               'question': question,
-              // 🔹 future-ready (optional)
-             'class_id': widget.classId,
+              'class_id': widget.classId,
             }),
           )
           .timeout(
@@ -137,22 +136,29 @@ class _ChatbotPageState extends State<ChatbotPage> {
         final answer = jsonDecode(res.body)['answer'];
         setState(() {
           _isLoading = false;
-          _messages.add({'role': 'bot_typing', 'msg': answer});
+          _messages.add({'role': 'bot', 'msg': answer});
         });
+      } else if (res.statusCode == 429) {
+        _handleError(
+          '🤖 AI is busy right now.\nPlease wait a moment and try again.',
+        );
       } else {
-        _handleError('⚠️ Failed to get response from server.');
+        _handleError(
+          '⚠️ Server error (${res.statusCode}). Please try again later.',
+        );
       }
+    } on TimeoutException {
+      if (!mounted) return;
+      _handleError('⏳ Request timed out. Try again.');
     } catch (e) {
       if (!mounted) return;
-      _handleError(
-        e is TimeoutException
-            ? '⏳ Request timed out. Try again.'
-            : '🌐 Network error. Please check your connection.',
-      );
-      _handleError('❌ Error occurred: $e');
+      _handleError('🌐 Network error. Please check your connection.');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        _scrollToBottom();
+      }
     }
-
-    _scrollToBottom();
   }
 
   void _handleError(String msg) {
@@ -182,20 +188,19 @@ class _ChatbotPageState extends State<ChatbotPage> {
             Text('Clear Chat', style: TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
-        content: const Text(
-          'Are you sure you want to clear the chat history?',
-        ),
+        content: const Text('Are you sure you want to clear the chat history?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
-            style:
-                ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Yes, Clear',
-                style: TextStyle(color: Colors.white)),
+            child: const Text(
+              'Yes, Clear',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -271,8 +276,11 @@ class _ChatbotPageState extends State<ChatbotPage> {
                 ),
               ],
             ),
-            child: const Icon(Icons.arrow_downward_rounded,
-                color: Colors.white, size: 26),
+            child: const Icon(
+              Icons.arrow_downward_rounded,
+              color: Colors.white,
+              size: 26,
+            ),
           ),
         ),
       ),
@@ -316,6 +324,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
     );
   }
 }
+
 class _MessageBubble extends StatelessWidget {
   const _MessageBubble({required this.text, required this.isUser});
 
@@ -331,7 +340,9 @@ class _MessageBubble extends StatelessWidget {
           margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: isUser ? Theme.of(context).canvasColor : Theme.of(context).cardColor,
+            color: isUser
+                ? Theme.of(context).canvasColor
+                : Theme.of(context).cardColor,
             borderRadius: BorderRadius.only(
               topLeft: const Radius.circular(16),
               topRight: const Radius.circular(16),
@@ -381,7 +392,7 @@ class _TypingIndicator extends StatelessWidget {
                 height: 6,
                 decoration: BoxDecoration(
                   color: Theme.of(context).textTheme.bodySmall!.color,
-                  shape: BoxShape.circle
+                  shape: BoxShape.circle,
                 ),
               ),
             );
@@ -477,15 +488,13 @@ class _MessageInputBarState extends State<_MessageInputBar> {
 class _TypingMessageBubble extends StatefulWidget {
   const _TypingMessageBubble({
     required this.fullText,
-    required this.onTypingComplete, required this.scrollController,
-    
+    required this.onTypingComplete,
+    required this.scrollController,
   });
 
   final String fullText;
   final VoidCallback onTypingComplete;
   final ScrollController scrollController;
-
-
 
   @override
   State<_TypingMessageBubble> createState() => _TypingMessageBubbleState();
@@ -511,34 +520,32 @@ class _TypingMessageBubbleState extends State<_TypingMessageBubble> {
   }
 
   void _startTypingAnimation() {
-  _timer = Timer.periodic(const Duration(milliseconds: 12), (timer) {
-    if (_displayedText.length < widget.fullText.length) {
-      setState(() {
-        _displayedText = widget.fullText.substring(
-          0,
-          _displayedText.length + 1,
-        );
-      });
-
-      // 👇 Smooth Auto-scroll Fix
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        await Future.delayed(const Duration(milliseconds: 5)); // tiny delay
-        if (widget.scrollController.hasClients) {
-          widget.scrollController.animateTo(
-            widget.scrollController.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 60),
-            curve: Curves.easeOut,
+    _timer = Timer.periodic(const Duration(milliseconds: 12), (timer) {
+      if (_displayedText.length < widget.fullText.length) {
+        setState(() {
+          _displayedText = widget.fullText.substring(
+            0,
+            _displayedText.length + 1,
           );
-        }
-      });
+        });
 
-    } else {
-      timer.cancel();
-      widget.onTypingComplete();
-    }
-  });
-}
-
+        // 👇 Smooth Auto-scroll Fix
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          await Future.delayed(const Duration(milliseconds: 5)); // tiny delay
+          if (widget.scrollController.hasClients) {
+            widget.scrollController.animateTo(
+              widget.scrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 60),
+              curve: Curves.easeOut,
+            );
+          }
+        });
+      } else {
+        timer.cancel();
+        widget.onTypingComplete();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -555,7 +562,6 @@ class _TypingMessageBubbleState extends State<_TypingMessageBubble> {
             bottomLeft: Radius.circular(0),
             bottomRight: const Radius.circular(16),
           ),
-          
         ),
         child: MarkdownBody(
           data: _displayedText.isEmpty ? "..." : _displayedText,

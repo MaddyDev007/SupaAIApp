@@ -394,6 +394,7 @@ class _ListStudentPageState extends State<ListStudentPage> {
           );
         },
         trailing: PopupMenuButton<String>(
+          elevation: 3,
           color: Theme.of(context).scaffoldBackgroundColor,
           onSelected: (value) {
             if (value == 'performance') {
@@ -412,18 +413,30 @@ class _ListStudentPageState extends State<ListStudentPage> {
           itemBuilder: (_) => [
             PopupMenuItem(
               value: 'performance',
-              child: Text(
-                'View performance',
-                style: TextStyle(
-                  color: Theme.of(context).textTheme.bodyMedium?.color,
-                ),
+              child: Row(
+                spacing: 10,
+                children: [
+                  Icon(Icons.trending_up_rounded, color: Theme.of(context).dividerColor,),
+                  Text(
+                    'View performance',
+                    style: TextStyle(
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
+                    ),
+                  ),
+                ],
               ),
             ),
             PopupMenuItem(
               value: 'remove',
-              child: Text(
-                'Remove from class',
-                style: TextStyle(color: Theme.of(context).dividerColor),
+              child: Row(
+                spacing: 10,
+                children: [
+                  Icon(Icons.delete),
+                  Text(
+                    'Remove from class',
+                    style: TextStyle(color: Theme.of(context).dividerColor),
+                  ),
+                ],
               ),
             ),
           ],
