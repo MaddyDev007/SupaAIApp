@@ -7,27 +7,35 @@ import httpx
 import pdfplumber
 from dotenv import load_dotenv
 from pathlib import Path
-from cohere import Client
 from fastapi import HTTPException
 from supabase import create_client
+import google.generativeai as genai
 
 # -------------------------------------------------------------------
 # 🔧 Load environment variables
 # -------------------------------------------------------------------
 load_dotenv(dotenv_path=Path(__file__).resolve().parents[1] / ".env")
 
-COHERE_KEY = os.getenv("COHERE_API_KEY")
+GEMINI_KEY = os.getenv("GEMINI_API_KEY")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
-co = Client(COHERE_KEY)
+genai.configure(api_key=GEMINI_KEY)
+
+# Gemini models
+MCQ_MODEL = genai.GenerativeModel("models/gemini-2.5-flash")
+CHAT_MODEL = genai.GenerativeModel("models/gemini-2.5-flash")
+EXAM_MODEL = genai.GenerativeModel("models/gemini-2.5-flash")
+
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
 
 # -------------------------------------------------------------------
 # 🧩 Utility: Split long text into chunks
 # -------------------------------------------------------------------
-def chunk_text(text: str, size: int = 2000):
+def chunk_text(text: str, size: int=2000):
     return [text[i:i + size] for i in range(0, len(text), size)]
+
 
 # -------------------------------------------------------------------
 # 🧠 Generate MCQs from text
@@ -52,10 +60,11 @@ Content:
 """
 
     try:
-        response = co.chat(
-            model="command-a-03-2025",
-            message=prompt,
-            temperature=0.3,
+        response = MCQ_MODEL.generate_content(
+            prompt,
+            generation_config={
+                "temperature": 0.3
+            }
         )
 
         raw = response.text.strip()
@@ -68,15 +77,16 @@ Content:
                 return json.loads(match.group())
             raise HTTPException(
                 status_code=500,
-                detail="Malformed JSON returned by Cohere"
+                detail="Malformed JSON returned by Gemini"
             )
 
     except Exception as e:
-        print(f"[Cohere MCQ Error] {e}")
+        print(f"[Gemini MCQ Error] {e}")
         raise HTTPException(
             status_code=500,
             detail="Failed to generate MCQs"
         )
+
 
 # -------------------------------------------------------------------
 # 🧩 Generate MCQs for full document (chunked)
@@ -91,6 +101,7 @@ def generate_all_questions(full_text: str):
 
     return all_questions
 
+
 # -------------------------------------------------------------------
 # 📄 Extract text from PDF bytes
 # -------------------------------------------------------------------
@@ -102,16 +113,16 @@ def extract_text(file_bytes: bytes) -> str:
         print(f"[PDF Extraction Error] {e}")
         return ""
 
+
 # -------------------------------------------------------------------
 # 🔍 Fetch relevant documents (CLASS-SCOPED)
 # -------------------------------------------------------------------
 async def fetch_relevant_documents(
     question: str,
     class_id: str,
-    top_k: int = 2
+    top_k: int=2
 ):
     try:
-        # ✅ ONLY quizzes from this class
         res = (
             supabase
             .table("quizzes")
@@ -132,7 +143,6 @@ async def fetch_relevant_documents(
             overlap = len(question_words & set(preview.lower().split()))
             scored.append((r, overlap))
 
-        # Pick top matching PDFs
         scored.sort(key=lambda x: x[1], reverse=True)
         top_docs = [d for d, s in scored[:top_k] if s > 0]
 
@@ -155,11 +165,12 @@ async def fetch_relevant_documents(
         print(f"[Document Fetch Error] {e}")
         return []
 
+
 # -------------------------------------------------------------------
 # 💬 Chatbot (CLASS-SCOPED CONTEXT)
 # -------------------------------------------------------------------
-# NOTE: Still global memory (acceptable for now)
 chat_history = []
+
 
 async def ask_chatbot(question: str, class_id: str):
     global chat_history
@@ -170,28 +181,38 @@ async def ask_chatbot(question: str, class_id: str):
             class_id=class_id,
         )
 
-        # Keep history bounded
         if len(chat_history) > 20:
             chat_history = chat_history[-20:]
 
         chat_history.append({
-            "role": "USER",
-            "message": question
+            "role": "user",
+            "content": question
         })
 
-        def run_cohere():
-            return co.chat(
-                model="command-r-plus-08-2024",
-                message=question,
-                chat_history=chat_history,
-                documents=documents,
-            ).text
+        context_docs = "\n\n".join(
+            f"{d['title']}:\n{d['text']}" for d in documents
+        )
 
-        answer = await asyncio.to_thread(run_cohere)
+        prompt = f"""
+Use the following documents to answer the question.
+
+{context_docs}
+
+Conversation history:
+{chat_history}
+
+User question:
+{question}
+"""
+
+        def run_gemini():
+            return CHAT_MODEL.generate_content(prompt).text
+
+        answer = await asyncio.to_thread(run_gemini)
 
         chat_history.append({
-            "role": "CHATBOT",
-            "message": answer
+            "role": "assistant",
+            "content": answer
         })
 
         return answer
@@ -202,6 +223,7 @@ async def ask_chatbot(question: str, class_id: str):
             status_code=500,
             detail="Chatbot failed to respond"
         )
+
 
 # -------------------------------------------------------------------
 # 🧾 Generate Exam Questions
@@ -225,10 +247,11 @@ Return ONLY valid JSON:
 """
 
     try:
-        response = co.chat(
-            model="command-a-03-2025",
-            message=prompt,
-            temperature=0.3,
+        response = EXAM_MODEL.generate_content(
+            prompt,
+            generation_config={
+                "temperature": 0.3
+            }
         )
 
         raw = response.text.strip()
@@ -240,7 +263,7 @@ Return ONLY valid JSON:
             if start == -1 or end == -1:
                 raise HTTPException(
                     status_code=500,
-                    detail="Malformed JSON from Cohere"
+                    detail="Malformed JSON from Gemini"
                 )
             data = json.loads(raw[start:end + 1])
 

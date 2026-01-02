@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from services.pdf_extractor import extract_text_from_url
-from services.cohere_api import generate_questions
+from services.gemini_api import generate_questions
 
 router = APIRouter()
 

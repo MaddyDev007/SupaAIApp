@@ -1,7 +1,7 @@
 # backend/routers/chatbot.py
 
 from fastapi import APIRouter, Body, HTTPException
-from services.cohere_api import ask_chatbot
+from services.gemini_api import ask_chatbot
 
 router = APIRouter()
 
