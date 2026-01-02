@@ -115,17 +115,18 @@ class _ListStudentPageState extends State<ListStudentPage> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
+        backgroundColor: Theme.of(context).cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
+        title: Text(
           'Remove student',
-          style: TextStyle(color: Colors.white),
+          style:  Theme.of(context).textTheme.titleLarge,
         ),
         content: Text(
           'Are you sure you want to remove: \n'
           '• The Student can no longer attend quizs\n'
-          '• The Result of that student also be delete'
-          '• The Notes that the student saved also be delete'
-          '${studentName ?? "this student"} from this class?',
+          '• The Result of that student also be delete\n'
+          '• The Notes that the student saved also be delete\n'
+          'Sure to remove ${studentName ?? "this student"} from this class?',
         ),
         actions: [
           TextButton(

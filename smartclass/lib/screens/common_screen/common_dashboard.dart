@@ -452,14 +452,20 @@ class _CommonDashboardState extends State<CommonDashboard>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
 
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    spacing: 5,
+                  Row(
+                    spacing: 20,
                     children: [
-                      Text(cls['name']),
-                      SelectableText('Code: ${cls['code']}'),
-                      const SizedBox(height: 15),
-                      Text(teachername),
+                      Icon(Icons.folder,size: 48,color: Theme.of(context).primaryColor,),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        spacing: 5,
+                        children: [
+                          Text(cls['name']),
+                          SelectableText('Code: ${cls['code']}'),
+                          const SizedBox(height: 15),
+                          Text(teachername),
+                        ],
+                      ),
                     ],
                   ),
                   Icon(
