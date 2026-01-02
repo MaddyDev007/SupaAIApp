@@ -1,6 +1,5 @@
 fastapi
 uvicorn
-pdfplumber
 requests
 cohere
 python-dotenv
@@ -12,3 +11,4 @@ pytesseract
 httpx
 pillow
 beautifulsoup4
+google-generativeai
