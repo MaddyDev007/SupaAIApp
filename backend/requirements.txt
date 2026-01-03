@@ -12,3 +12,4 @@ pytesseract
 httpx
 pillow
 beautifulsoup4
+google-generativeai

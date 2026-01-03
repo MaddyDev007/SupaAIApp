@@ -1,4 +1,4 @@
-import 'dart:async';
+/* import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -565,6 +565,485 @@ class _TypingMessageBubbleState extends State<_TypingMessageBubble> {
         ),
         child: MarkdownBody(
           data: _displayedText.isEmpty ? "..." : _displayedText,
+        ),
+      ),
+    );
+  }
+}
+ */
+
+import 'dart:async';
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:smartclass/secrets.dart';
+import 'package:flutter/services.dart';
+
+/// ✅ GLOBAL CHAT HISTORY
+/// Safe to call anywhere:
+/// chatHistory.clear();
+final List<Map<String, String>> chatHistory = [];
+
+class ChatbotPage extends StatefulWidget {
+  final String classId;
+
+  const ChatbotPage({super.key, required this.classId});
+
+  @override
+  State<ChatbotPage> createState() => _ChatbotPageState();
+}
+
+class _ChatbotPageState extends State<ChatbotPage> {
+  final TextEditingController _controller = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+
+  bool _isStreaming = false;
+  bool _showCursor = true;
+  bool _showFAB = false; //new
+
+  StreamSubscription<String>? _streamSub;
+  Timer? _cursorTimer;
+
+  String? _lastUserMessage;
+
+  @override
+  void initState() {
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    super.initState();
+    _scrollToBottom();
+
+    if (chatHistory.isEmpty) {
+      Future.delayed(const Duration(milliseconds: 400), () {
+        setState(() {
+          chatHistory.add({
+            'role': 'bot_typing',
+            'msg': '👋 Hi there! How can I help you today?',
+          });
+        });
+      });
+    }
+
+    bool lastState = false;
+    // ✅ Track scroll to show/hide FAB
+    _scrollController.addListener(() {
+      final atBottom =
+          _scrollController.offset >=
+          _scrollController.position.maxScrollExtent - 50;
+
+      if (atBottom != lastState) {
+        lastState = atBottom;
+        setState(() {
+          _showFAB = !atBottom;
+        });
+      }
+    });
+  }
+
+  // ------------------------------------------------------------
+  // Scroll helper
+  // ------------------------------------------------------------
+  void _scrollToBottom() {
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  // ------------------------------------------------------------
+  // STOP STREAM
+  // ------------------------------------------------------------
+  void _stopStreaming() {
+    _streamSub?.cancel();
+    _cursorTimer?.cancel();
+
+    if (!mounted) return;
+    setState(() {
+      _isStreaming = false;
+      _showCursor = false;
+    });
+  }
+
+  // ------------------------------------------------------------
+  // SEND MESSAGE (STREAMING)
+  // ------------------------------------------------------------
+  Future<void> sendMessageStream({String? retryText}) async {
+    final question = retryText ?? _controller.text.trim();
+    if (question.isEmpty) return;
+
+    await _streamSub?.cancel();
+    _cursorTimer?.cancel();
+
+    setState(() {
+      if (retryText == null) {
+        chatHistory.add({'role': 'user', 'msg': question});
+      }
+      chatHistory.add({'role': 'bot', 'msg': ''});
+      _isStreaming = true;
+      _lastUserMessage = question;
+    });
+
+    _controller.clear();
+    _scrollToBottom();
+
+    // Cursor blink
+    _cursorTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      if (!mounted || !_isStreaming) return;
+      setState(() => _showCursor = !_showCursor);
+    });
+
+    final request = http.Request(
+      'POST',
+      Uri.parse('${AppSecrets.backendURL}/chatbot/stream'),
+    );
+
+    request.headers['Content-Type'] = 'application/json';
+    request.body = jsonEncode({
+      'question': question,
+      'class_id': widget.classId,
+    });
+
+    try {
+      final response = await request.send();
+      String buffer = "";
+
+      _streamSub = response.stream
+          .transform(utf8.decoder)
+          .listen(
+            (chunk) {
+              if (!mounted) return;
+
+              buffer += chunk;
+
+              final display = buffer.isEmpty
+                  ? (_showCursor ? '▍' : '')
+                  : buffer + (_showCursor ? ' ▍' : '');
+
+              setState(() {
+                chatHistory.last['msg'] = display;
+              });
+
+              if (!_showFAB) {
+                _scrollToBottom();
+              }
+            },
+            onDone: () {
+              _cursorTimer?.cancel();
+              if (!mounted) return;
+
+              setState(() {
+                chatHistory.last['msg'] = buffer;
+                _isStreaming = false;
+              });
+            },
+            onError: (_) {
+              _handleError('🌐 Streaming error. Tap retry.');
+            },
+          );
+    } catch (_) {
+      _handleError('🌐 Network error. Tap retry.');
+    }
+  }
+
+  //new
+  void _clearChat() {
+    setState(() {
+      chatHistory.clear();
+      _isStreaming = false;
+    });
+  }
+
+  Future<void> _showClearChatDialog() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: const [
+            Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+            SizedBox(width: 10),
+            Text('Clear Chat', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to clear the chat history?',
+          style: TextStyle(fontSize: 15),
+        ),
+        actions: [
+          TextButton(
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            onPressed: () => Navigator.of(ctx).pop(false),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              'Yes, Clear',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      _clearChat();
+    }
+  }
+
+  // ------------------------------------------------------------
+  // ERROR HANDLER
+  // ------------------------------------------------------------
+  void _handleError(String msg) {
+    _streamSub?.cancel();
+    _cursorTimer?.cancel();
+
+    if (!mounted) return;
+    setState(() {
+      chatHistory.add({'role': 'bot_error', 'msg': msg});
+      _isStreaming = false;
+    });
+  }
+
+  // ------------------------------------------------------------
+  // MESSAGE LIST
+  // ------------------------------------------------------------
+  Widget _buildMessageList() {
+    return Expanded(
+      child: ListView.builder(
+        controller: _scrollController,
+        padding: const EdgeInsets.all(12),
+        physics: const BouncingScrollPhysics(),
+        itemCount: chatHistory.length,
+        itemBuilder: (context, index) {
+          final msg = chatHistory[index];
+
+          if (msg['role'] == 'bot_error') {
+            return _RetryBubble(
+              message: msg['msg']!,
+              onRetry: () {
+                chatHistory.removeLast();
+                sendMessageStream(retryText: _lastUserMessage);
+              },
+            );
+          }
+
+          return _MessageBubble(
+            text: msg['msg']!,
+            isUser: msg['role'] == 'user',
+          );
+        },
+      ),
+    );
+  }
+
+  // ------------------------------------------------------------
+  // INPUT BAR
+  // ------------------------------------------------------------
+  Widget _buildInputBar() {
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withAlpha((0.25 * 255).toInt()),
+              blurRadius: 6,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: Row(
+          spacing: 10,
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                enabled: !_isStreaming,
+                decoration: InputDecoration(
+                  hintText: _isStreaming
+                      ? "Bot is responding..."
+                      : "Ask something...",
+                  contentPadding: EdgeInsets.all(12),
+                ),
+              ),
+            ),
+            if (_isStreaming)
+              IconButton(
+                icon: const Icon(Icons.stop_circle, color: Colors.red),
+                onPressed: _stopStreaming,
+              )
+            else
+              CircleAvatar(
+                backgroundColor: Theme.of(context).primaryColor,
+                radius: 24,
+                child: IconButton(
+                  icon: Icon(Icons.send, color: Colors.white),
+                  onPressed: sendMessageStream,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ------------------------------------------------------------
+  // BUILD
+  // ------------------------------------------------------------
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: _buildAppBar(),
+      body: Stack(
+        children: [
+          Column(children: [_buildMessageList(), _buildInputBar()]),
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOut,
+            right: 16,
+            bottom: _showFAB ? 100 : -80, // slide out
+            child: AnimatedOpacity(
+              duration: const Duration(milliseconds: 200),
+              opacity: _showFAB ? 1 : 0,
+              child: GestureDetector(
+                onTap: _scrollToBottom,
+                child: Container(
+                  height: 50,
+                  width: 50,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColor,
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(
+                      color: Theme.of(context).primaryColor,
+                      width: 1.3,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withAlpha((0.15 * 255).toInt()),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.arrow_downward_rounded,
+                    color: Colors.white,
+                    size: 26,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  AppBar _buildAppBar() {
+    return AppBar(
+      centerTitle: true,
+      elevation: 0,
+      iconTheme: const IconThemeData(color: Colors.white),
+      title: const Text(
+        'AI Chatbot',
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500),
+      ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.delete, color: Colors.white),
+          onPressed: _showClearChatDialog,
+        ),
+      ],
+    );
+  }
+
+  // ------------------------------------------------------------
+  // DISPOSE
+  // ------------------------------------------------------------
+  @override
+  void dispose() {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+    _cursorTimer?.cancel();
+    _streamSub?.cancel();
+    _controller.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+}
+
+// =================================================================
+// UI COMPONENTS
+// =================================================================
+
+class _MessageBubble extends StatelessWidget {
+  final String text;
+  final bool isUser;
+
+  const _MessageBubble({required this.text, required this.isUser});
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = isUser
+        ? Theme.of(context).canvasColor
+        : Theme.of(context).cardColor;
+
+    return Align(
+      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.all(12),
+        constraints: const BoxConstraints(maxWidth: 340),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: MarkdownBody(
+          data: text,
+          selectable: true,
+          styleSheet: MarkdownStyleSheet(
+            code: TextStyle(fontFamily: 'monospace'),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RetryBubble extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _RetryBubble({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.red.shade50,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Expanded(child: Text(message)),
+            IconButton(icon: const Icon(Icons.refresh), onPressed: onRetry),
+          ],
         ),
       ),
     );

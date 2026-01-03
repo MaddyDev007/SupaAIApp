@@ -6,7 +6,8 @@ import requests, pdfplumber, io, os, uuid
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 from supabase import create_client
-from services.cohere_api import generate_exam_questions
+from services.gemini_api import generate_exam_questions
+# from services.cohere_api import generate_exam_questions
 from dotenv import load_dotenv
 
 load_dotenv()

@@ -1,7 +1,8 @@
-# backend/routers/chatbot.py
+""" # backend/routers/chatbot.py
 
 from fastapi import APIRouter, Body, HTTPException
-from services.cohere_api import ask_chatbot
+from services.gemini_api import ask_chatbot
+# from services.cohere_api import ask_chatbot
 
 router = APIRouter()
 
@@ -21,4 +22,27 @@ async def chat(data: dict = Body(...)):
         class_id=class_id,   # ✅ PASS CLASS CONTEXT
     )
 
-    return {"answer": answer}
+    return {"answer": answer} """
+    
+from fastapi import APIRouter, Body, HTTPException
+from services.gemini_api import ask_chatbot_stream
+
+router = APIRouter()
+
+@router.post("/stream")
+async def chat_stream(data: dict = Body(...)):
+    question = data.get("question")
+    class_id = data.get("class_id")
+
+    if not question:
+        raise HTTPException(status_code=400, detail="Missing question")
+
+    if not class_id:
+        raise HTTPException(status_code=400, detail="Missing class_id")
+
+    # 🔥 IMPORTANT: return the StreamingResponse directly
+    return await ask_chatbot_stream(
+        question=question,
+        class_id=class_id,
+    )
+
