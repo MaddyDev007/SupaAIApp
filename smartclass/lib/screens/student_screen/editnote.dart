@@ -514,6 +514,7 @@ class _EditNotePageState extends State<EditNotePage> {
                             color: Colors.grey.shade200,
                             child: Center(
                               child: CircularProgressIndicator(
+                                color: Theme.of(context).primaryColor,
                                 strokeWidth: 2.5,
                                 value:
                                     loadingProgress.expectedTotalBytes != null

@@ -307,7 +307,9 @@ class _ListStudentPageState extends State<ListStudentPage> {
   // ---------------- BODY ----------------
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return  Center(child: CircularProgressIndicator(
+        color: Theme.of(context).primaryColor,
+      ));
     }
 
     if (_hasError) {

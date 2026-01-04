@@ -207,8 +207,9 @@ class _NotesPageState extends State<NotesPage> {
           future: _notesFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
+              return  Center(
                 child: CircularProgressIndicator(
+                  color: Theme.of(context).primaryColor,
                   valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
                 ),
               );
