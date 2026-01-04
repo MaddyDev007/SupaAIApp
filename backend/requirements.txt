@@ -5,7 +5,8 @@ requests
 cohere
 python-dotenv
 supabase
-pdfplumber
+opencv-python
+numpy
 pydantic
 reportlab
 pytesseract

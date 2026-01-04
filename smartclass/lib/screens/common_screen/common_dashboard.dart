@@ -294,15 +294,33 @@ class _CommonDashboardState extends State<CommonDashboard>
 
                 if (cls == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Invalid class code')),
+                    SnackBar(
+                      backgroundColor: Theme.of(context).cardColor,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      content: Text(
+                        'Invalid class code',
+                        style: TextStyle(color: Theme.of(context).dividerColor),
+                      ),
+                    ),
                   );
                   return;
                 }
 
                 if (cls['created_by'] == user.id) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('You already created this class'),
+                    SnackBar(
+                      backgroundColor: Theme.of(context).cardColor,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      content: Text(
+                        'You already created this class',
+                        style: TextStyle(color: Theme.of(context).dividerColor),
+                      ),
                     ),
                   );
                   return;
@@ -320,12 +338,27 @@ class _CommonDashboardState extends State<CommonDashboard>
               } catch (e) {
                 if (e is PostgrestException && e.code == '23505') {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Already joined this class')),
+                     SnackBar(
+                      backgroundColor: Theme.of(context).cardColor,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      content: Text('Already joined this class',
+                      style: TextStyle(color: Theme.of(context).dividerColor),
+                      )),
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Something went wrong. Try again'),
+                     SnackBar(
+                      backgroundColor: Theme.of(context).cardColor,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      content: Text('Something went wrong. Try again',
+                      style: TextStyle(color: Theme.of(context).dividerColor),
+                      ),
                     ),
                   );
                 }
@@ -455,7 +488,11 @@ class _CommonDashboardState extends State<CommonDashboard>
                   Row(
                     spacing: 20,
                     children: [
-                      Icon(Icons.folder,size: 48,color: Theme.of(context).primaryColor,),
+                      Icon(
+                        Icons.folder,
+                        size: 48,
+                        color: Theme.of(context).primaryColor,
+                      ),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         spacing: 5,
@@ -553,7 +590,7 @@ class _CommonDashboardState extends State<CommonDashboard>
           : FloatingActionButton(
               splashColor: Theme.of(context).primaryColor.withAlpha(100),
               backgroundColor: Theme.of(context).primaryColor,
-              
+
               foregroundColor: Colors.white,
               onPressed: () {
                 if (_tabController.index == 0) {

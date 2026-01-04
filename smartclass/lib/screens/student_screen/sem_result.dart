@@ -327,6 +327,7 @@ class _SemResultPageState extends State<SemResultPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
+          backgroundColor: Theme.of(context).cardColor,
           content: Text("Saved to: $path"),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -340,6 +341,7 @@ class _SemResultPageState extends State<SemResultPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
+          backgroundColor: Theme.of(context).cardColor,
           content: Text("Failed: $e"),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(

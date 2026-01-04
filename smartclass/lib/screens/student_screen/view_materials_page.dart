@@ -12,10 +12,7 @@ import 'package:smartclass/screens/common_screen/error_page.dart';
 class ViewMaterialsPage extends StatefulWidget {
   final String classId; // ✅ NEW
 
-  const ViewMaterialsPage({
-    super.key,
-    required this.classId,
-  });
+  const ViewMaterialsPage({super.key, required this.classId});
 
   @override
   State<ViewMaterialsPage> createState() => _ViewMaterialsPageState();
@@ -71,22 +68,20 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
       _filteredMaterials = _materials
           .where(
             (m) =>
-                (m['subject'] ?? '')
-                    .toString()
-                    .toLowerCase()
-                    .contains(query),
+                (m['subject'] ?? '').toString().toLowerCase().contains(query),
           )
           .toList();
     });
   }
 
   void _resetSearchAndFetch() {
-  _searchController.clear(); // ✅ clears TextField
-  setState(() {
-    _filteredMaterials = List.from(_materials); // ✅ reset filter
-  });
-  _fetchMaterials(); // optional, only if you want fresh data
-}
+    _searchController.clear(); // ✅ clears TextField
+    setState(() {
+      _filteredMaterials = List.from(_materials); // ✅ reset filter
+    });
+    _fetchMaterials(); // optional, only if you want fresh data
+  }
+
   static const _curve = Cubic(0.22, 0.61, 0.36, 1.0);
   static final _slideTween = Tween<Offset>(
     begin: Offset(1, 0),
@@ -109,6 +104,7 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
       ),
     );
   }
+
   // ---------------- FETCH MATERIALS (CLASS-BASED) ----------------
   Future<void> _fetchMaterials() async {
     if (!mounted) return;
@@ -175,8 +171,11 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-           backgroundColor: Theme.of(context).cardColor,
-          content: Text('Invalid material link',style: TextStyle(color: Theme.of(context).dividerColor)),
+          backgroundColor: Theme.of(context).cardColor,
+          content: Text(
+            'Invalid material link',
+            style: TextStyle(color: Theme.of(context).dividerColor),
+          ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -186,19 +185,26 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
       return;
     }
 
-    pushWithAnimation(
-      context, PDFViewerPage(pdfUrl: url, title: title),
-     
-    );
+    pushWithAnimation(context, PDFViewerPage(pdfUrl: url, title: title));
   }
 
   Future<void> _openMaterialExternal(String url) async {
     final uri = Uri.tryParse(url);
     if (uri == null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Invalid URL.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Theme.of(context).cardColor,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          content: Text(
+            'Invalid URL.',
+            style: TextStyle(color: Theme.of(context).dividerColor),
+          ),
+        ),
+      );
       return;
     }
 
@@ -211,14 +217,34 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
 
       if (!launched && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open the material.')),
+          SnackBar(
+            backgroundColor: Theme.of(context).cardColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            content: Text(
+              'Could not open the material.',
+              style: TextStyle(color: Theme.of(context).dividerColor),
+            ),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error opening material: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Theme.of(context).cardColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            content: Text(
+              'Error opening material: $e',
+              style: TextStyle(color: Theme.of(context).dividerColor),
+            ),
+          ),
+        );
       }
     }
   }
@@ -236,14 +262,8 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(20),
             ),
-            title: Text(
-              title,
-              style: theme.textTheme.titleLarge
-            ),
-            content: Text(
-              message,
-             
-            ),
+            title: Text(title, style: theme.textTheme.titleLarge),
+            content: Text(message),
             actionsPadding: const EdgeInsets.symmetric(
               horizontal: 12,
               vertical: 8,
@@ -382,8 +402,11 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-           backgroundColor: Theme.of(context).cardColor,
-          content: Text('✅ Downloaded to: $savePath',style: TextStyle(color: Theme.of(context).dividerColor)),
+          backgroundColor: Theme.of(context).cardColor,
+          content: Text(
+            '✅ Downloaded to: $savePath',
+            style: TextStyle(color: Theme.of(context).dividerColor),
+          ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -403,8 +426,11 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
       if (CancelToken.isCancel(e)) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-             backgroundColor: Theme.of(context).cardColor,
-            content: Text('⛔ Download cancelled',style: TextStyle(color: Theme.of(context).dividerColor)),
+            backgroundColor: Theme.of(context).cardColor,
+            content: Text(
+              '⛔ Download cancelled',
+              style: TextStyle(color: Theme.of(context).dividerColor),
+            ),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -414,8 +440,11 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-             backgroundColor: Theme.of(context).cardColor,
-            content: Text('❌ Download failed: ${e.message}',style: TextStyle(color: Theme.of(context).dividerColor)),
+            backgroundColor: Theme.of(context).cardColor,
+            content: Text(
+              '❌ Download failed: ${e.message}',
+              style: TextStyle(color: Theme.of(context).dividerColor),
+            ),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -432,8 +461,11 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-           backgroundColor: Theme.of(context).cardColor,
-          content: Text('❌ Download failed: $e',style: TextStyle(color: Theme.of(context).dividerColor)),
+          backgroundColor: Theme.of(context).cardColor,
+          content: Text(
+            '❌ Download failed: $e',
+            style: TextStyle(color: Theme.of(context).dividerColor),
+          ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -442,7 +474,6 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
       );
     }
   }
-
 
   // ---------------- MATERIAL CARD ----------------
   Widget _buildMaterialCard(Map<String, dynamic> material, int index) {
@@ -464,10 +495,7 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
           margin: const EdgeInsets.symmetric(vertical: 8),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: BorderSide(
-              color: Theme.of(context).primaryColor,
-              width: 1.5,
-            ),
+            side: BorderSide(color: Theme.of(context).primaryColor, width: 1.5),
           ),
           child: InkWell(
             highlightColor: Colors.transparent,
@@ -476,8 +504,10 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
             splashColor: Theme.of(context).primaryColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
             child: ListTile(
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
               title: Text(
                 subject,
                 style: const TextStyle(
@@ -493,7 +523,10 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
                     borderRadius: BorderRadius.circular(50),
                     child: Padding(
                       padding: const EdgeInsets.all(6),
-                      child: Icon(Icons.open_in_new, color:Theme.of(context).primaryColor),
+                      child: Icon(
+                        Icons.open_in_new,
+                        color: Theme.of(context).primaryColor,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -502,7 +535,10 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
                     borderRadius: BorderRadius.circular(50),
                     child: Padding(
                       padding: const EdgeInsets.all(6),
-                      child: Icon(Icons.download, color: Theme.of(context).primaryColor),
+                      child: Icon(
+                        Icons.download,
+                        color: Theme.of(context).primaryColor,
+                      ),
                     ),
                   ),
                 ],
@@ -515,16 +551,18 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
   }
 
   // ---------------- BODY ----------------
- Widget _buildContent() {
+  Widget _buildContent() {
     // Always return a scrollable so RefreshIndicator works
     if (_loading) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        children:  [
+        children: [
           SizedBox(height: 160),
-          Center(child: CircularProgressIndicator(
-            color: Theme.of(context).primaryColor,
-          )),
+          Center(
+            child: CircularProgressIndicator(
+              color: Theme.of(context).primaryColor,
+            ),
+          ),
           SizedBox(height: 300),
         ],
       );
@@ -578,7 +616,6 @@ class _ViewMaterialsPageState extends State<ViewMaterialsPage>
   // ---------------- BUILD ----------------
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(

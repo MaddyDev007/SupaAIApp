@@ -118,7 +118,10 @@ class _NotesPageState extends State<NotesPage> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text("Note deleted"),
+            backgroundColor: Theme.of(context).cardColor,
+            content: Text("Note deleted",
+            style: TextStyle(color: Theme.of(context).dividerColor),
+            ),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -129,7 +132,10 @@ class _NotesPageState extends State<NotesPage> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Error deleting note. $e"),
+          backgroundColor: Theme.of(context).cardColor,
+          content: Text("Error deleting note. $e",
+          style: TextStyle(color: Theme.of(context).dividerColor),
+          ),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),

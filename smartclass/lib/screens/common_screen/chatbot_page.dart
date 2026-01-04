@@ -617,7 +617,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
       Future.delayed(const Duration(milliseconds: 400), () {
         setState(() {
           chatHistory.add({
-            'role': 'bot_typing',
+            'role': 'bot',
             'msg': '👋 Hi there! How can I help you today?',
           });
         });
@@ -721,8 +721,8 @@ class _ChatbotPageState extends State<ChatbotPage> {
               buffer += chunk;
 
               final display = buffer.isEmpty
-                  ? (_showCursor ? '▍' : '')
-                  : buffer + (_showCursor ? ' ▍' : '');
+                  ? (_showCursor ? ' |' : '')
+                  : buffer + (_showCursor ? ' |' : '');
 
               setState(() {
                 chatHistory.last['msg'] = display;
@@ -874,9 +874,13 @@ class _ChatbotPageState extends State<ChatbotPage> {
               ),
             ),
             if (_isStreaming)
-              IconButton(
-                icon: const Icon(Icons.stop_circle, color: Colors.red),
-                onPressed: _stopStreaming,
+              CircleAvatar(
+                backgroundColor: Colors.red,
+                radius: 24,
+                child: IconButton(
+                  icon: Icon(Icons.square, size: 20, color: Colors.white),
+                  onPressed: _stopStreaming,
+                ),
               )
             else
               CircleAvatar(
@@ -907,8 +911,8 @@ class _ChatbotPageState extends State<ChatbotPage> {
           AnimatedPositioned(
             duration: const Duration(milliseconds: 250),
             curve: Curves.easeOut,
-            right: 16,
-            bottom: _showFAB ? 100 : -80, // slide out
+            right: 13,
+            bottom: _showFAB ? 95 : -80, // slide out
             child: AnimatedOpacity(
               duration: const Duration(milliseconds: 200),
               opacity: _showFAB ? 1 : 0,
@@ -1009,11 +1013,26 @@ class _MessageBubble extends StatelessWidget {
           color: bg,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: MarkdownBody(
-          data: text,
-          selectable: true,
-          styleSheet: MarkdownStyleSheet(
-            code: TextStyle(fontFamily: 'monospace'),
+        child: SelectionArea(
+          child: MarkdownBody(
+            data: text,
+            styleSheet: MarkdownStyleSheet(
+              h1: TextStyle(
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+              ),
+              h2: TextStyle(
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+              ),
+              h3: TextStyle(
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+              ),
+              code: TextStyle(fontFamily: 'monospace' ),
+              codeblockPadding: const EdgeInsets.all(22),
+              codeblockDecoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.35),
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
           ),
         ),
       ),
@@ -1035,14 +1054,19 @@ class _RetryBubble extends StatelessWidget {
         margin: const EdgeInsets.symmetric(vertical: 6),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.red.shade50,
+          color: const Color.fromARGB(255, 255, 181, 188),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(child: Text(message)),
-            IconButton(icon: const Icon(Icons.refresh), onPressed: onRetry),
+            Expanded(
+              child: Text(message, style: TextStyle(color: Colors.black)),
+            ),
+            IconButton(
+              icon: const Icon(Icons.refresh, color: Colors.black),
+              onPressed: onRetry,
+            ),
           ],
         ),
       ),

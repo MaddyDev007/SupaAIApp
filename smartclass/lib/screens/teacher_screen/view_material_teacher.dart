@@ -84,7 +84,13 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Invalid URL.')));
+      ).showSnackBar( SnackBar(
+        backgroundColor: Theme.of(context).cardColor,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+        content: Text('Invalid URL.',style: TextStyle(color: Theme.of(context).dividerColor))));
       return;
     }
 
@@ -97,14 +103,26 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
 
       if (!launched && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open the material.')),
+           SnackBar(
+            backgroundColor: Theme.of(context).cardColor,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+            content: Text('Could not open the material.',style: TextStyle(color: Theme.of(context).dividerColor))),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error opening material: $e')));
+        ).showSnackBar(SnackBar(
+          backgroundColor: Theme.of(context).cardColor,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+          content: Text('Error opening material: $e',style: TextStyle(color: Theme.of(context).dividerColor))));
       }
     }
   }

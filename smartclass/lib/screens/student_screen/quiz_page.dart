@@ -86,7 +86,8 @@ class _QuizPageState extends State<QuizPage> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Failed to load quiz'),
+          backgroundColor: Theme.of(context).cardColor,
+          content: Text('Failed to load quiz', style: TextStyle(color: Theme.of(context).dividerColor),),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -145,46 +146,61 @@ class _QuizPageState extends State<QuizPage> {
     }
     return s;
   }
+
   Future<void> _verifyMembershipAndFetch() async {
-  try {
-    final user = supabase.auth.currentUser;
+    try {
+      final user = supabase.auth.currentUser;
 
-    if (user == null) {
-      Navigator.pop(context);
-      return;
-    }
+      if (user == null) {
+        Navigator.pop(context);
+        return;
+      }
 
-    final membership = await supabase
-        .from('class_members')
-        .select('id')
-        .eq('class_id', widget.classId)
-        .eq('user_id', user.id)
-        .maybeSingle();
+      final membership = await supabase
+          .from('class_members')
+          .select('id')
+          .eq('class_id', widget.classId)
+          .eq('user_id', user.id)
+          .maybeSingle();
 
-    if (membership == null) {
+      if (membership == null) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(
+            backgroundColor: Theme.of(context).cardColor,
+            content: Text('You are no longer part of this class', style: TextStyle(color: Theme.of(context).dividerColor),),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+
+        Navigator.pop(context);
+        return;
+      }
+
+      // ✅ Still enrolled → load quiz
+      await _fetchQuiz();
+    } catch (e) {
       if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('You are no longer part of this class'),
+        SnackBar(
+          backgroundColor: Theme.of(context).cardColor,
+          content: Text(
+            'Access check failed: $e',
+            style: TextStyle(color: Theme.of(context).dividerColor),
+          ),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
-
       Navigator.pop(context);
-      return;
     }
-
-    // ✅ Still enrolled → load quiz
-    await _fetchQuiz();
-  } catch (e) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Access check failed: $e')),
-    );
-    Navigator.pop(context);
   }
-}
-
 
   Future<void> _submitQuiz() async {
     _timer?.cancel();
@@ -198,11 +214,9 @@ class _QuizPageState extends State<QuizPage> {
         user.email?.split('@').first ??
         'Unknown';
     final avatar =
-        user.userMetadata?['avatar_url'] ??
-        user.userMetadata?['avatar'];
+        user.userMetadata?['avatar_url'] ?? user.userMetadata?['avatar'];
 
     try {
-      
       await supabase.from('results').insert({
         'quiz_id': widget.quizId,
         'class_id': widget.classId, // ✅ NEW
@@ -217,7 +231,11 @@ class _QuizPageState extends State<QuizPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error saving result: $e'),
+            backgroundColor: Theme.of(context).cardColor,
+            content: Text(
+              'Error saving result: $e',
+              style: TextStyle(color: Theme.of(context).dividerColor),
+            ),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -226,7 +244,7 @@ class _QuizPageState extends State<QuizPage> {
         );
       }
     }
-  
+
     if (!mounted) return;
     showDialog(
       context: context,
@@ -490,8 +508,8 @@ class _OptionCard extends StatelessWidget {
       ),
       child: InkWell(
         highlightColor: Colors.transparent,
-            splashFactory: InkRipple.splashFactory,
-        
+        splashFactory: InkRipple.splashFactory,
+
         onTap: onTap,
         borderRadius: BorderRadius.circular(14),
         child: Padding(

@@ -1,11 +1,13 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:smartclass/secrets.dart';
+import 'package:smartclass/widgets/value_listenable_builder2.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:supabase_progress_uploads/supabase_progress_uploads.dart';
+import 'package:smartclass/services/supabase_upload_service.dart';
 
 class UploadMaterialPage extends StatefulWidget {
   final String classId; // ✅ NEW: class-based
@@ -35,6 +37,11 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
 
   final ValueNotifier<double> _uploadProgress = ValueNotifier(0);
 
+  final ValueNotifier<int> _uploadedBytes = ValueNotifier(0);
+  final ValueNotifier<int> _totalBytes = ValueNotifier(0);
+  SupabaseDioUploadService? _uploadService;
+  bool _uploadDialogOpen = false;
+
   @override
   void initState() {
     super.initState();
@@ -43,6 +50,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
 
   @override
   void dispose() {
+    _uploadService?.cancelUpload();
     subjectCtrl.dispose();
     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     super.dispose();
@@ -60,6 +68,8 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
 
   // ---------------- UPLOAD PROGRESS DIALOG ----------------
   Future<void> _showUploadingDialog() async {
+    _uploadDialogOpen = true;
+
     await showDialog(
       context: context,
       barrierDismissible: false,
@@ -80,9 +90,52 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
                 children: [
                   LinearProgressIndicator(
                     color: Theme.of(context).primaryColor,
-                    value: p == 0 ? null : v),
+                    value: p == 0 ? null : v,
+                  ),
                   const SizedBox(height: 12),
-                  Text('${p.toStringAsFixed(0)}%'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+                    children: [
+                      Text('${p.toStringAsFixed(0)}%'),
+
+                      ValueListenableBuilder2<int, int>(
+                        first: _uploadedBytes,
+                        second: _totalBytes,
+                        builder: (_, sent, total, __) {
+                          final sentMB = sent / (1024 * 1024);
+                          final totalMB = total / (1024 * 1024);
+
+                          return Text(
+                            total > 0
+                                ? '${sentMB.toStringAsFixed(2)} MB / ${totalMB.toStringAsFixed(2)} MB'
+                                : 'Preparing upload...',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontSize: 13),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () {
+                      _uploadService?.cancelUpload(); // 🔥 REAL CANCEL
+                      if (_uploadDialogOpen) {
+                        Navigator.of(context, rootNavigator: true).pop();
+                        _uploadDialogOpen = false;
+                      }
+                    },
+
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
                 ],
               );
             },
@@ -117,18 +170,32 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
     });
 
     _uploadProgress.value = 0;
+    _uploadedBytes.value = 0;
+    _totalBytes.value = 0;
+
+    _uploadService = SupabaseDioUploadService(
+      supabase,
+      'lessons',
+      rootPath: 'materials/${widget.classId}',
+    );
+
     _showUploadingDialog();
 
     try {
-      final uploadService = SupabaseUploadService(
+      /* final uploadService = SupabaseUploadService(
         supabase,
         'lessons',
         rootPath: 'materials/${widget.classId}', // ✅ class-based folder
-      );
+      ); */
+      final file = File(selectedFile!.path);
 
-      final publicUrl = await uploadService.uploadFile(
-        selectedFile!,
+      final publicUrl = await _uploadService!.uploadFile(
+        file,
         onUploadProgress: (p) => _uploadProgress.value = p,
+        onBytesProgress: (sent, total) {
+          _uploadedBytes.value = sent;
+          _totalBytes.value = total;
+        },
       );
 
       final res = await supabase
@@ -171,6 +238,23 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           ),
         ),
       );
+    } on UploadCancelledException {
+      setState(() => uploading = false);
+
+      if (_uploadDialogOpen) {
+        Navigator.of(context, rootNavigator: true).pop();
+        _uploadDialogOpen = false;
+      }
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(
+        backgroundColor: Theme.of(context).cardColor,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+        content: Text('❌ Upload cancelled',style: TextStyle(color: Theme.of(context).dividerColor))));
     } catch (e) {
       if (!mounted) return;
       setState(() => uploading = false);
@@ -462,14 +546,21 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
                 const SizedBox(height: 20),
                 ElevatedButton.icon(
                   onPressed: uploading || uploaded ? null : uploadMaterialOnly,
-                  icon: Icon(
-                    uploading
-                        ? Icons.hourglass_empty
-                        : uploaded
-                        ? Icons.check_circle
-                        : Icons.upload_file_rounded,
-                    color: Colors.white,
-                  ),
+                  icon: uploading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Icon(
+                          uploaded
+                              ? Icons.check_circle
+                              : Icons.upload_file_rounded,
+                          color: Colors.white,
+                        ),
                   label: Text(
                     uploading
                         ? 'Uploading...'
@@ -499,6 +590,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 16),
                 ElevatedButton.icon(
                   onPressed: generatingQuiz || quizGenerated

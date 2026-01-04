@@ -70,13 +70,14 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
           .toList();
     });
   }
+
   void _resetSearchAndFetch() {
-  _searchController.clear(); // ✅ clears TextField
-  setState(() {
-    _filteredMaterials = List.from(_materials); // ✅ reset filter
-  });
-  _fetchMaterials(); // optional, only if you want fresh data
-}
+    _searchController.clear(); // ✅ clears TextField
+    setState(() {
+      _filteredMaterials = List.from(_materials); // ✅ reset filter
+    });
+    _fetchMaterials(); // optional, only if you want fresh data
+  }
 
   // ---------------- FETCH QUESTION BANKS (CLASS-BASED) ----------------
   Future<void> _fetchMaterials() async {
@@ -130,7 +131,6 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
     }
   }
 
-
   // ---------------- OPEN MATERIAL ----------------
   Future<void> _openMaterial(String url, String title) async {
     final uri = Uri.tryParse(url);
@@ -154,21 +154,27 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
     }
 
     // 👇 Open in-app PDF viewer
-    pushWithAnimation(
-      context,PDFViewerPage(pdfUrl: url, title: title),
-     
-    );
+    pushWithAnimation(context, PDFViewerPage(pdfUrl: url, title: title));
   }
-
 
   Future<void> _openMaterialExternal(String url) async {
     final uri = Uri.tryParse(url);
 
     if (uri == null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Invalid URL.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Theme.of(context).cardColor,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          content: Text(
+            'Invalid URL.',
+            style: TextStyle(color: Theme.of(context).dividerColor),
+          ),
+        ),
+      );
       return;
     }
 
@@ -181,14 +187,34 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
 
       if (!launched && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open the material.')),
+          SnackBar(
+            backgroundColor: Theme.of(context).cardColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            content: Text(
+              'Could not open the material.',
+              style: TextStyle(color: Theme.of(context).dividerColor),
+            ),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error opening material: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: Theme.of(context).cardColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            content: Text(
+              'Error opening material: $e',
+              style: TextStyle(color: Theme.of(context).dividerColor),
+            ),
+          ),
+        );
       }
     }
   }
@@ -249,7 +275,8 @@ class _ViewMaterialsQNPageState extends State<ViewMaterialsQNPage>
 
     if (confirm) await _downloadMaterial(url, filename);
   }
-Future<void> _downloadMaterial(String url, String filename) async {
+
+  Future<void> _downloadMaterial(String url, String filename) async {
     final progress = ValueNotifier<double?>(
       0.0,
     ); // 0..1 or null (indeterminate)
@@ -420,7 +447,6 @@ Future<void> _downloadMaterial(String url, String filename) async {
       );
     }
   }
-  
 
   // ---------------- CARD ----------------
   Widget _buildMaterialCard(Map<String, dynamic> material, int index) {
@@ -442,10 +468,7 @@ Future<void> _downloadMaterial(String url, String filename) async {
           margin: const EdgeInsets.symmetric(vertical: 8),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
-            side: BorderSide(
-              color: Theme.of(context).primaryColor,
-              width: 1.5,
-            ),
+            side: BorderSide(color: Theme.of(context).primaryColor, width: 1.5),
           ),
           child: InkWell(
             highlightColor: Colors.transparent,
@@ -465,7 +488,7 @@ Future<void> _downloadMaterial(String url, String filename) async {
                   fontSize: 16,
                 ),
               ),
-             trailing: Row(
+              trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   InkWell(
@@ -499,6 +522,7 @@ Future<void> _downloadMaterial(String url, String filename) async {
       ),
     );
   }
+
   static const _curve = Cubic(0.22, 0.61, 0.36, 1.0);
   static final _slideTween = Tween<Offset>(
     begin: Offset(1, 0),
@@ -587,7 +611,6 @@ Future<void> _downloadMaterial(String url, String filename) async {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(

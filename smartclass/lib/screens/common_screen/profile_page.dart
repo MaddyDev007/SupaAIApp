@@ -133,15 +133,15 @@ class ProfilePage extends StatelessWidget {
                   "Code",
                   cls['code'] ?? "Not Assigned",
                 ),
-                isOwner ?  const SizedBox.shrink() :
-                  const SizedBox(height: 14),
-                isOwner ?  const SizedBox.shrink() :
-                  _infoTile(
-                  context,
-                  Icons.person_pin_circle_sharp,
-                  "Teacher",
-                  cls["user_name"] ?? "Unknown",
-                ),
+                isOwner ? const SizedBox.shrink() : const SizedBox(height: 14),
+                isOwner
+                    ? const SizedBox.shrink()
+                    : _infoTile(
+                        context,
+                        Icons.person_pin_circle_sharp,
+                        "Teacher",
+                        cls["user_name"] ?? "Unknown",
+                      ),
 
                 const SizedBox(height: 14),
 
@@ -151,8 +151,6 @@ class ProfilePage extends StatelessWidget {
                   "Role",
                   isOwner ? "Teacher" : "Student",
                 ),
-
-                
 
                 const SizedBox(height: 28),
 
@@ -208,7 +206,6 @@ class ProfilePage extends StatelessWidget {
       ),
     );
   }
-
 
   // ---------------- NO PROFILE ----------------
   Widget _buildNoProfile(BuildContext context) {
@@ -394,16 +391,16 @@ class ProfilePage extends StatelessWidget {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (_) => Center(child: CircularProgressIndicator(
-          color: Theme.of(context).primaryColor,
-        )),
+        builder: (_) => Center(
+          child: CircularProgressIndicator(
+            color: Theme.of(context).primaryColor,
+          ),
+        ),
       );
 
       // ✅ CALL FASTAPI BACKEND
       final response = await http.delete(
-        Uri.parse(
-          '${AppSecrets.backendURL}/delete/class?class_id=$classId',
-        ),
+        Uri.parse('${AppSecrets.backendURL}/delete/class?class_id=$classId'),
         // Uri.parse('http://10.0.2.2:8000/delete/class?class_id=$classId'),
         headers: {'Content-Type': 'application/json'},
       );
@@ -417,9 +414,16 @@ class ProfilePage extends StatelessWidget {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-         SnackBar(
-          content: Text('✅ Classroom deleted successfully',style: TextStyle(color: Theme.of(context).dividerColor)),
+        SnackBar(
+          backgroundColor: Theme.of(context).cardColor,
           behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          content: Text(
+            '✅ Classroom deleted successfully',
+            style: TextStyle(color: Theme.of(context).dividerColor),
+          ),
         ),
       );
 
@@ -431,8 +435,15 @@ class ProfilePage extends StatelessWidget {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('❌ Failed to delete classroom: $e',style: TextStyle(color: Theme.of(context).dividerColor)),
+          backgroundColor: Theme.of(context).cardColor,
           behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          content: Text(
+            '❌ Failed to delete classroom: $e',
+            style: TextStyle(color: Theme.of(context).dividerColor),
+          ),
         ),
       );
     }
