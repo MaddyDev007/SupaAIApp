@@ -5,7 +5,7 @@ requests
 cohere
 python-dotenv
 supabase
-opencv-python
+opencv-python-headless
 numpy
 pydantic
 reportlab
