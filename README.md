@@ -49,6 +49,9 @@ Before you begin, ensure you have the following installed on your system:
 - **Python 3.8 or higher** - [Download here](https://www.python.org/downloads/)
 - **pip** (Python package manager) - Comes with Python
 
+### For Development:
+- **Java 17** - [Download here](https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html)
+
 ### For Frontend Development:
 - **Flutter SDK 3.8.1 or higher** - [Download here](https://flutter.dev/docs/get-started/install)
 - **Dart SDK** - Comes with Flutter
@@ -60,8 +63,8 @@ Before you begin, ensure you have the following installed on your system:
 - **Supabase Account** - [Create here](https://supabase.com/)
   - Supabase URL and Anon Key for authentication and storage
   - Supabase Service Role Key for backend operations
-- **Cohere API Key** - [Get here](https://cohere.com/api/)
-- **Google Generative AI API Key** (optional, for enhanced AI features)
+- **Cohere API Key** - [Get here](https://docs.cohere.com/docs/rate-limits)
+- **Google Generative AI API Key** - [Get here](https://ai.google.dev/gemini-api/docs/api-key)
 
 ---
 
@@ -494,18 +497,6 @@ For issues, questions, or suggestions, please:
 - Check [error.md](error.md) for known issues
 - Review [API.md](API.md) for API documentation
 - Check [document.md](document.md) for architecture details
-
----
-
-## License
-
-[Add your license information here]
-
----
-
-## Contact
-
-[Add your contact information or team details here]
 
 ---
 
