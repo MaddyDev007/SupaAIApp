@@ -14,6 +14,10 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(":app")
+
+    configurations.configureEach {
+        resolutionStrategy.force("androidx.browser:browser:1.8.0")
+    }
 }
 
 tasks.register<Delete>("clean") {

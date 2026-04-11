@@ -158,7 +158,7 @@ class ProfilePageNew extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       spacing: 10,
                       children: [
-                        ElevatedButton.icon(
+                        /* ElevatedButton.icon(
                       icon: const Icon(Icons.update, color: Colors.white),
                       label: const Text("Update Profile", style: TextStyle(color: Colors.white)),
                       style: ElevatedButton.styleFrom(
@@ -177,7 +177,7 @@ class ProfilePageNew extends StatelessWidget {
                           
                         );
                       },
-                    ),
+                    ), */
                         ElevatedButton.icon(
                           icon: const Icon(Icons.logout, color: Colors.white),
                           label: const Text("Logout", style: TextStyle(color: Colors.white)),

@@ -1,3 +1,61 @@
+// import 'dart:convert';
+// import 'dart:io';
+// import 'package:file_selector/file_selector.dart';
+// import 'package:flutter/material.dart';
+// import 'package:flutter/services.dart';
+// import 'package:http/http.dart' as http;
+// import 'package:smartclass/secrets.dart';
+// import 'package:smartclass/widgets/value_listenable_builder2.dart';
+// import 'package:supabase_flutter/supabase_flutter.dart';
+// import 'package:smartclass/services/supabase_upload_service.dart';
+
+// class UploadMaterialPage extends StatefulWidget {
+//   final String classId; // ✅ NEW: class-based
+
+//   const UploadMaterialPage({super.key, required this.classId});
+
+//   @override
+//   State<UploadMaterialPage> createState() => _UploadMaterialPageState();
+// }
+
+// class _UploadMaterialPageState extends State<UploadMaterialPage> {
+//   final supabase = Supabase.instance.client;
+
+//   XFile? selectedFile;
+
+//   bool uploading = false;
+//   bool generatingQuiz = false;
+//   bool generatingExam = false;
+//   bool uploaded = false;
+//   bool examGenerated = false;
+//   bool quizGenerated = false;
+
+//   final TextEditingController subjectCtrl = TextEditingController();
+
+//   String? uploadedMaterialId;
+//   String? uploadedFileUrl;
+
+//   final ValueNotifier<double> _uploadProgress = ValueNotifier(0);
+
+//   final ValueNotifier<int> _uploadedBytes = ValueNotifier(0);
+//   final ValueNotifier<int> _totalBytes = ValueNotifier(0);
+//   SupabaseDioUploadService? _uploadService;
+//   bool _uploadDialogOpen = false;
+
+//   @override
+//   void initState() {
+//     super.initState();
+//     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+//   }
+
+//   @override
+//   void dispose() {
+//     _uploadService?.cancelUpload();
+//     subjectCtrl.dispose();
+//     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+//     super.dispose();
+//   }
+  
 import 'dart:convert';
 import 'dart:io';
 import 'package:file_selector/file_selector.dart';
@@ -10,7 +68,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:smartclass/services/supabase_upload_service.dart';
 
 class UploadMaterialPage extends StatefulWidget {
-  final String classId; // ✅ NEW: class-based
+  final String classId;
 
   const UploadMaterialPage({super.key, required this.classId});
 
@@ -36,16 +94,21 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
   String? uploadedFileUrl;
 
   final ValueNotifier<double> _uploadProgress = ValueNotifier(0);
-
   final ValueNotifier<int> _uploadedBytes = ValueNotifier(0);
   final ValueNotifier<int> _totalBytes = ValueNotifier(0);
+
   SupabaseDioUploadService? _uploadService;
   bool _uploadDialogOpen = false;
+
+  // ✅ NEW
+  String? className;
+  bool loadingClass = true;
 
   @override
   void initState() {
     super.initState();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    fetchClassName();
   }
 
   @override
@@ -55,6 +118,26 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     super.dispose();
   }
+
+  // ✅ FETCH CLASS NAME
+  Future<void> fetchClassName() async {
+    try {
+      final res = await supabase
+          .from('classes')
+          .select('name')
+          .eq('id', widget.classId)
+          .single();
+
+      setState(() {
+        className = res['name'];
+        loadingClass = false;
+        subjectCtrl.text = className!;
+      });
+    } catch (e) {
+      setState(() => loadingClass = false);
+    }
+  }
+
 
   // ---------------- PICK PDF ----------------
   Future<void> pickPDF() async {
@@ -693,3 +776,4 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
     );
   }
 }
+
