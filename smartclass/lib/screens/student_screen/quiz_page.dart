@@ -51,17 +51,21 @@ class _QuizPageState extends State<QuizPage> {
   // ---------- Fetch Quiz ----------
   Future<void> _fetchQuiz() async {
     try {
-      final res = await supabase
-          .from('quizzes')
-          .select('id, subject, questions')
-          .eq('id', widget.quizId)
-          .maybeSingle()
+      final quizResponse = await supabase
+          .rpc(
+            'get_class_quizzes',
+            params: {
+              'p_class_id': widget.classId,
+              'p_quiz_id': widget.quizId,
+            },
+          )
           .timeout(
             const Duration(seconds: 20),
             onTimeout: () => throw TimeoutException('Quiz fetch timed out'),
           );
 
-      if (res == null) throw Exception('Quiz not found');
+      if (quizResponse is! Map) throw Exception('Quiz not found');
+      final res = Map<String, dynamic>.from(quizResponse as Map);
 
       subject = (res['subject'] as String?)?.trim().isNotEmpty == true
           ? res['subject']
@@ -137,15 +141,7 @@ class _QuizPageState extends State<QuizPage> {
   }
 
   // ---------- Submit ----------
-  int _computeScore() {
-    int s = 0;
-    for (int i = 0; i < questions.length; i++) {
-      if (userAnswers[i] == (questions[i]['answer'] as num).toInt()) {
-        s++;
-      }
-    }
-    return s;
-  }
+  bool _isSubmitting = false;
 
   Future<void> _verifyMembershipAndFetch() async {
     try {
@@ -203,37 +199,47 @@ class _QuizPageState extends State<QuizPage> {
   }
 
   Future<void> _submitQuiz() async {
+    if (_isSubmitting) return;
+    _isSubmitting = true;
     _timer?.cancel();
     userAnswers[currentIndex] = selected;
 
-    final score = _computeScore();
-    final user = supabase.auth.currentUser!;
-    final studentName =
-        user.userMetadata?['name'] ??
-        user.userMetadata?['full_name'] ??
-        user.email?.split('@').first ??
-        'Unknown';
-    final avatar =
-        user.userMetadata?['avatar_url'] ?? user.userMetadata?['avatar'];
+    final user = supabase.auth.currentUser;
+    if (user == null) {
+      _isSubmitting = false;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Session expired. Please sign in again.')),
+        );
+      }
+      return;
+    }
+
+    var score = 0;
+    var totalQuestions = questions.length;
 
     try {
-      await supabase.from('results').insert({
-        'quiz_id': widget.quizId,
-        'class_id': widget.classId, // ✅ NEW
-        'student_id': user.id,
-        'student_name': studentName,
-        'subject': subject,
-        'avatar_url': avatar,
-        'score': score,
-        'answers': jsonEncode(userAnswers),
-      });
+      final savedResult = await supabase
+          .from('results')
+          .insert({
+            'quiz_id': widget.quizId,
+            'class_id': widget.classId,
+            'student_id': user.id,
+            'answers': userAnswers,
+          })
+          .select('score, total_questions')
+          .single();
+
+      score = (savedResult['score'] as num).toInt();
+      totalQuestions = (savedResult['total_questions'] as num).toInt();
     } catch (e) {
+      _isSubmitting = false;
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: Theme.of(context).cardColor,
             content: Text(
-              'Error saving result: $e',
+              'Could not save quiz result. Please try submitting again. ($e)',
               style: TextStyle(color: Theme.of(context).dividerColor),
             ),
             behavior: SnackBarBehavior.floating,
@@ -243,6 +249,7 @@ class _QuizPageState extends State<QuizPage> {
           ),
         );
       }
+      return;
     }
 
     if (!mounted) return;
@@ -252,7 +259,7 @@ class _QuizPageState extends State<QuizPage> {
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('🎉 Quiz Completed'),
-        content: Text('Your score: $score/${questions.length}'),
+        content: Text('Your score: $score/$totalQuestions'),
         actions: [
           ElevatedButton(
             style: ElevatedButton.styleFrom(

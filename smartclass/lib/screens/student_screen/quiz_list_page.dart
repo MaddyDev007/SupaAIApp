@@ -84,15 +84,19 @@ class _QuizListPageState extends State<QuizListPage>
       if (user == null) return [];
 
       // ✅ quizzes for this class only
-      final quizzes = await supabase
-          .from('quizzes')
-          .select('id, subject, created_at')
-          .eq('class_id', widget.classId)
-          .order('created_at', ascending: false)
+      final quizzesResult = await supabase
+          .rpc(
+            'get_class_quizzes',
+            params: {'p_class_id': widget.classId},
+          )
           .timeout(
             const Duration(seconds: 20),
             onTimeout: () => throw TimeoutException('Quiz fetch timed out'),
           );
+
+      if (quizzesResult is! List) {
+        throw Exception('Invalid quiz list response');
+      }
 
       // attempts by this student
       final attempts = await supabase
@@ -111,7 +115,9 @@ class _QuizListPageState extends State<QuizListPage>
         latestAttemptByQuiz.putIfAbsent(a['quiz_id'], () => a);
       }
 
-      final quizList = List<Map<String, dynamic>>.from(quizzes);
+      final quizList = quizzesResult
+          .map((item) => Map<String, dynamic>.from(item as Map))
+          .toList();
       for (final quiz in quizList) {
         final attempt = latestAttemptByQuiz[quiz['id']];
         quiz['attempted'] = attempt != null;

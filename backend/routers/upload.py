@@ -1,4 +1,6 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from security import authenticated_user, ensure_teacher_owns_class, supabase_admin
+from services.private_storage import storage_path_from_reference
 from pydantic import BaseModel
 from services.pdf_extractor import extract_text_from_url
 from services.gemini_api import generate_questions
@@ -11,7 +13,10 @@ class UploadPayload(BaseModel):
     metadata: dict  # expects class_id, material_id, subject, teacher_id
 
 @router.post("/")
-async def handle_upload(payload: UploadPayload):
+async def handle_upload(
+    payload: UploadPayload,
+    user: dict = Depends(authenticated_user),
+):
     pdf_url = payload.pdf_url
     metadata = payload.metadata
 
@@ -23,8 +28,26 @@ async def handle_upload(payload: UploadPayload):
             detail=f"Missing required metadata fields: {required_keys}"
         )
 
-    if not pdf_url.startswith("http"):
-        raise HTTPException(status_code=400, detail="Invalid PDF URL")
+    if str(metadata["teacher_id"]) != user["id"]:
+        raise HTTPException(status_code=403, detail="Teacher identity mismatch")
+
+    ensure_teacher_owns_class(user["id"], str(metadata["class_id"]))
+
+    material = (
+        supabase_admin.table("materials")
+        .select("id, file_url, class_id, uploaded_by")
+        .eq("id", str(metadata["material_id"]))
+        .eq("class_id", str(metadata["class_id"]))
+        .eq("uploaded_by", user["id"])
+        .maybe_single()
+        .execute()
+    ).data
+    if not material or material.get("file_url") != pdf_url:
+        raise HTTPException(status_code=403, detail="PDF must belong to your class material")
+
+    # Ensure the URL resolves to this project's Supabase storage object rather
+    # than allowing arbitrary external URLs (SSRF / private-file bypass).
+    storage_path_from_reference(pdf_url, "lessons")
 
     # 1️⃣ Extract text
     text = extract_text_from_url(pdf_url)

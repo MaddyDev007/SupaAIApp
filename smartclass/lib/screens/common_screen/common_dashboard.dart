@@ -286,13 +286,30 @@ class _CommonDashboardState extends State<CommonDashboard>
               final code = controller.text.trim().toUpperCase();
 
               try {
-                final cls = await supabase
-                    .from('classes')
-                    .select()
-                    .eq('code', code)
-                    .maybeSingle();
+                // The join RPC checks the invite code without exposing the
+                // classes table as a public class-code directory.
+                final joinResult = await supabase.rpc(
+                  'join_class_by_code',
+                  params: {'p_code': code},
+                );
+                final joinData = Map<String, dynamic>.from(joinResult as Map);
+                final status = joinData['status'] as String?;
 
-                if (cls == null) {
+                String? message;
+                if (status == 'not_found') {
+                  message = 'Invalid class code';
+                } else if (status == 'already_owner') {
+                  message = 'You already created this class';
+                } else if (status == 'already_member') {
+                  message = 'Already joined this class';
+                } else if (status == 'teachers_cannot_join_as_student') {
+                  message = 'Teacher accounts cannot join a classroom as students';
+                } else if (status != 'joined') {
+                  throw Exception('Unexpected join response');
+                }
+
+                if (message != null) {
+                  if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       backgroundColor: Theme.of(context).cardColor,
@@ -301,36 +318,13 @@ class _CommonDashboardState extends State<CommonDashboard>
                         borderRadius: BorderRadius.circular(12),
                       ),
                       content: Text(
-                        'Invalid class code',
+                        message,
                         style: TextStyle(color: Theme.of(context).dividerColor),
                       ),
                     ),
                   );
                   return;
                 }
-
-                if (cls['created_by'] == user.id) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      backgroundColor: Theme.of(context).cardColor,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      content: Text(
-                        'You already created this class',
-                        style: TextStyle(color: Theme.of(context).dividerColor),
-                      ),
-                    ),
-                  );
-                  return;
-                }
-
-                await supabase.from('class_members').insert({
-                  'class_id': cls['id'],
-                  'user_id': user.id,
-                  'student': true,
-                });
 
                 if (!mounted) return;
                 Navigator.pop(ctx);

@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:smartclass/screens/teacher_screen/StudentPerformancePage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'package:smartclass/secrets.dart';
 import 'package:smartclass/screens/common_screen/error_page.dart';
 
 class ListStudentPage extends StatefulWidget {
@@ -147,64 +149,37 @@ class _ListStudentPageState extends State<ListStudentPage> {
     }
   }
 
-  String? extractStoragePath(String? url, String bucket) {
-    if (url == null) return null;
-    final uri = Uri.parse(url);
-    final index = uri.path.indexOf(bucket);
-    if (index == -1) return null;
-    return uri.path.substring(index + bucket.length + 1);
-  }
-
   Future<void> _removeStudent(String studentId) async {
     try {
-      // 🔹 Fetch notes
-      final List<Map<String, dynamic>> notes = List<Map<String, dynamic>>.from(
-        await supabase
-            .from('notes')
-            .select('image_url')
-            .eq('class_id', widget.classId)
-            .eq('user_id', studentId),
+      final session = supabase.auth.currentSession;
+      if (session == null) {
+        throw Exception('Session expired. Please sign in again.');
+      }
+
+      final uri = Uri.parse('${AppSecrets.backendURL}/delete/student').replace(
+        queryParameters: {
+          'class_id': widget.classId,
+          'student_id': studentId,
+        },
+      );
+      final response = await http.delete(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${session.accessToken}',
+        },
       );
 
-      // 🔹 Delete note images
-      final paths = <String>[];
-      for (final n in notes) {
-        final path = extractStoragePath(n['image_url'], 'notes');
-        if (path != null) paths.add(path);
+      if (response.statusCode != 200) {
+        throw Exception('Request failed (${response.statusCode}).');
       }
-
-      if (paths.isNotEmpty) {
-        await supabase.storage.from('notes').remove(paths);
-      }
-
-      // 🔹 Delete results
-      await supabase
-          .from('results')
-          .delete()
-          .eq('class_id', widget.classId)
-          .eq('student_id', studentId);
-
-      // 🔹 Delete notes rows
-      await supabase
-          .from('notes')
-          .delete()
-          .eq('class_id', widget.classId)
-          .eq('user_id', studentId);
-
-      // 🔹 Remove membership
-      await supabase
-          .from('class_members')
-          .delete()
-          .eq('class_id', widget.classId)
-          .eq('user_id', studentId);
 
       if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: Theme.of(context).cardColor,
           content: Text(
-            'Student and related data removed',
+            'Student removed from class',
             style: TextStyle(color: Theme.of(context).dividerColor),
           ),
           behavior: SnackBarBehavior.floating,
@@ -213,15 +188,14 @@ class _ListStudentPageState extends State<ListStudentPage> {
           ),
         ),
       );
-
-      _fetchStudents();
+      await _fetchStudents();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           backgroundColor: Theme.of(context).cardColor,
           content: Text(
-            'Failed: $e',
+            'Failed to remove student: $e',
             style: TextStyle(color: Theme.of(context).dividerColor),
           ),
           behavior: SnackBarBehavior.floating,
@@ -232,6 +206,7 @@ class _ListStudentPageState extends State<ListStudentPage> {
       );
     }
   }
+
   void _resetSearchAndFetch() {
   _searchQuery = '';
   _searchController.clear(); // clears TextField

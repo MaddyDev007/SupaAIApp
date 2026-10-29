@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:smartclass/screens/common_screen/error_page.dart';
 import 'package:smartclass/screens/common_screen/pdf_view_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:smartclass/services/private_storage_service.dart';
 import 'package:dio/dio.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -251,8 +252,28 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
   }
 
   // 🌐 Open Material URL
+  Future<String?> _resolvePrivateFileUrl(String reference, String bucket) async {
+    try {
+      return await PrivateStorageService().createSignedUrl(
+        reference,
+        bucket: bucket,
+      );
+    } catch (error) {
+      if (!mounted) return null;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Unable to access this file. Check class access and retry.'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+      return null;
+    }
+  }
+
   Future<void> _openMaterialExternal(String url) async {
-    final uri = Uri.tryParse(url);
+    final signedUrl = await _resolvePrivateFileUrl(url, 'questions');
+    if (signedUrl == null) return;
+    final uri = Uri.tryParse(signedUrl);
 
     if (uri == null) {
       if (!mounted) return;
@@ -350,6 +371,9 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
   }
 
   Future<void> _downloadMaterial(String url, String filename) async {
+    final signedUrl = await _resolvePrivateFileUrl(url, 'questions');
+    if (signedUrl == null) return;
+
     final progress = ValueNotifier<double?>(
       0.0,
     ); // 0..1 or null (indeterminate)
@@ -426,7 +450,7 @@ class _ViewQNBankTeacherPageState extends State<ViewQNBankTeacherPage>
 
       // 📥 Download with progress + cancel
       await Dio().download(
-        url,
+        signedUrl,
         savePath,
         cancelToken: cancelToken,
         onReceiveProgress: (received, total) {

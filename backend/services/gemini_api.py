@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
 from supabase import create_client
+from services.private_storage import download_private_file
 
 # -------------------------------------------------------------------
 # Load environment variables
@@ -168,28 +169,28 @@ async def fetch_relevant_documents(
         top_docs = [doc for doc, score in scored[:top_k] if score > 0]
 
         documents = []
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            for doc in top_docs:
-                pdf_url = doc["pdf_url"]
-                cache_key = f"{class_id}:{pdf_url}"
+        for doc in top_docs:
+            pdf_reference = doc["pdf_url"]
+            cache_key = f"{class_id}:{pdf_reference}"
 
-                if cache_key in DOCUMENT_CACHE:
-                    text = DOCUMENT_CACHE[cache_key]
-                else:
-                    response = await client.get(pdf_url)
-                    text = await asyncio.to_thread(
-                        extract_text,
-                        response.content,
-                    )
-                    DOCUMENT_CACHE[cache_key] = text
+            if cache_key in DOCUMENT_CACHE:
+                text = DOCUMENT_CACHE[cache_key]
+            else:
+                file_bytes = await asyncio.to_thread(
+                    download_private_file,
+                    pdf_reference,
+                    "lessons",
+                )
+                text = await asyncio.to_thread(extract_text, file_bytes)
+                DOCUMENT_CACHE[cache_key] = text
 
-                    if len(DOCUMENT_CACHE) > 100:
-                        DOCUMENT_CACHE.clear()
+                if len(DOCUMENT_CACHE) > 100:
+                    DOCUMENT_CACHE.clear()
 
-                documents.append({
-                    "title": pdf_url.split("/")[-1],
-                    "text": text,
-                })
+            documents.append({
+                "title": pdf_reference.split("/")[-1],
+                "text": text,
+            })
 
         return documents
 
