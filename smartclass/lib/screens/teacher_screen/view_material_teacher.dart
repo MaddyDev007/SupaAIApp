@@ -97,7 +97,9 @@ class _ViewMaterialsTeacherPageState extends State<ViewMaterialsTeacherPage>
   }
 
   Future<void> _openMaterialExternal(String url) async {
-    final uri = Uri.tryParse(url);
+    final signedUrl = await _resolvePrivateFileUrl(url, 'lessons');
+    if (signedUrl == null) return;
+    final uri = Uri.tryParse(signedUrl);
 
     if (uri == null) {
       if (!mounted) return;
