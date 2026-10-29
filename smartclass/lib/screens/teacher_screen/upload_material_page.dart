@@ -259,7 +259,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
     _uploadService = SupabaseDioUploadService(
       supabase,
       'lessons',
-      rootPath: 'materials/${widget.classId}',
+      rootPath: 'materials/${widget.classId}/${supabase.auth.currentUser!.id}',
     );
 
     _showUploadingDialog();
@@ -404,7 +404,8 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
 
       final uploadRes = await http.post(
         Uri.parse('${AppSecrets.backendURL}/upload/'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {'Content-Type': 'application/json',
+            'Authorization': 'Bearer ${supabase.auth.currentSession!.accessToken}'},
         body: jsonEncode(uploadPayload),
       );
 
