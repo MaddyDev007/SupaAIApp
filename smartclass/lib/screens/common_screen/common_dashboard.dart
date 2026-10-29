@@ -302,8 +302,6 @@ class _CommonDashboardState extends State<CommonDashboard>
                   message = 'You already created this class';
                 } else if (status == 'already_member') {
                   message = 'Already joined this class';
-                } else if (status == 'teachers_cannot_join_as_student') {
-                  message = 'Teacher accounts cannot join a classroom as students';
                 } else if (status != 'joined') {
                   throw Exception('Unexpected join response');
                 }
