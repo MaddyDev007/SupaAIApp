@@ -402,7 +402,10 @@ class ProfilePage extends StatelessWidget {
       final response = await http.delete(
         Uri.parse('${AppSecrets.backendURL}/delete/class?class_id=$classId'),
         // Uri.parse('http://10.0.2.2:8000/delete/class?class_id=$classId'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${Supabase.instance.client.auth.currentSession!.accessToken}',
+        },
       );
 
       if (!context.mounted) return;
