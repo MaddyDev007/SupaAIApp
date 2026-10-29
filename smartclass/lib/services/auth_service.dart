@@ -5,17 +5,10 @@ class AuthService {
 
   Future<bool> signUp(String email, String password) async {
     final res = await supabase.auth.signUp(email: email, password: password);
+    // A trusted database trigger creates the profile and users rows.
+    // Client-side inserts cannot assign roles and must not write columns that
+    // are absent from the profiles schema.
     if (res.user != null) {
-      final isTeacher = email.endsWith('@myclg.edu');
-      await supabase.from('profiles').insert({
-        'id': res.user!.id,
-        'email': email,
-        'role': isTeacher ? 'teacher' : 'student',
-        'name': email,
-        'department': '',
-        'class': '',
-        'subjects': [],
-      });
       return true;
     }
     return false;
