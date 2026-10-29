@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 // import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:smartclass/services/private_storage_service.dart';
 
 class EditNotePage extends StatefulWidget {
   final Map<String, dynamic>? note;
@@ -27,6 +28,7 @@ class _EditNotePageState extends State<EditNotePage> {
   // ✅ Image picker
   final ImagePicker picker = ImagePicker();
   String? imageUrl;
+  String? imageReference;
 
   // ✅ Color picker palette
   final List<Color> palette = [
@@ -53,7 +55,8 @@ class _EditNotePageState extends State<EditNotePage> {
         : Colors.white;
 
     // ✅ Initialize saved image
-    imageUrl = widget.note?['image_url'];
+    imageReference = widget.note?['image_url'];
+    imageUrl = widget.note?['image_signed_url'] ?? widget.note?['image_url'];
 
     // ✅ Init speech
     /* speech = stt.SpeechToText(); */
@@ -65,20 +68,28 @@ class _EditNotePageState extends State<EditNotePage> {
       final XFile? file = await picker.pickImage(source: ImageSource.gallery);
       if (file == null) return;
 
+      final user = supabase.auth.currentUser;
+      if (user == null) throw StateError('Sign in before uploading a note image.');
       final bytes = await File(file.path).readAsBytes();
-      final filename = "note_${DateTime.now().millisecondsSinceEpoch}.jpg";
+      final filePath = '${user.id}/note_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
       await supabase.storage
           .from('notes')
-          .uploadBinary(filename, bytes)
+          .uploadBinary(filePath, bytes)
           .timeout(
             const Duration(seconds: 30),
             onTimeout: () => throw TimeoutException('Image upload timed out'),
           );
 
-      final publicUrl = supabase.storage.from('notes').getPublicUrl(filename);
+      final signedUrl = await PrivateStorageService().createSignedUrl(
+        filePath,
+        bucket: 'notes',
+      );
       if (!mounted) return;
-      setState(() => imageUrl = publicUrl);
+      setState(() {
+        imageReference = filePath;
+        imageUrl = signedUrl;
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -152,7 +163,11 @@ class _EditNotePageState extends State<EditNotePage> {
     if (imageUrl == null || imageUrl!.isEmpty) return;
 
     try {
-      final fileName = imageUrl!.split('/').last;
+      final fileName = PrivateStorageService.pathFromReference(
+        imageReference ?? imageUrl,
+        'notes',
+      );
+      if (fileName == null) throw StateError('Invalid note image reference.');
 
       await supabase.storage
           .from('notes')
@@ -163,7 +178,10 @@ class _EditNotePageState extends State<EditNotePage> {
           );
 
       if (!mounted) return;
-      setState(() => imageUrl = null);
+      setState(() {
+        imageUrl = null;
+        imageReference = null;
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -298,7 +316,7 @@ class _EditNotePageState extends State<EditNotePage> {
           'title': title,
           'content': content,
           'color': colorValue,
-          'image_url': imageUrl,
+          'image_url': imageReference,
           'class_id': widget.classId,
         });
       } else {
@@ -309,7 +327,7 @@ class _EditNotePageState extends State<EditNotePage> {
               'title': title,
               'content': content,
               'color': colorValue,
-              'image_url': imageUrl,
+              'image_url': imageReference,
             })
             .eq('id', widget.note!['id']);
       }
