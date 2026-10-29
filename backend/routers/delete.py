@@ -1,4 +1,6 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from security import authenticated_user, ensure_teacher_owns_class
+from services.private_storage import storage_path_from_reference
 from supabase import create_client
 from dotenv import load_dotenv
 from pathlib import Path
@@ -23,15 +25,16 @@ supabase = create_client(
 
 # 🔁 Helper: convert public URL → storage path
 def extract_storage_path(url: str, bucket: str) -> str:
-    marker = f"/object/public/{bucket}/"
-    if marker not in url:
-        raise ValueError(f"Invalid {bucket} URL: {url}")
-    return url.split(marker)[-1]
+    return storage_path_from_reference(url, bucket)
 
 
 @router.delete("/class")
-def delete_class(class_id: str):
+def delete_class(
+    class_id: str,
+    user: dict = Depends(authenticated_user),
+):
     try:
+        ensure_teacher_owns_class(user["id"], class_id)
         # 1️⃣ MATERIALS → lessons bucket
         materials = (
             supabase.table("materials")
