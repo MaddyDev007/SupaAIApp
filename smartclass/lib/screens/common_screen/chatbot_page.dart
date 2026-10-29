@@ -2,6 +2,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:http/http.dart' as http;
 import 'package:smartclass/secrets.dart';
@@ -119,7 +120,10 @@ class _ChatbotPageState extends State<ChatbotPage> {
       final res = await http
           .post(
             Uri.parse('${AppSecrets.backendURL}/chatbot/'),
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ${Supabase.instance.client.auth.currentSession!.accessToken}',
+            },
             body: jsonEncode({
               'question': question,
               'class_id': widget.classId,
@@ -703,6 +707,8 @@ class _ChatbotPageState extends State<ChatbotPage> {
     );
 
     request.headers['Content-Type'] = 'application/json';
+    request.headers['Authorization'] =
+        'Bearer ${Supabase.instance.client.auth.currentSession!.accessToken}';
     request.body = jsonEncode({
       'question': question,
       'class_id': widget.classId,
