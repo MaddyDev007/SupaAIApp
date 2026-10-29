@@ -172,6 +172,10 @@ begin
     return pg_catalog.jsonb_build_object('status', 'already_owner');
   end if;
 
+  if public.is_teacher_user(v_user_id) then
+    return pg_catalog.jsonb_build_object('status', 'teachers_cannot_join_as_student');
+  end if;
+
   if exists (
     select 1
     from public.class_members cm
@@ -276,7 +280,7 @@ $;
 
 drop trigger if exists on_auth_user_created_smartclass on auth.users;
 create trigger on_auth_user_created_smartclass
-after insert or update of email, email_confirmed_at on auth.users
+after insert or update on auth.users
 for each row execute function public.handle_new_auth_user_smartclass();
 
 -- Add missing rows for accounts created before this trigger existed; never
