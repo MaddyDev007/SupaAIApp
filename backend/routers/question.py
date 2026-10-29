@@ -1,6 +1,8 @@
 # backend/routers/question.py
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from security import authenticated_user, ensure_teacher_owns_class, supabase_admin
+from services.private_storage import download_private_file, storage_path_from_reference
 from pydantic import BaseModel
 import requests, pdfplumber, io, os, uuid
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
@@ -26,7 +28,10 @@ class ExamRequest(BaseModel):
 
 
 @router.post("/generate-exam")
-async def generate_exam(req: ExamRequest):
+async def generate_exam(
+    req: ExamRequest,
+    user: dict = Depends(authenticated_user),
+):
     try:
         metadata = req.metadata
 
@@ -38,18 +43,29 @@ async def generate_exam(req: ExamRequest):
             )
 
         subject = metadata["subject"]
-        class_id = metadata["class_id"]
+        class_id = str(metadata["class_id"])
 
-        # 🔹 Download uploaded PDF
-        response = requests.get(req.pdf_url)
-        if response.status_code != 200:
-            raise HTTPException(
-                status_code=400,
-                detail="Failed to fetch PDF"
-            )
+        if str(metadata["teacher_id"]) != user["id"]:
+            raise HTTPException(status_code=403, detail="Teacher identity mismatch")
+        ensure_teacher_owns_class(user["id"], class_id)
+
+        material = (
+            supabase_admin.table("materials")
+            .select("id, file_url, class_id, uploaded_by")
+            .eq("id", str(metadata["material_id"]))
+            .eq("class_id", class_id)
+            .eq("uploaded_by", user["id"])
+            .maybe_single()
+            .execute()
+        ).data
+        if not material or material.get("file_url") != req.pdf_url:
+            raise HTTPException(status_code=403, detail="PDF must belong to your class material")
+
+        storage_path_from_reference(req.pdf_url, "lessons")
+        pdf_bytes = download_private_file(req.pdf_url, "lessons")
 
         # 🔹 Extract text
-        with pdfplumber.open(io.BytesIO(response.content)) as pdf:
+        with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
             text = "\n".join(page.extract_text() or "" for page in pdf.pages)
 
         if not text.strip():
