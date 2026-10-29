@@ -1,4 +1,5 @@
 import requests
+from services.private_storage import download_private_file
 import pdfplumber
 import pytesseract
 from PIL import Image
@@ -11,13 +12,19 @@ def extract_text_from_url(pdf_url: str) -> str:
     print(f"[PDF Extraction] Extracting text from {pdf_url}")
 
     try:
-        # 🧩 Download PDF with timeout
-        response = requests.get(pdf_url, timeout=15)
-        response.raise_for_status()
+        # Private Supabase buckets are downloaded server-side after the router
+        # verifies class ownership. The reference is never fetched as an
+        # arbitrary external URL.
+        if "/object/" in pdf_url and "/lessons/" in pdf_url:
+            pdf_bytes = download_private_file(pdf_url, "lessons")
+        else:
+            response = requests.get(pdf_url, timeout=15)
+            response.raise_for_status()
+            pdf_bytes = response.content
 
         text_content = []
 
-        with pdfplumber.open(io.BytesIO(response.content)) as pdf:
+        with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
             total_pages = len(pdf.pages)
 
             for i, page in enumerate(pdf.pages, start=1):
