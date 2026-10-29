@@ -147,35 +147,10 @@ class _ListStudentPageState extends State<ListStudentPage> {
     }
   }
 
-  String? extractStoragePath(String? url, String bucket) {
-    if (url == null) return null;
-    final uri = Uri.parse(url);
-    final index = uri.path.indexOf(bucket);
-    if (index == -1) return null;
-    return uri.path.substring(index + bucket.length + 1);
-  }
-
   Future<void> _removeStudent(String studentId) async {
     try {
-      // 🔹 Fetch notes
-      final List<Map<String, dynamic>> notes = List<Map<String, dynamic>>.from(
-        await supabase
-            .from('notes')
-            .select('image_url')
-            .eq('class_id', widget.classId)
-            .eq('user_id', studentId),
-      );
-
-      // 🔹 Delete note images
-      final paths = <String>[];
-      for (final n in notes) {
-        final path = extractStoragePath(n['image_url'], 'notes');
-        if (path != null) paths.add(path);
-      }
-
-      if (paths.isNotEmpty) {
-        await supabase.storage.from('notes').remove(paths);
-      }
+      // Notes and note images are private to the note owner. Removing a
+      // student from a class must not delete their personal notes.
 
       // 🔹 Delete results
       await supabase
@@ -183,13 +158,6 @@ class _ListStudentPageState extends State<ListStudentPage> {
           .delete()
           .eq('class_id', widget.classId)
           .eq('student_id', studentId);
-
-      // 🔹 Delete notes rows
-      await supabase
-          .from('notes')
-          .delete()
-          .eq('class_id', widget.classId)
-          .eq('user_id', studentId);
 
       // 🔹 Remove membership
       await supabase
