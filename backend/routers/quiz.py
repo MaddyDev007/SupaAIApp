@@ -30,7 +30,7 @@ async def store_quiz(
     ]
 
     if not all(k in payload for k in required):
-        return {"error": "Missing required fields"}
+        raise HTTPException(status_code=400, detail="Missing required fields")
 
     if str(payload["teacher_id"]) != user["id"]:
         raise HTTPException(status_code=403, detail="Teacher identity mismatch")
