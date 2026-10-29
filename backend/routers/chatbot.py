@@ -25,7 +25,8 @@ async def chat(data: dict = Body(...)):
 
     return {"answer": answer} """
     
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, Body, HTTPException, Depends
+from security import authenticated_user, ensure_class_access
 from services.gemini_api import ask_chatbot_stream
 
 router = APIRouter()
