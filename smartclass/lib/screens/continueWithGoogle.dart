@@ -69,15 +69,15 @@ class _ContinueWithGoogleState extends State<ContinueWithGoogle> {
       final name = _resolveDisplayName(metadata, email);
       final avatarUrl = _resolveAvatarUrl(metadata);
 
-      await _supabase.from('users').upsert(
-        {
-          'id': user.id,
-          'email': email,
-          'name': name,
-          'avatar_url': avatarUrl,
-        },
-        onConflict: 'id',
-      );
+      // The auth.users trigger creates and maintains the users row.
+      // Update only user-editable fields; email is controlled by Supabase Auth.
+      await _supabase
+          .from('users')
+          .update({
+            'name': name,
+            'avatar_url': avatarUrl,
+          })
+          .eq('id', user.id);
 
       final box = Hive.box<LoginModel>('loginBox');
       await box.put(
