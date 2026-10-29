@@ -431,7 +431,7 @@ begin
 end;
 $$;
 
--- Old public helper functions are no longer callable through PostgREST RPC.
+-- Old public helper and trigger functions are no longer callable through RPC.
 revoke all on function public.is_teacher_user(uuid) from public, anon, authenticated;
 revoke all on function public.is_class_teacher(uuid, uuid) from public, anon, authenticated;
 revoke all on function public.is_class_teacher_text(text, uuid) from public, anon, authenticated;
@@ -449,7 +449,6 @@ grant execute on function private.storage_reference_path(text, text) to authenti
 revoke all on function private.handle_new_auth_user_smartclass() from public, anon, authenticated;
 revoke all on function private.compute_quiz_result_before_insert() from public, anon, authenticated;
 
--- Rebind trigger-only functions to the unexposed schema.
 drop trigger if exists on_auth_user_created_smartclass on auth.users;
 create trigger on_auth_user_created_smartclass
 after insert or update on auth.users
@@ -677,8 +676,22 @@ using (
 
 drop policy if exists questions_delete_class_teacher on storage.objects;
 create policy questions_delete_class_teacher
-on public.questions for delete to authenticated
-using (private.is_class_teacher(class_id, (select auth.uid())));
+on storage.objects for delete to authenticated
+using (
+  bucket_id = 'questions'
+  and (
+    (
+      (storage.foldername(name))[1] = 'classes'
+      and private.is_class_teacher_text((storage.foldername(name))[2], (select auth.uid()))
+    )
+    or exists (
+      select 1
+      from public.questions q
+      where private.storage_reference_path(q.file_url, 'questions') = storage.objects.name
+        and private.is_class_teacher(q.class_id, (select auth.uid()))
+    )
+  )
+);
 
 drop policy if exists notes_read_owner on storage.objects;
 create policy notes_read_owner
@@ -706,13 +719,30 @@ with check (
 
 drop policy if exists notes_update_owner on storage.objects;
 create policy notes_update_owner
-on public.notes for update to authenticated
-using (user_id = (select auth.uid()))
-with check (user_id = (select auth.uid()));
+on storage.objects for update to authenticated
+using (
+  bucket_id = 'notes'
+  and (storage.foldername(name))[1] = (select auth.uid())::text
+)
+with check (
+  bucket_id = 'notes'
+  and (storage.foldername(name))[1] = (select auth.uid())::text
+);
 
 drop policy if exists notes_delete_owner on storage.objects;
 create policy notes_delete_owner
-on public.notes for delete to authenticated
-using (user_id = (select auth.uid()));
+on storage.objects for delete to authenticated
+using (
+  bucket_id = 'notes'
+  and (
+    (storage.foldername(name))[1] = (select auth.uid())::text
+    or exists (
+      select 1
+      from public.notes n
+      where n.user_id = (select auth.uid())
+        and private.storage_reference_path(n.image_url, 'notes') = storage.objects.name
+    )
+  )
+);
 
 commit;
