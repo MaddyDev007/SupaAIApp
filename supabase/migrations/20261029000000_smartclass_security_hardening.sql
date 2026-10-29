@@ -514,13 +514,6 @@ using (
   or public.is_class_member(class_id, (select auth.uid()))
 );
 
--- Class deletion must not cascade-delete student-owned private notes.
--- Preserve notes and images by detaching the optional class relationship.
-alter table public.notes drop constraint if exists notes_class_id_fkey;
-alter table public.notes
-  add constraint notes_class_id_fkey
-  foreign key (class_id) references public.classes(id) on delete set null;
-
 -- Derive quiz scores in the database: client-supplied score/name/avatar values
 -- are not trusted. The answer column has historically been sent as a JSON
 -- string by Flutter, so normalize both string and native JSON representations.
@@ -534,6 +527,7 @@ declare
   v_questions jsonb;
   v_answers jsonb;
   v_user jsonb;
+  v_quiz_class_id uuid;
   v_count integer;
   v_score integer := 0;
   v_index integer;
@@ -541,7 +535,7 @@ declare
   v_given integer;
 begin
   select q.questions, q.class_id, q.subject
-    into v_questions, new.class_id, new.subject
+    into v_questions, v_quiz_class_id, new.subject
   from public.quizzes q
   where q.id = new.quiz_id;
 
@@ -549,10 +543,14 @@ begin
     raise exception 'Quiz not found or has no questions' using errcode = '23503';
   end if;
 
+  if new.class_id is distinct from v_quiz_class_id then
+    raise exception 'Result class does not match quiz class' using errcode = '23503';
+  end if;
+
   if pg_catalog.jsonb_typeof(v_questions) = 'string' then
     v_questions := (v_questions #>> '{}')::jsonb;
   end if;
-  if pg_catalog.jsonb_typeof(v_questions) <> 'array' then
+  if pg_catalog.jsonb_typeof(v_questions) is distinct from 'array' then
     raise exception 'Quiz question data is invalid' using errcode = '22023';
   end if;
 
@@ -560,7 +558,7 @@ begin
   if pg_catalog.jsonb_typeof(v_answers) = 'string' then
     v_answers := (v_answers #>> '{}')::jsonb;
   end if;
-  if pg_catalog.jsonb_typeof(v_answers) <> 'array' then
+  if pg_catalog.jsonb_typeof(v_answers) is distinct from 'array' then
     raise exception 'Answers must be a JSON array' using errcode = '22023';
   end if;
 
