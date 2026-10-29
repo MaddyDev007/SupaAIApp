@@ -39,15 +39,15 @@ async def store_quiz(
 
     material = (
         supabase_admin.table("materials")
-        .select("id, class_id, uploaded_by")
+        .select("id, class_id, uploaded_by, file_url")
         .eq("id", str(payload["material_id"]))
         .eq("class_id", str(payload["class_id"]))
         .eq("uploaded_by", user["id"])
         .maybe_single()
         .execute()
     ).data
-    if not material:
-        raise HTTPException(status_code=403, detail="Material does not belong to this class")
+    if not material or material.get("file_url") != payload["pdf_url"]:
+        raise HTTPException(status_code=403, detail="PDF does not match your class material")
 
     data = {
         "created_by": user["id"],
