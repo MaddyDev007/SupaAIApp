@@ -130,6 +130,8 @@ async def generate_exam(
             "file_url": file_url,
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[Exam Generation Error] {e}")
         raise HTTPException(
