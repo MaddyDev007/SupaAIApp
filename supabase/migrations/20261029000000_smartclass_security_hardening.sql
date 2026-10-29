@@ -253,14 +253,21 @@ begin
     )
     on conflict (id) do nothing;
   elsif tg_op = 'UPDATE' then
-    if old.email_confirmed_at is null
-      and new.email_confirmed_at is not null
-      and pg_catalog.lower(coalesce(new.email, '')) like '%@myclg.edu'
-    then
-      update public.profiles
-      set role = 'teacher', email = new.email
-      where id = new.id and role = 'student';
-    end if;
+    -- Role is derived only from a verified college-domain email. This also
+    -- demotes teachers if their account email changes away from that domain.
+    update public.profiles
+    set email = new.email,
+        role = case
+          when new.email_confirmed_at is not null
+            and pg_catalog.lower(coalesce(new.email, '')) like '%@myclg.edu'
+            then 'teacher'
+          else 'student'
+        end
+    where id = new.id;
+
+    update public.users
+    set email = new.email
+    where id = new.id;
   end if;
 
   return new;
@@ -269,7 +276,7 @@ $;
 
 drop trigger if exists on_auth_user_created_smartclass on auth.users;
 create trigger on_auth_user_created_smartclass
-after insert or update of email_confirmed_at on auth.users
+after insert or update of email, email_confirmed_at on auth.users
 for each row execute function public.handle_new_auth_user_smartclass();
 
 -- Add missing rows for accounts created before this trigger existed; never
