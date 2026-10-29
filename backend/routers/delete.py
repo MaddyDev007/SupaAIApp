@@ -104,3 +104,65 @@ def delete_class(
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/student")
+def delete_student_from_class(
+    class_id: str,
+    student_id: str,
+    user: dict = Depends(authenticated_user),
+):
+    """Remove a student and the related class-scoped records.
+
+    This privileged operation is explicitly confirmed in the teacher UI. It
+    deletes note images by path without returning note contents to the teacher.
+    """
+    try:
+        ensure_teacher_owns_class(user["id"], class_id)
+        if student_id == user["id"]:
+            raise HTTPException(status_code=400, detail="Cannot remove yourself as a student")
+
+        membership = (
+            supabase.table("class_members")
+            .select("id")
+            .eq("class_id", class_id)
+            .eq("user_id", student_id)
+            .eq("student", True)
+            .maybe_single()
+            .execute()
+            .data
+        )
+        if not membership:
+            raise HTTPException(status_code=404, detail="Student membership not found")
+
+        notes = (
+            supabase.table("notes")
+            .select("image_url")
+            .eq("class_id", class_id)
+            .eq("user_id", student_id)
+            .execute()
+            .data
+        ) or []
+        paths = [
+            extract_storage_path(note["image_url"], "notes")
+            for note in notes
+            if note.get("image_url")
+        ]
+        if paths:
+            supabase.storage.from_("notes").remove(paths)
+
+        supabase.table("notes").delete().eq("class_id", class_id).eq(
+            "user_id", student_id
+        ).execute()
+        supabase.table("results").delete().eq("class_id", class_id).eq(
+            "student_id", student_id
+        ).execute()
+        supabase.table("class_members").delete().eq("class_id", class_id).eq(
+            "user_id", student_id
+        ).eq("student", True).execute()
+
+        return {"status": "success", "message": "Student removed from class"}
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to remove student from class")
+
