@@ -19,6 +19,7 @@ as $$
     select 1
     from public.profiles p
     where p.id = p_user_id
+      and p_user_id = auth.uid()
       and p.role = 'teacher'
   );
 $$;
@@ -37,6 +38,7 @@ as $$
     select 1
     from public.classes c
     where c.id = p_class_id
+      and p_user_id = auth.uid()
       and c.created_by = p_user_id
   );
 $$;
@@ -55,6 +57,7 @@ as $$
     select 1
     from public.classes c
     where c.id::text = p_class_id
+      and p_user_id = auth.uid()
       and c.created_by = p_user_id
   );
 $$;
@@ -73,6 +76,7 @@ as $$
     select 1
     from public.class_members cm
     where cm.class_id = p_class_id
+      and p_user_id = auth.uid()
       and cm.user_id = p_user_id
       and cm.student = true
   );
@@ -94,6 +98,7 @@ as $$
     join public.classes c on c.id = cm.class_id
     where cm.user_id = p_student_id
       and cm.student = true
+      and p_teacher_id = auth.uid()
       and c.created_by = p_teacher_id
   );
 $$;
@@ -318,7 +323,7 @@ on conflict (id) do nothing;
 -- SQL privileges independently limit which actions each role can request.
 revoke all on table public.profiles, public.users, public.classes,
   public.class_members, public.materials, public.questions, public.quizzes,
-  public.results, public.notes from anon;
+  public.results, public.notes from public, anon;
 
 revoke all on table public.profiles, public.users, public.classes,
   public.class_members, public.materials, public.questions, public.quizzes,
@@ -508,6 +513,97 @@ using (
   public.is_class_teacher(class_id, (select auth.uid()))
   or public.is_class_member(class_id, (select auth.uid()))
 );
+
+-- Class deletion must not cascade-delete student-owned private notes.
+-- Preserve notes and images by detaching the optional class relationship.
+alter table public.notes drop constraint if exists notes_class_id_fkey;
+alter table public.notes
+  add constraint notes_class_id_fkey
+  foreign key (class_id) references public.classes(id) on delete set null;
+
+-- Derive quiz scores in the database: client-supplied score/name/avatar values
+-- are not trusted. The answer column has historically been sent as a JSON
+-- string by Flutter, so normalize both string and native JSON representations.
+create or replace function public.compute_quiz_result_before_insert()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $
+declare
+  v_questions jsonb;
+  v_answers jsonb;
+  v_user jsonb;
+  v_count integer;
+  v_score integer := 0;
+  v_index integer;
+  v_correct integer;
+  v_given integer;
+begin
+  select q.questions, q.class_id, q.subject
+    into v_questions, new.class_id, new.subject
+  from public.quizzes q
+  where q.id = new.quiz_id;
+
+  if not found or v_questions is null then
+    raise exception 'Quiz not found or has no questions' using errcode = '23503';
+  end if;
+
+  if pg_catalog.jsonb_typeof(v_questions) = 'string' then
+    v_questions := (v_questions #>> '{}')::jsonb;
+  end if;
+  if pg_catalog.jsonb_typeof(v_questions) <> 'array' then
+    raise exception 'Quiz question data is invalid' using errcode = '22023';
+  end if;
+
+  v_answers := new.answers;
+  if pg_catalog.jsonb_typeof(v_answers) = 'string' then
+    v_answers := (v_answers #>> '{}')::jsonb;
+  end if;
+  if pg_catalog.jsonb_typeof(v_answers) <> 'array' then
+    raise exception 'Answers must be a JSON array' using errcode = '22023';
+  end if;
+
+  v_count := pg_catalog.jsonb_array_length(v_questions);
+  if pg_catalog.jsonb_array_length(v_answers) <> v_count then
+    raise exception 'Answer count does not match quiz question count' using errcode = '22023';
+  end if;
+
+  for v_index in 0..v_count - 1 loop
+    begin
+      v_correct := (v_questions -> v_index ->> 'answer')::integer;
+      v_given := (v_answers ->> v_index)::integer;
+    exception when others then
+      raise exception 'Quiz answer data is invalid' using errcode = '22023';
+    end;
+    if v_given = v_correct then
+      v_score := v_score + 1;
+    end if;
+  end loop;
+
+  select pg_catalog.to_jsonb(u) into v_user
+  from (
+    select us.name, us.avatar_url
+    from public.users us
+    where us.id = new.student_id
+  ) u;
+
+  new.score := v_score;
+  new.total_questions := v_count;
+  new.answers := v_answers;
+  if v_user is not null then
+    new.student_name := v_user ->> 'name';
+    new.avatar_url := v_user ->> 'avatar_url';
+  end if;
+  return new;
+end;
+$;
+
+revoke all on function public.compute_quiz_result_before_insert() from public, anon, authenticated;
+drop trigger if exists compute_quiz_result_before_insert on public.results;
+create trigger compute_quiz_result_before_insert
+before insert on public.results
+for each row execute function public.compute_quiz_result_before_insert();
 
 -- Results: a student can submit only their own result for a quiz in a class
 -- they joined. A teacher can view/delete results for their own class.
