@@ -504,15 +504,100 @@ create policy questions_delete_class_teacher
 on public.questions for delete to authenticated
 using (public.is_class_teacher(class_id, (select auth.uid())));
 
--- Quizzes can only be read by members of the associated class and its owner.
--- Server-side writes must independently verify the authenticated class owner.
+-- Students must not be able to query the base quizzes table because it
+-- contains answer keys. Students fetch a sanitized payload through this RPC.
+create or replace function public.get_class_quizzes(
+  p_class_id uuid,
+  p_quiz_id uuid default null
+)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $
+declare
+  v_result jsonb;
+  v_questions jsonb;
+  v_safe_questions jsonb;
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+
+  if not (
+    public.is_class_teacher(p_class_id, auth.uid())
+    or public.is_class_member(p_class_id, auth.uid())
+  ) then
+    raise exception 'Class membership required' using errcode = '42501';
+  end if;
+
+  if p_quiz_id is null then
+    select coalesce(
+      jsonb_agg(
+        jsonb_build_object(
+          'id', q.id,
+          'subject', q.subject,
+          'created_at', q.created_at
+        )
+        order by q.created_at desc
+      ),
+      '[]'::jsonb
+    )
+    into v_result
+    from public.quizzes q
+    where q.class_id = p_class_id;
+    return v_result;
+  end if;
+
+  select q.questions
+    into v_questions
+  from public.quizzes q
+  where q.id = p_quiz_id
+    and q.class_id = p_class_id;
+
+  if not found or v_questions is null then
+    raise exception 'Quiz not found' using errcode = 'P0002';
+  end if;
+
+  if jsonb_typeof(v_questions) = 'string' then
+    v_questions := (v_questions #>> '{}')::jsonb;
+  end if;
+  if jsonb_typeof(v_questions) is distinct from 'array' then
+    raise exception 'Quiz question data is invalid' using errcode = '22023';
+  end if;
+
+  select coalesce(
+    jsonb_agg(question_value - 'answer' order by ordinal_position),
+    '[]'::jsonb
+  )
+  into v_safe_questions
+  from jsonb_array_elements(v_questions) with ordinality
+       as question_rows(question_value, ordinal_position);
+
+  select jsonb_build_object(
+    'id', q.id,
+    'subject', q.subject,
+    'created_at', q.created_at,
+    'questions', v_safe_questions
+  )
+  into v_result
+  from public.quizzes q
+  where q.id = p_quiz_id
+    and q.class_id = p_class_id;
+
+  return v_result;
+end;
+$;
+
+revoke all on function public.get_class_quizzes(uuid, uuid) from public, anon;
+grant execute on function public.get_class_quizzes(uuid, uuid) to authenticated;
+
 drop policy if exists quizzes_select_class_access on public.quizzes;
-create policy quizzes_select_class_access
+drop policy if exists quizzes_select_class_teacher on public.quizzes;
+create policy quizzes_select_class_teacher
 on public.quizzes for select to authenticated
-using (
-  public.is_class_teacher(class_id, (select auth.uid()))
-  or public.is_class_member(class_id, (select auth.uid()))
-);
+using (public.is_class_teacher(class_id, (select auth.uid())));
 
 -- Derive quiz scores in the database: client-supplied score/name/avatar values
 -- are not trusted. The answer column has historically been sent as a JSON
@@ -528,6 +613,7 @@ declare
   v_answers jsonb;
   v_user jsonb;
   v_quiz_class_id uuid;
+  v_quiz_subject text;
   v_count integer;
   v_score integer := 0;
   v_index integer;
@@ -535,7 +621,7 @@ declare
   v_given integer;
 begin
   select q.questions, q.class_id, q.subject
-    into v_questions, v_quiz_class_id, new.subject
+    into v_questions, v_quiz_class_id, v_quiz_subject
   from public.quizzes q
   where q.id = new.quiz_id;
 
@@ -563,6 +649,9 @@ begin
   end if;
 
   v_count := pg_catalog.jsonb_array_length(v_questions);
+  if v_count < 1 then
+    raise exception 'Quiz has no questions' using errcode = '22023';
+  end if;
   if pg_catalog.jsonb_array_length(v_answers) <> v_count then
     raise exception 'Answer count does not match quiz question count' using errcode = '22023';
   end if;
@@ -586,18 +675,18 @@ begin
     where us.id = new.student_id
   ) u;
 
+  new.subject := v_quiz_subject;
   new.score := v_score;
   new.total_questions := v_count;
   new.answers := v_answers;
-  if v_user is not null then
-    new.student_name := v_user ->> 'name';
-    new.avatar_url := v_user ->> 'avatar_url';
-  end if;
+  new.student_name := v_user ->> 'name';
+  new.avatar_url := v_user ->> 'avatar_url';
   return new;
 end;
 $;
 
-revoke all on function public.compute_quiz_result_before_insert() from public, anon, authenticated;
+revoke all on function public.compute_quiz_result_before_insert() from public, anon;
+grant execute on function public.compute_quiz_result_before_insert() to authenticated;
 drop trigger if exists compute_quiz_result_before_insert on public.results;
 create trigger compute_quiz_result_before_insert
 before insert on public.results
@@ -620,13 +709,9 @@ on public.results for insert to authenticated
 with check (
   student_id = (select auth.uid())
   and public.is_class_member(class_id, (select auth.uid()))
-  and exists (
-    select 1
-    from public.quizzes q
-    where q.id = results.quiz_id
-      and q.class_id = results.class_id
-  )
 );
+-- The BEFORE INSERT trigger independently verifies that the quiz belongs
+-- to this class and derives the score from the protected answer key.
 
 create policy results_delete_class_teacher
 on public.results for delete to authenticated
