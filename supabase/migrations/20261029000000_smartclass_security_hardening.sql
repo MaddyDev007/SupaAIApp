@@ -276,7 +276,7 @@ begin
 
   return new;
 end;
-$;
+$$;
 
 drop trigger if exists on_auth_user_created_smartclass on auth.users;
 create trigger on_auth_user_created_smartclass
@@ -526,7 +526,7 @@ language plpgsql
 stable
 security definer
 set search_path = ''
-as $
+as $$
 declare
   v_result jsonb;
   v_questions jsonb;
@@ -599,7 +599,7 @@ begin
 
   return v_result;
 end;
-$;
+$$;
 
 revoke all on function public.get_class_quizzes(uuid, uuid) from public, anon;
 grant execute on function public.get_class_quizzes(uuid, uuid) to authenticated;
@@ -618,7 +618,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = ''
-as $
+as $$
 declare
   v_questions jsonb;
   v_answers jsonb;
@@ -694,7 +694,7 @@ begin
   new.avatar_url := v_user ->> 'avatar_url';
   return new;
 end;
-$;
+$$;
 
 revoke all on function public.compute_quiz_result_before_insert() from public, anon;
 grant execute on function public.compute_quiz_result_before_insert() to authenticated;
