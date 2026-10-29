@@ -2,6 +2,8 @@
 
 ## Status
 
+The initial RLS/private-storage migration has been applied to the connected Supabase project. The follow-up security-definer helper restriction is staged in `supabase/migrations/20261029091500_restrict_security_definer_rpc.sql` and requires rollout as its own migration.
+
 This branch is a review draft. The migration has NOT been applied to Supabase. No production database settings, policies, or bucket visibility have been changed by this branch.
 
 The application has active users and only one Supabase project is currently available. Do not apply the migration directly to that live project until the complete matrix below has passed in an isolated test environment and a recoverable database backup has been confirmed.
