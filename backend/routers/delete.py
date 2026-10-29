@@ -71,7 +71,8 @@ def delete_class(
             if paths:
                 supabase.storage.from_("questions").remove(paths)
 
-        # 3️⃣ NOTES → notes bucket (flat)
+        # 3️⃣ NOTES → notes bucket (flat). The class-delete confirmation
+        # explicitly warns that class notes are removed with the class.
         notes = (
             supabase.table("notes")
             .select("image_url")
@@ -79,12 +80,11 @@ def delete_class(
             .execute()
             .data
         )
-
         if notes:
             paths = [
-                extract_storage_path(n["image_url"], "notes")
-                for n in notes
-                if n.get("image_url")
+                extract_storage_path(note["image_url"], "notes")
+                for note in notes
+                if note.get("image_url")
             ]
             if paths:
                 supabase.storage.from_("notes").remove(paths)
