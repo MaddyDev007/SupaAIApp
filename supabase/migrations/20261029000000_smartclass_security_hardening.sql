@@ -274,7 +274,8 @@ select
   u.id,
   u.email,
   case
-    when pg_catalog.lower(coalesce(u.email, '')) like '%@myclg.edu'
+    when u.email_confirmed_at is not null
+      and pg_catalog.lower(coalesce(u.email, '')) like '%@myclg.edu'
       then 'teacher'
     else 'student'
   end,
@@ -286,6 +287,18 @@ select
   )
 from auth.users u
 on conflict (id) do nothing;
+
+-- Existing unverified or non-college teacher-role rows must not retain
+-- privileged role access simply because an old client assigned the role.
+update public.profiles p
+set role = 'student'
+from auth.users u
+where p.id = u.id
+  and p.role = 'teacher'
+  and (
+    u.email_confirmed_at is null
+    or pg_catalog.lower(coalesce(u.email, '')) not like '%@myclg.edu'
+  );
 
 insert into public.users (id, email, name, avatar_url)
 select
