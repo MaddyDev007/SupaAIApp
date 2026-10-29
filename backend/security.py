@@ -4,7 +4,7 @@ The service-role client bypasses RLS. Every route using it must verify the
 caller and the requested class before doing privileged work.
 """
 import os
-from typing import Any
+from typing import Any, Optional
 
 from fastapi import Header, HTTPException
 from supabase import create_client
@@ -20,7 +20,7 @@ if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
 supabase_admin = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 
-def authenticated_user(authorization: str | None = Header(default=None)) -> dict[str, Any]:
+def authenticated_user(authorization: Optional[str] = Header(default=None)) -> dict[str, Any]:
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(status_code=401, detail="Bearer access token required")
 
