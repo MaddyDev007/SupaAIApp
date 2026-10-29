@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:smartclass/screens/common_screen/error_page.dart';
 import 'package:smartclass/screens/student_screen/editnote.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:smartclass/services/private_storage_service.dart';
 import 'view_note_page.dart';
 // import 'portrait_only.dart';
 
@@ -46,7 +47,24 @@ class _NotesPageState extends State<NotesPage> {
             onTimeout: () => throw TimeoutException("Notes fetch timed out"),
           );
 
-      return List<Map<String, dynamic>>.from(res);
+      final notes = List<Map<String, dynamic>>.from(res);
+      final storage = PrivateStorageService();
+      for (final note in notes) {
+        final reference = note['image_url']?.toString();
+        if (reference == null || reference.isEmpty) {
+          note['image_signed_url'] = null;
+          continue;
+        }
+        try {
+          note['image_signed_url'] = await storage.createSignedUrl(
+            reference,
+            bucket: 'notes',
+          );
+        } catch (_) {
+          note['image_signed_url'] = null;
+        }
+      }
+      return notes;
     } catch (e, st) {
       _errorObj = e;
       _errorStack = st;
@@ -105,8 +123,13 @@ class _NotesPageState extends State<NotesPage> {
       if (fetched != null &&
           fetched['image_url'] != null &&
           fetched['image_url'].toString().isNotEmpty) {
-        final fileName = fetched['image_url'].split('/').last;
-        await supabase.storage.from('notes').remove([fileName]);
+        final fileName = PrivateStorageService.pathFromReference(
+          fetched['image_url'].toString(),
+          'notes',
+        );
+        if (fileName != null) {
+          await supabase.storage.from('notes').remove([fileName]);
+        }
       }
 
       await supabase.from('notes').delete().eq('id', id);
@@ -270,7 +293,7 @@ class _NotesPageState extends State<NotesPage> {
                           child: ViewNotePage(
                             title: note['title'],
                             content: note['content'],
-                            imageUrl: note['image_url'],
+                            imageUrl: note['image_signed_url'],
                             noteId: note['id'],
                             color: cardColor,
                             onEdit: () {
@@ -330,13 +353,13 @@ class _NotesPageState extends State<NotesPage> {
                                 ),
                               ),
 
-                              if (note['image_url'] != null &&
-                                  note['image_url'].toString().isNotEmpty) ...[
+                              if (note['image_signed_url'] != null &&
+                                  note['image_signed_url'].toString().isNotEmpty) ...[
                                 const SizedBox(width: 10),
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(12),
                                   child: Image.network(
-                                    note["image_url"],
+                                    note["image_signed_url"],
                                     height: 70,
                                     width: 70,
                                     fit: BoxFit.cover,
@@ -400,7 +423,7 @@ class _NotesPageState extends State<NotesPage> {
                                       child: ViewNotePage(
                                         title: note['title'],
                                         content: note['content'],
-                                        imageUrl: note['image_url'],
+                                        imageUrl: note['image_signed_url'],
                                         noteId: note['id'],
                                         color: note['color'] != null
                                             ? Color(int.parse(note['color']))
