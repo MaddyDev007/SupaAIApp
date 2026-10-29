@@ -37,8 +37,16 @@ Run these in a temporary Supabase project/branch and a non-production applicatio
 
 Existing installed Flutter clients do not send Bearer tokens to every backend endpoint and directly read quiz rows. After this change, older clients may fail against the new backend/database rules. Plan a coordinated release and distribution of the updated client; do not deploy only the backend or only the database migration.
 
+## Validation performed
+
+- Executed the full migration against the connected schema inside a transaction that was explicitly rolled back.
+- Inside separate rolled-back transactions, simulated an authenticated class member and an existing class owner: direct student reads of the base quizzes table returned zero rows, authorized RPC access returned class quizzes, and the RPC did not expose the answer key.
+- In a rolled-back result insert, a client-supplied score of 999 and forged metadata were replaced by the database-computed score, question count, subject, and stored user profile values.
+- Verified after rollback that the live database still has the original RLS state and all three Storage buckets remain public. No persistent database changes were made by these tests.
+
 ## Known limitations of this review
 
-- No SQL migration has been executed, because the only connected Supabase project is the live project.
-- Flutter analysis, Python test execution, and end-to-end tests have not been run in this environment.
-- Review the migration against the exact live schema and use an isolated test environment before applying it.
+- The SQL tests above validate the migration and selected policy/trigger paths in a transaction, but do not replace complete end-to-end testing.
+- Flutter analysis, Python test execution, and full app end-to-end tests have not been run in this environment.
+- Existing data has 19 classes whose creator IDs do not yet have profile rows; the migration explicitly backfills their profiles and preserves verified existing class-owner access.
+- Review the coordinated client/backend release: older installed Flutter builds do not send the newly required Bearer headers or call the sanitized quiz RPC.
