@@ -40,7 +40,7 @@ def authenticated_user(authorization: Optional[str] = Header(default=None)) -> d
         raise HTTPException(status_code=401, detail="Invalid or expired session")
 
 
-def _profile_role(user_id: str) -> str | None:
+def _profile_role(user_id: str) -> Optional[str]:
     result = (
         supabase_admin.table("profiles")
         .select("role")
