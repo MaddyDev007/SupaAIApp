@@ -112,25 +112,19 @@ set search_path = ''
 as $$
   select case
     when p_reference is null or pg_catalog.btrim(p_reference) = '' then null
-    when pg_catalog.position('://' in p_reference) = 0
+    when pg_catalog.strpos(p_reference, '://') = 0
       then pg_catalog.btrim(p_reference, '/')
-    when pg_catalog.position(
-      '/object/public/' || p_bucket || '/' in pg_catalog.split_part(p_reference, '?', 1)
-    ) > 0
+    when pg_catalog.strpos(pg_catalog.split_part(p_reference, '?', 1), '/object/public/' || p_bucket || '/') > 0
       then pg_catalog.split_part(
         pg_catalog.split_part(p_reference, '/object/public/' || p_bucket || '/', 2),
         '?', 1
       )
-    when pg_catalog.position(
-      '/object/sign/' || p_bucket || '/' in pg_catalog.split_part(p_reference, '?', 1)
-    ) > 0
+    when pg_catalog.strpos(pg_catalog.split_part(p_reference, '?', 1), '/object/sign/' || p_bucket || '/') > 0
       then pg_catalog.split_part(
         pg_catalog.split_part(p_reference, '/object/sign/' || p_bucket || '/', 2),
         '?', 1
       )
-    when pg_catalog.position(
-      '/object/authenticated/' || p_bucket || '/' in pg_catalog.split_part(p_reference, '?', 1)
-    ) > 0
+    when pg_catalog.strpos(pg_catalog.split_part(p_reference, '?', 1), '/object/authenticated/' || p_bucket || '/') > 0
       then pg_catalog.split_part(
         pg_catalog.split_part(p_reference, '/object/authenticated/' || p_bucket || '/', 2),
         '?', 1
@@ -232,32 +226,45 @@ begin
     nullif(pg_catalog.split_part(coalesce(new.email, ''), '@', 1), ''),
     'User'
   );
+  -- Do not grant the teacher role until the college-domain email is verified.
   v_role := case
-    when pg_catalog.lower(coalesce(new.email, '')) like '%@myclg.edu'
+    when new.email_confirmed_at is not null
+      and pg_catalog.lower(coalesce(new.email, '')) like '%@myclg.edu'
       then 'teacher'
     else 'student'
   end;
 
-  insert into public.profiles (id, email, role, name)
-  values (new.id, new.email, v_role, v_name)
-  on conflict (id) do nothing;
+  if tg_op = 'INSERT' then
+    insert into public.profiles (id, email, role, name)
+    values (new.id, new.email, v_role, v_name)
+    on conflict (id) do nothing;
 
-  insert into public.users (id, email, name, avatar_url)
-  values (
-    new.id,
-    new.email,
-    v_name,
-    coalesce(new.raw_user_meta_data ->> 'avatar_url', new.raw_user_meta_data ->> 'picture')
-  )
-  on conflict (id) do nothing;
+    insert into public.users (id, email, name, avatar_url)
+    values (
+      new.id,
+      new.email,
+      v_name,
+      coalesce(new.raw_user_meta_data ->> 'avatar_url', new.raw_user_meta_data ->> 'picture')
+    )
+    on conflict (id) do nothing;
+  elsif tg_op = 'UPDATE' then
+    if old.email_confirmed_at is null
+      and new.email_confirmed_at is not null
+      and pg_catalog.lower(coalesce(new.email, '')) like '%@myclg.edu'
+    then
+      update public.profiles
+      set role = 'teacher', email = new.email
+      where id = new.id and role = 'student';
+    end if;
+  end if;
 
   return new;
 end;
-$$;
+$;
 
 drop trigger if exists on_auth_user_created_smartclass on auth.users;
 create trigger on_auth_user_created_smartclass
-after insert on auth.users
+after insert or update of email_confirmed_at on auth.users
 for each row execute function public.handle_new_auth_user_smartclass();
 
 -- Add missing rows for accounts created before this trigger existed; never
