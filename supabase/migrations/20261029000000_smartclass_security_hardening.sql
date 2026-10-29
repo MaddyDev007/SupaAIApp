@@ -238,7 +238,12 @@ begin
   -- Do not grant the teacher role until the college-domain email is verified.
   v_role := case
     when new.email_confirmed_at is not null
-      and pg_catalog.lower(coalesce(new.email, '')) like '%@myclg.edu'
+      and (
+        pg_catalog.lower(coalesce(new.email, '')) like '%@myclg.edu'
+        or exists (
+          select 1 from public.classes c where c.created_by = new.id
+        )
+      )
       then 'teacher'
     else 'student'
   end;
@@ -263,7 +268,12 @@ begin
     set email = new.email,
         role = case
           when new.email_confirmed_at is not null
-            and pg_catalog.lower(coalesce(new.email, '')) like '%@myclg.edu'
+            and (
+              pg_catalog.lower(coalesce(new.email, '')) like '%@myclg.edu'
+              or exists (
+                select 1 from public.classes c where c.created_by = new.id
+              )
+            )
             then 'teacher'
           else 'student'
         end
@@ -291,7 +301,12 @@ select
   u.email,
   case
     when u.email_confirmed_at is not null
-      and pg_catalog.lower(coalesce(u.email, '')) like '%@myclg.edu'
+      and (
+        pg_catalog.lower(coalesce(u.email, '')) like '%@myclg.edu'
+        or exists (
+          select 1 from public.classes c where c.created_by = u.id
+        )
+      )
       then 'teacher'
     else 'student'
   end,
@@ -313,7 +328,27 @@ where p.id = u.id
   and p.role = 'teacher'
   and (
     u.email_confirmed_at is null
-    or pg_catalog.lower(coalesce(u.email, '')) not like '%@myclg.edu'
+    or (
+      pg_catalog.lower(coalesce(u.email, '')) not like '%@myclg.edu'
+      and not exists (
+        select 1 from public.classes c where c.created_by = u.id
+      )
+    )
+  );
+
+-- Preserve existing owners' teacher access while filling in missing profile
+-- rows. Class ownership is existing, server-side data; client role fields are
+-- never used for this backfill.
+update public.profiles p
+set role = 'teacher'
+from auth.users u
+where p.id = u.id
+  and u.email_confirmed_at is not null
+  and (
+    pg_catalog.lower(coalesce(u.email, '')) like '%@myclg.edu'
+    or exists (
+      select 1 from public.classes c where c.created_by = u.id
+    )
   );
 
 insert into public.users (id, email, name, avatar_url)
