@@ -119,6 +119,45 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
     super.dispose();
   }
 
+  // Display field-level API validation errors returned by the backend.
+  String _apiErrorMessage(http.Response response) {
+    final fallback = 'Request failed (${response.statusCode}).';
+
+    try {
+      final decoded = jsonDecode(response.body);
+      if (decoded is Map<String, dynamic>) {
+        final rawMessage = decoded['message'] ?? decoded['detail'];
+        final message = rawMessage is String && rawMessage.trim().isNotEmpty
+            ? rawMessage.trim()
+            : fallback;
+
+        final rawDetails = decoded['details'];
+        if (rawDetails is List) {
+          final lines = rawDetails.whereType<Map>().map((item) {
+            final field = item['field']?.toString() ?? '';
+            final detail = item['message']?.toString() ?? '';
+            if (field.isEmpty) return detail;
+            return '$field: $detail';
+          }).where((line) => line.isNotEmpty).toList();
+
+          if (lines.isNotEmpty) {
+            return '$message\\n${lines.join('\\n')}';
+          }
+        }
+
+        if (rawMessage is String && rawMessage.trim().isNotEmpty) {
+          return rawMessage.trim();
+        }
+      }
+    } catch (_) {
+      // Fall back to the raw response when the server did not return JSON.
+    }
+
+    return response.body.trim().isNotEmpty
+        ? response.body.trim()
+        : fallback;
+  }
+
   // ✅ FETCH CLASS NAME
   Future<void> fetchClassName() async {
     try {
@@ -410,7 +449,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       );
 
       if (uploadRes.statusCode != 200) {
-        throw Exception('Backend /upload failed (${uploadRes.statusCode})');
+        throw Exception(_apiErrorMessage(uploadRes));
       }
 
       final uploadBody = jsonDecode(uploadRes.body) as Map<String, dynamic>;
@@ -439,7 +478,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       );
 
       if (storeRes.statusCode != 200) {
-        throw Exception('Backend /quiz/store failed(${storeRes.body})');
+        throw Exception(_apiErrorMessage(storeRes));
       }
 
       if (!mounted) return;
@@ -531,7 +570,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
       );
 
       if (res.statusCode != 200) {
-        throw 'Exam generation failed';
+        throw Exception(_apiErrorMessage(res));
       }
 
       if (!mounted) return;
