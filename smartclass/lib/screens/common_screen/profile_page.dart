@@ -4,7 +4,6 @@ import 'package:smartclass/models/login_model.dart';
 import 'package:smartclass/screens/continueWithGoogle.dart';
 import 'package:smartclass/secrets.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'chatbot_page.dart' show chatHistory;
 import 'package:http/http.dart' as http;
 
 class ProfilePage extends StatelessWidget {
@@ -275,7 +274,6 @@ class ProfilePage extends StatelessWidget {
 
     await Supabase.instance.client.auth.signOut();
     await Hive.box<LoginModel>('loginBox').clear();
-    chatHistory.clear();
 
     Navigator.pushAndRemoveUntil(
       context,
