@@ -65,17 +65,32 @@ Priority legend
 - PR guidance: Small PR. Message: `fix(pdf): add timeouts and resilient error handling to PDF downloads`.
 - Est. effort: 1 hour.
 
-### P1-2: Validate presence of critical env vars (Cohere key, Supabase keys) with explicit errors
+### P1-2: Validate critical environment variables at backend startup — IMPLEMENTED (2026-11-09)
 - Files:
+  - `backend/config.py`
+  - `backend/main.py`
+  - `backend/security.py`
+  - `backend/services/gemini_api.py`
   - `backend/services/cohere_api.py`
-  - `backend/routers/quiz.py` (supabase client init)
-- Suggested changes:
-  1. On startup, assert/raise a descriptive error if `COHERE_API_KEY` or `SUPABASE_SERVICE_ROLE_KEY` are missing.
-  2. Add healthcheck endpoint `/health` or improve root to indicate missing configs.
-- Tests / Acceptance criteria:
-  - Running container without required env vars should fail fast with a readable message.
-- PR guidance: Small PR. Message: `chore(env): validate critical environment variables at startup`.
-- Est. effort: 1 hour.
+  - `backend/routers/quiz.py`
+  - `backend/routers/question.py`
+  - `backend/routers/delete.py`
+  - `backend/render.yaml`
+  - `backend/.env.example`
+  - `backend/tests/test_config.py`
+- Implementation:
+  1. Centralized required settings: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `GEMINI_API_KEY`.
+  2. Validate missing, blank, placeholder, and malformed Supabase URL values before router imports/client initialization.
+  3. Error messages list missing variable names only; secret values are never included. Settings objects hide secret fields from their default representation.
+  4. Reuse one validated Supabase service-role client instead of creating separate clients in each router/service.
+  5. Keep the legacy Cohere integration optional. Its client is created only when called and returns HTTP 503 when `COHERE_API_KEY` is not configured.
+  6. Added a backend `.env.example` and corrected the README variable names. Render Blueprint now declares the active required secrets with `sync: false`.
+- Tests:
+  - Added standard-library unit tests for valid configuration, missing/blank values, malformed URLs, unresolved placeholders, optional Cohere, and secret redaction.
+  - Run from `backend/`: `python -m unittest discover -s tests -v`.
+- Deployment note:
+  - For an existing Render service, confirm `GEMINI_API_KEY` is present in the Dashboard. Render ignores `sync: false` values during later Blueprint updates; it does not automatically prompt for a new value on an existing service.
+  - Do not remove or rotate the live Supabase service-role key as part of this change.
 
 ### P1-3: Improve input validation on backend endpoints — COMPLETED (2026-11-09)
 - Files:
