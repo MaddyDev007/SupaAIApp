@@ -7,7 +7,6 @@ import 'package:smartclass/screens/common_screen/update.dart';
 import 'package:smartclass/screens/continueWithGoogle.dart';
 import 'package:smartclass/screens/theme/theme_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'chatbot_page.dart' show chatHistory;
 
 class ProfilePageNew extends StatelessWidget {
   const ProfilePageNew({super.key});
@@ -264,7 +263,6 @@ class ProfilePageNew extends StatelessWidget {
 
     await Supabase.instance.client.auth.signOut();
     await Hive.box<LoginModel>('loginBox').clear();
-    chatHistory.clear();
 
     Navigator.pushAndRemoveUntil(
       context,
