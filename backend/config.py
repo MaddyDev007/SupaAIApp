@@ -53,8 +53,18 @@ def _is_missing_or_placeholder(value: str | None) -> bool:
     if not normalized or normalized in _PLACEHOLDER_VALUES:
         return True
 
-    # Render Blueprint interpolation is not supported. Detect an unresolved
-    # placeholder such as "${SUPABASE_URL}" instead of using it as a secret.
+    if normalized.startswith(("your_", "your-", "replace_", "replace-", "change_", "change-")):
+        return True
+
+    # A sample Supabase host such as https://your-project.supabase.co is not
+    # a usable project URL even though it has a syntactically valid scheme.
+    parsed = urlparse(normalized)
+    hostname = parsed.hostname or ""
+    if hostname.startswith(("your-", "replace-")):
+        return True
+
+    # Render Blueprint interpolation is not supported. Detect unresolved
+    # placeholders such as "${SUPABASE_URL}" instead of using them as secrets.
     return normalized.startswith("${") and normalized.endswith("}")
 
 
