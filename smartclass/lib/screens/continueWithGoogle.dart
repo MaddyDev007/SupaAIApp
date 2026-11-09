@@ -78,13 +78,13 @@ class _ContinueWithGoogleState extends State<ContinueWithGoogle> {
     // Supabase requires both the Google ID token and access token.
     // The first lookup reuses an existing grant; the second asks Google only
     // when the email scope has not yet been authorized.
-    final authorization =
-        await googleUser.authorizationClient.authorizationForScopes(
-          const ['email'],
-        ) ??
-        await googleUser.authorizationClient.authorizeScopes(
-          const ['email'],
-        );
+    var authorization = await googleUser.authorizationClient
+        .authorizationForScopes(const ['email']);
+    if (authorization == null || authorization.accessToken.isEmpty) {
+      authorization = await googleUser.authorizationClient.authorizeScopes(
+        const ['email'],
+      );
+    }
 
     final accessToken = authorization.accessToken;
     if (accessToken.isEmpty) {
