@@ -59,12 +59,22 @@ This file lists discovered issues (logic, data-flow, security, UX, and reliabili
 
 ---
 
-## 7) Insufficient validation of payload contents at endpoints — LOW
+## 7) Insufficient validation of payload contents at endpoints — LOW — RESOLVED IN CODE (2026-11-09)
 - Files:
-  - `backend/routers/quiz.py` (checks for presence of keys only; does not validate types or non-empty `questions`)
-  - `backend/routers/upload.py` (assumes `metadata` keys exist; checks presence, good; but `pdf_url` validity check is minimal `startswith("http")`)
-- Description: Inputs are checked for presence, but not types/structure. For example, `questions` could be present but invalid or empty.
-- Impact: Invalid data stored in DB; downstream failures.
+  - `backend/schemas.py`
+  - `backend/routers/quiz.py`
+  - `backend/routers/upload.py`
+  - `backend/routers/question.py`
+  - `backend/main.py`
+- Resolution:
+  - Added strict Pydantic models for upload, quiz storage, and exam generation request bodies.
+  - Validate UUIDs, HTTP(S) URLs, required metadata, bounded non-empty strings, MCQ options and answer indexes, and generated exam sections.
+  - Unknown fields are rejected.
+  - Malformed JSON or invalid request fields return HTTP 422 with a stable `error`, `message`, and field-level `details` response.
+  - Invalid Gemini output is rejected with HTTP 502 before it reaches the client, database, or PDF generation.
+  - Flutter displays the backend's validation response.
+- Tests: Added schema unit tests under `backend/tests/test_request_schemas.py`.
+- Note: Code is committed to a feature branch; deployment and live endpoint smoke tests remain pending.
 
 ---
 

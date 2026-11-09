@@ -103,10 +103,10 @@ Content:
             )
 
     except Exception as e:
-        print(f"[Gemini MCQ Error] {e}")
+        print(f"[Gemini MCQ Error] {type(e).__name__}: {e}")
         raise HTTPException(
-            status_code=500,
-            detail="Failed to generate MCQs",
+            status_code=502,
+            detail="The question generator failed or returned invalid JSON. Please retry.",
         )
 
 
@@ -378,24 +378,18 @@ Return ONLY valid JSON:
         raw = response.text.strip()
 
         try:
-            data = json.loads(raw)
+            # Return the raw parsed structure. The API route validates the
+            # required sections and their contents before using the output.
+            return json.loads(raw)
         except json.JSONDecodeError:
-            start, end = raw.find("{"), raw.rfind("}")
-            if start == -1 or end == -1:
-                raise HTTPException(
-                    status_code=500,
-                    detail="Malformed JSON from Gemini",
-                )
-            data = json.loads(raw[start:end + 1])
+            start_index, end_index = raw.find("{"), raw.rfind("}")
+            if start_index == -1 or end_index == -1:
+                raise ValueError("Gemini did not return a JSON object")
+            return json.loads(raw[start_index:end_index + 1])
 
-        return {
-            "2_mark": data.get("2_mark", []),
-            "13_mark": data.get("13_mark", []),
-        }
-
-    except Exception as e:
-        print(f"[Exam Generation Error] {e}")
+    except Exception as exc:
+        print(f"[Exam Generation Error] {type(exc).__name__}: {exc}")
         raise HTTPException(
-            status_code=500,
-            detail="Failed to generate exam questions",
-        )
+            status_code=502,
+            detail="The exam generator failed or returned invalid JSON. Please retry.",
+        ) from exc
