@@ -53,7 +53,7 @@ Priority legend
 
 ## P1 — High
 
-### P1-1: Add timeouts and error handling to PDF downloads — IMPLEMENTED (2026-11-09)
+### P1-1: Add timeouts and error handling to PDF downloads — MERGED IN PR #9 (2026-11-09)
 - Files:
   - `backend/security.py`
   - `backend/services/private_storage.py`
@@ -71,7 +71,10 @@ Priority legend
 - Tests:
   - Added 11 unit tests for external HTTP and private Storage success/failure paths, timeouts, statuses, and unreadable PDFs.
   - Run from `backend/`: `python -m unittest discover -s tests -v`.
-- Note: Tests are added but have not been executed in this environment. Live Render/Supabase timeout behavior must be smoke-tested after deployment.
+- Verification status:
+  - PR #9 is merged into `main`.
+  - The 11 tests are added but have not yet been executed; run the command above to verify the merged implementation.
+  - Live Render/Supabase timeout behavior must be smoke-tested after deployment.
 
 ### P1-2: Validate critical environment variables at backend startup — IMPLEMENTED (2026-11-09)
 - Files:
@@ -118,13 +121,13 @@ Priority legend
 - Tests:
   - Added standard-library `unittest` cases for valid payloads and invalid/missing IDs, metadata, option counts, answer types, empty lists, and exam sections.
   - Run from `backend/`: `python -m unittest discover -s tests -v`.
-- Note: API/deployment smoke tests still need to be run after the backend deploys.
+- Note: The code and unit tests were merged in PR #7. API/deployment smoke tests still need to be run against the deployed backend.
 
 ---
 
 ## P2 — Medium
 
-### P2-1: Fix TeacherDashboard navigation selection UX for People tab
+### P2-1: Fix TeacherDashboard navigation selection UX for People tab — DEFERRED BY USER (2026-11-09)
 - Files:
   - `smartclass/lib/screens/teacher_screen/teacher_dashboard.dart`
 - Suggested changes:
@@ -132,6 +135,7 @@ Priority legend
 - Tests / Acceptance criteria:
   - Tapping People shows it highlighted until return.
 - PR guidance: Tiny PR. Message: `fix(ui): mark People tab as selected in TeacherDashboard`.
+- Status: Intentionally left unchanged. This is a minor visual bug; no code changes were made.
 - Est. effort: 15–30 minutes.
 
 ### P2-2: Confirm `get_public_url` return and adjust code
@@ -168,15 +172,9 @@ Priority legend
 
 ---
 
-## Notes for reviewers
-- Keep PRs small and focused (one issue per PR where possible).
-- Each PR should include unit tests or a manual QA checklist.
-- Prefer feature branches: `fix/<area>-<short-desc>` (e.g., `fix/chatbot-session-isolation`).
-
----
-
-If you'd like, I can now:
-- Create the first PR branch for a chosen P0 or P1 item and prepare a draft PR description, or
-- Break down an item into smaller sub-tasks and allocate quick unit tests for them.
-
-Tell me which item you want me to start next.
+## Current status
+- Completed and merged: persistent class-scoped chatbot history (P0-2), backend startup configuration validation (P1-2), and strict payload validation (P1-3).
+- Completed and merged: PDF download timeout handling (P1-1, PR #9).
+- Deferred by decision: People navigation selected-state bug (P2-1).
+- Still open for separate review: P0-1 frontend key/backend URL configuration, P2-2 Storage URL return-type verification, P3-1 backend URL centralization, and P3-2 structured logging.
+- Deployment checks remain necessary for merged backend changes; see each task's acceptance notes.
