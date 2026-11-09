@@ -44,10 +44,19 @@ This file lists discovered issues (logic, data-flow, security, UX, and reliabili
 
 ---
 
-## 5) Cohere / API key usage without validation (Robustness) — MEDIUM
-- File: `backend/services/cohere_api.py`
-- Description: `COHERE_KEY` is read from env and `co = Client(COHERE_KEY)` is created without verifying presence of key. If missing or invalid, runtime errors may occur.
-- Impact: Startup/runtime errors; unclear errors returned to API clients.
+## 5) Cohere / API key usage without validation (Robustness) — MEDIUM — RESOLVED IN CODE (2026-11-09)
+- Files:
+  - `backend/config.py`
+  - `backend/services/cohere_api.py`
+  - `backend/security.py`
+  - `backend/services/gemini_api.py`
+- Resolution:
+  - The active backend now validates `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `GEMINI_API_KEY` before importing routers or creating service clients.
+  - Missing, blank, placeholder, and invalid Supabase URL values cause a clear startup `RuntimeError` listing variable names only.
+  - `COHERE_API_KEY` is optional because Cohere is a legacy integration. The Cohere client is created lazily when invoked; an unconfigured integration returns HTTP 503 instead of breaking startup.
+  - Supabase service-role client initialization is centralized and reused.
+- Tests: Added `backend/tests/test_config.py`; run with `python -m unittest discover -s tests -v` from `backend/`.
+- Deployment note: Existing Render services must have `GEMINI_API_KEY` set in Dashboard Environment. Blueprint `sync: false` entries do not prompt for new values on subsequent updates.
 
 ---
 
