@@ -77,16 +77,25 @@ Priority legend
 - PR guidance: Small PR. Message: `chore(env): validate critical environment variables at startup`.
 - Est. effort: 1 hour.
 
-### P1-3: Improve input validation on backend endpoints
+### P1-3: Improve input validation on backend endpoints — COMPLETED (2026-11-09)
 - Files:
-  - `backend/routers/quiz.py`, `backend/routers/upload.py`, `backend/routers/question.py`
-- Suggested changes:
-  1. Use Pydantic models for request bodies across endpoints with explicit field types and validators (e.g., non-empty `questions` list).
-  2. Add unit tests for invalid payloads.
-- Tests / Acceptance criteria:
-  - Endpoint returns 400 for malformed/empty required fields.
-- PR guidance: Medium PR. Message: `feat(api): add stricter pydantic validation for upload/quiz/question endpoints`.
-- Est. effort: 1–3 hours.
+  - `backend/schemas.py`
+  - `backend/routers/quiz.py`
+  - `backend/routers/upload.py`
+  - `backend/routers/question.py`
+  - `backend/main.py`
+  - `backend/tests/test_request_schemas.py`
+- Implementation:
+  1. Added strict Pydantic request models for upload, quiz storage, and exam generation.
+  2. Validated UUIDs, HTTP(S) PDF references, non-empty bounded text, exact four-option MCQ structure, and integer answer indexes from 0 to 3.
+  3. Rejected unknown fields instead of silently ignoring them.
+  4. Validated Gemini-generated quiz and exam data before returning it or generating a PDF. Invalid AI output returns a safe 502 response.
+  5. Added a consistent 422 response body for malformed JSON and field validation errors, including field paths and messages without echoing submitted values.
+  6. Flutter now displays backend validation messages rather than only a generic status code.
+- Tests:
+  - Added standard-library `unittest` cases for valid payloads and invalid/missing IDs, metadata, option counts, answer types, empty lists, and exam sections.
+  - Run from `backend/`: `python -m unittest discover -s tests -v`.
+- Note: API/deployment smoke tests still need to be run after the backend deploys.
 
 ---
 
