@@ -7,7 +7,6 @@ import numpy as np
 import pdfplumber
 import pytesseract
 import requests
-from PIL import Image
 
 from fastapi import HTTPException
 
@@ -79,7 +78,7 @@ def extract_text_from_bytes(pdf_bytes: bytes) -> str:
         with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
             total_pages = len(pdf.pages)
 
-            for index, page in enumerate(pdf.pages, start=1):
+            for page in pdf.pages:
                 text = page.extract_text()
 
                 if text and text.strip():
