@@ -282,10 +282,10 @@ From `smartclass/`, pass the Web application client ID as a compile-time value:
 ```bash
 flutter pub get
 
-flutter run -d android \\
+flutter run -d android \
   --dart-define=GOOGLE_WEB_CLIENT_ID=YOUR_WEB_CLIENT_ID.apps.googleusercontent.com
 
-flutter build apk --release \\
+flutter build apk --release \
   --dart-define=GOOGLE_WEB_CLIENT_ID=YOUR_WEB_CLIENT_ID.apps.googleusercontent.com
 ```
 
@@ -327,7 +327,8 @@ If Google reports a client configuration/canceled error after selecting an accou
 
 | Package | Purpose |
 |---------|---------|
-| `supabase_flutter` | Supabase integration |\n| `google_sign_in` | Native Google account selection on Android |
+| `supabase_flutter` | Supabase integration |
+| `google_sign_in` | Native Google account selection on Android |
 | `flutter` | Flutter SDK |
 | `dio` | HTTP client |
 | `permission_handler` | Device permissions |
