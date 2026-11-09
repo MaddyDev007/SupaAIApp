@@ -1,17 +1,18 @@
 # Error Report — SmartClass
 
-This file lists discovered issues (logic, data-flow, security, UX, and reliability) across the repository. It documents where the issue exists, a short description, severity, and notes. I did not change any code; this is a collected audit.
+This file tracks discovered issues (logic, data-flow, security, UX, and reliability) across the repository. Status labels distinguish merged fixes, work awaiting review, deferred items, and issues still requiring investigation.
 
 ---
 
-## 1) Hard-coded production secrets and URLs (Security / Maintainability) — HIGH
+## 1) Frontend Supabase configuration and repeated backend URLs (Security / Maintainability) — HIGH — OWNER ACTION PENDING
 - Files:
   - `smartclass/lib/secrets.dart`
   - `smartclass/lib/screens/teacher_screen/upload_material_page.dart` (https URLs)
   - `smartclass/lib/screens/common_screen/chatbot_page.dart` (https URL)
   - `smartclass/lib/screens/student_screen/sem_result.dart` (https URL)
 - Description: Supabase credentials (`supabaseAnonKey`) are hard-coded in `secrets.dart`. Backend URL `https://supaaiapp-1.onrender.com` is repeated across the frontend. Storing secrets/URLs this way risks leakage and complicates environment switching.
-- Impact: Exposes credentials publicly; makes it hard to run tests locally and rotate keys.
+- Impact: The Supabase anon key is a client-side key and must be protected by correct Supabase RLS policies; it is not equivalent to the service-role secret. Repeated backend URLs make environment switching and testing harder.
+- Status: The user will handle the frontend secrets/backend URL configuration. Do not modify `smartclass/lib/secrets.dart` or `AppSecrets.backendURL` without explicit direction.
 
 ---
 
@@ -27,15 +28,16 @@ This file lists discovered issues (logic, data-flow, security, UX, and reliabili
 
 ---
 
-## 3) Navigation 'People' destination not reflected in selected state (UX bug, minor) — MEDIUM
+## 3) Navigation 'People' destination not reflected in selected state (UX bug, minor) — MEDIUM — DEFERRED BY USER (2026-11-09)
 - File: `smartclass/lib/screens/teacher_screen/teacher_dashboard.dart`
 - Location: `_onNavTapped(int index)` and `NavigationBar` destinations
 - Description: When the last destination (index 4, People) is tapped, code pushes `ListStudentPage` and returns early without updating `_selectedIndex`. This means the navigation bar will not show the People destination as selected. Other destinations update `_selectedIndex` normally.
 - Impact: Slight UX inconsistency that may confuse users.
+- Status: Intentionally left unchanged at the user's direction. No code changes were made.
 
 ---
 
-## 4) PDF download timeout and failure handling (Reliability) — MEDIUM — IMPLEMENTED IN CODE (2026-11-09)
+## 4) PDF download timeout and failure handling (Reliability) — MEDIUM — MERGED IN PR #9 (2026-11-09)
 - Files:
   - `backend/security.py`
   - `backend/services/private_storage.py`
@@ -50,7 +52,7 @@ This file lists discovered issues (logic, data-flow, security, UX, and reliabili
   - Async endpoints offload blocking download and PDF extraction operations to worker threads.
   - Quiz and exam generation reuse one PDF extraction/OCR helper.
 - Tests: Added `backend/tests/test_pdf_downloads.py` with mocked timeout, connection, upstream-status, empty-file, and unreadable-PDF scenarios.
-- Note: Unit tests and live deployment smoke tests remain to be run.
+- Verification status: PR #9 is merged into `main`. The 11 mocked unit tests were added but have not yet been executed. Run them to verify the merged implementation, then smoke-test PDF downloads against deployed Render/Supabase services.
 
 ---
 
@@ -78,7 +80,7 @@ This file lists discovered issues (logic, data-flow, security, UX, and reliabili
 
 ---
 
-## 7) Insufficient validation of payload contents at endpoints — LOW — RESOLVED IN CODE (2026-11-09)
+## 7) Insufficient validation of payload contents at endpoints — LOW — MERGED (PR #7, 2026-11-09)
 - Files:
   - `backend/schemas.py`
   - `backend/routers/quiz.py`
@@ -93,7 +95,7 @@ This file lists discovered issues (logic, data-flow, security, UX, and reliabili
   - Invalid Gemini output is rejected with HTTP 502 before it reaches the client, database, or PDF generation.
   - Flutter displays the backend's validation response.
 - Tests: Added schema unit tests under `backend/tests/test_request_schemas.py`.
-- Note: Code is committed to a feature branch; deployment and live endpoint smoke tests remain pending.
+- Note: The fix was merged into `main` through PR #7. Deployment and live endpoint smoke tests remain pending.
 
 ---
 
