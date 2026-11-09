@@ -29,19 +29,25 @@ Priority legend
 - PR guidance: Small, single-responsibility PR. Suggested message: `chore(config): move secrets and backend URL to environment-driven config`.
 - Est. effort: 1–2 hours.
 
-### P0-2: Fix global in-memory chat history / ensure class-scoped or session-scoped chat memory
+### P0-2: Fix global in-memory chat history / ensure class-scoped or session-scoped chat memory — COMPLETED (2026-11-09)
 - Files:
-  - `backend/services/cohere_api.py` (global `chat_history`)
-  - `smartclass/lib/screens/common_screen/chatbot_page.dart` (global `chatHistory` - client-side)
-- Suggested changes:
-  1. Change backend to maintain chat history per (session-id | class_id | user_id). Use an in-memory dict keyed by `session_id` with a size cap, or persist short-term state in Supabase (table `chat_sessions`) if needed.
-  2. Update API to accept optional `session_id`; generate one on the client and send it with each chat message (or scope by `class_id` + `user_id`).
-  3. On client, avoid global `chatHistory` and tie messages to a `ChatSession` object stored in StatefulWidget state or local DB.
-- Tests / Acceptance criteria:
-  - Chat responses do not mix across different class or user sessions in manual tests.
-  - Unit test for `ask_chatbot` verifying that `chat_history` data is isolated by key.
-- PR guidance: Break into two PRs if large: backend change + client change. Suggest message: `fix(chatbot): scope chat history per session to prevent cross-class leakage`.
-- Est. effort: 3–6 hours (may be larger depending on persistence choice).
+  - `backend/services/gemini_api.py`
+  - `backend/services/cohere_api.py`
+  - `backend/routers/chatbot.py`
+  - `smartclass/lib/screens/common_screen/chatbot_page.dart`
+  - `supabase/migrations/20261109130000_persist_chat_sessions.sql`
+- Implementation:
+  1. Added private `chat_sessions` and `chat_messages` tables with one persistent conversation per authenticated user + class.
+  2. Added authenticated endpoints to create/retrieve the active session, load its history, clear its messages, and stream new messages.
+  3. Validate user ownership of the session and class membership/ownership for every operation.
+  4. Persist user prompts before generation and assistant responses after a completed stream.
+  5. Gemini receives only the last 20 messages from that user's class session; Flutter loads up to 100 saved messages on page open.
+  6. Replaced the Flutter global chat list with page-local state and removed the process-global history from both Gemini and the legacy Cohere helper.
+- Acceptance checks still required after deployment:
+  - Open the same class chatbot, send a prompt, leave the page, and reopen it; conversation should remain.
+  - Repeat with a different user and another class; history must not cross over.
+  - Clear chat and reopen; the cleared conversation should remain empty except for the welcome message.
+- Note: Old in-memory-only messages were not stored in the database and cannot be migrated.
 
 ---
 
