@@ -63,8 +63,8 @@ Before you begin, ensure you have the following installed on your system:
 - **Supabase Account** - [Create here](https://supabase.com/)
   - Supabase URL and Anon Key for authentication and storage
   - Supabase Service Role Key for backend operations
-- **Cohere API Key** - [Get here](https://docs.cohere.com/docs/rate-limits)
-- **Google Generative AI API Key** - [Get here](https://ai.google.dev/gemini-api/docs/api-key)
+- **Google Gemini API Key** - [Get here](https://ai.google.dev/gemini-api/docs/api-key) (required by the active backend)
+- **Cohere API Key** - [Get here](https://docs.cohere.com/docs/rate-limits) (optional; only for the legacy Cohere integration)
 
 ---
 
@@ -139,13 +139,13 @@ pip install -r requirements.txt
 Create a `.env` file in the `backend/` directory with the following variables:
 
 ```
-# Supabase Configuration
-SUPABASE_URL=your_supabase_url
-SUPABASE_KEY=your_supabase_service_role_key
+# Required backend configuration
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+GEMINI_API_KEY=your_gemini_api_key
 
-# API Keys
-COHERE_API_KEY=your_cohere_api_key
-GOOGLE_GENERATIVE_AI_KEY=your_google_api_key
+# Optional legacy integration
+# COHERE_API_KEY=your_cohere_api_key
 
 # Backend Configuration
 DEBUG=False
@@ -226,15 +226,13 @@ flutter run
 Create `backend/.env` with the following template:
 
 ```bash
-# Supabase
+# Required backend configuration
 SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_KEY=your_service_role_key_here
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
+GEMINI_API_KEY=your_gemini_key_here
 
-# Cohere API
-COHERE_API_KEY=your_cohere_key_here
-
-# Google Generative AI (Optional)
-GOOGLE_GENERATIVE_AI_KEY=your_google_key_here
+# Optional: only needed if you use the legacy Cohere integration
+# COHERE_API_KEY=your_cohere_key_here
 
 # Application Settings
 DEBUG=False
@@ -400,8 +398,8 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-#### Issue: `SUPABASE_URL not found in environment`
-**Solution**: Create `.env` file in `backend/` directory with required environment variables
+#### Issue: Backend startup reports missing or invalid environment variables
+**Solution**: Copy `backend/.env.example` to `backend/.env` and set `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `GEMINI_API_KEY`. For Render, set the same variables in the service's Environment page.
 
 #### Issue: Port 8000 already in use
 **Solution**: Change the port in `main.py` or kill the process using port 8000
