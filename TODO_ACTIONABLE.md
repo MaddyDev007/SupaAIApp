@@ -69,7 +69,7 @@ Priority legend
   5. Run blocking PDF download and extraction operations in worker threads from async endpoints.
   6. Share the same PDF byte extraction/OCR function between material quiz generation and exam generation.
 - Tests:
-  - Added 10 unit tests for external HTTP and private Storage success/failure paths, timeouts, statuses, and unreadable PDFs.
+  - Added 11 unit tests for external HTTP and private Storage success/failure paths, timeouts, statuses, and unreadable PDFs.
   - Run from `backend/`: `python -m unittest discover -s tests -v`.
 - Note: Tests are added but have not been executed in this environment. Live Render/Supabase timeout behavior must be smoke-tested after deployment.
 
