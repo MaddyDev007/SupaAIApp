@@ -184,7 +184,7 @@ async def ask_chatbot(
         })
 
         def run_cohere():
-            return co.chat(
+            return _get_cohere_client().chat(
                 model="command-a-03-2025",
                 message=question,
                 chat_history=session_history,
@@ -223,7 +223,7 @@ Return ONLY valid JSON:
 """
 
     try:
-        response = co.chat(
+        response = _get_cohere_client().chat(
             model="command-a-03-2025",
             message=prompt,
             temperature=0.3,
