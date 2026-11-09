@@ -74,6 +74,8 @@ Content:
                 detail="Malformed JSON returned by Cohere"
             )
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[Cohere MCQ Error] {e}")
         raise HTTPException(
@@ -101,6 +103,8 @@ def extract_text(file_bytes: bytes) -> str:
     try:
         with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
             return "\n".join(page.extract_text() or "" for page in pdf.pages)
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[PDF Extraction Error] {e}")
         return ""
@@ -154,6 +158,8 @@ async def fetch_relevant_documents(
 
         return documents
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[Document Fetch Error] {e}")
         return []
@@ -194,6 +200,8 @@ async def ask_chatbot(
         answer = await asyncio.to_thread(run_cohere)
         return answer
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[Chatbot Error] {e}")
         raise HTTPException(
@@ -247,6 +255,8 @@ Return ONLY valid JSON:
             "13_mark": data.get("13_mark", []),
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[Exam Generation Error] {e}")
         raise HTTPException(
