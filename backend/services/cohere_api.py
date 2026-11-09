@@ -1,27 +1,30 @@
 import json
-import os
 import re
 import io
 import asyncio
 import httpx
 import pdfplumber
-from dotenv import load_dotenv
-from pathlib import Path
 from cohere import Client
 from fastapi import HTTPException
-from supabase import create_client
 
-# -------------------------------------------------------------------
-# 🔧 Load environment variables
-# -------------------------------------------------------------------
-load_dotenv(dotenv_path=Path(__file__).resolve().parents[1] / ".env")
+from config import get_settings
+from security import supabase_admin
 
-COHERE_KEY = os.getenv("COHERE_API_KEY")
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
-co = Client(COHERE_KEY)
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+settings = get_settings()
+supabase = supabase_admin
+
+
+def _get_cohere_client() -> Client:
+    """Create the optional legacy Cohere client only when a caller uses it."""
+
+    if not settings.cohere_api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="Cohere integration is not configured. Set COHERE_API_KEY to enable it.",
+        )
+
+    return Client(settings.cohere_api_key)
 
 # -------------------------------------------------------------------
 # 🧩 Utility: Split long text into chunks
@@ -52,7 +55,7 @@ Content:
 """
 
     try:
-        response = co.chat(
+        response = _get_cohere_client().chat(
             model="command-a-03-2025",
             message=prompt,
             temperature=0.3,
