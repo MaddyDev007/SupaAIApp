@@ -1,10 +1,9 @@
 # backend/routers/question.py
 
-import io
+import asyncio
 import uuid
 from xml.sax.saxutils import escape
 
-import pdfplumber
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import ValidationError
 from reportlab.lib.styles import getSampleStyleSheet
@@ -13,6 +12,7 @@ from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
 from schemas import ExamGenerationPayload, GeneratedExamQuestions
 from security import authenticated_user, ensure_teacher_owns_class, supabase_admin
 from services.private_storage import download_private_file, storage_path_from_reference
+from services.pdf_extractor import extract_text_from_bytes
 from services.gemini_api import generate_exam_questions
 
 router = APIRouter()
@@ -54,10 +54,12 @@ async def generate_exam(
             )
 
         storage_path_from_reference(pdf_url, "lessons")
-        pdf_bytes = download_private_file(pdf_url, "lessons")
-
-        with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
-            text = "\n".join(page.extract_text() or "" for page in pdf.pages)
+        pdf_bytes = await asyncio.to_thread(
+            download_private_file,
+            pdf_url,
+            "lessons",
+        )
+        text = await asyncio.to_thread(extract_text_from_bytes, pdf_bytes)
 
         if not text.strip():
             raise HTTPException(
