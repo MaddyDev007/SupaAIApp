@@ -1,21 +1,12 @@
 # backend/routers/quiz.py
 
-import os
-
-from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException
-from supabase import create_client
 
 from schemas import QuizStorePayload
 from security import authenticated_user, ensure_teacher_owns_class, supabase_admin
 
-load_dotenv()
-
 router = APIRouter()
-
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase = supabase_admin
 
 
 @router.post("/store")
