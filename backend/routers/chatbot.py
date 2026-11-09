@@ -175,7 +175,7 @@ async def clear_chat_history(
     session_id: str = Query(..., min_length=1),
     user: dict = Depends(authenticated_user),
 ):
-    ensure_class_access(user["id"], class_id)
+    await asyncio.to_thread(ensure_class_access, user["id"], class_id)
     await asyncio.to_thread(
         _get_owned_session, session_id, user["id"], class_id
     )
