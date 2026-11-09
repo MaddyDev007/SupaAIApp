@@ -583,11 +583,8 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:smartclass/secrets.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// ✅ GLOBAL CHAT HISTORY
-/// Safe to call anywhere:
-/// chatHistory.clear();
-final List<Map<String, String>> chatHistory = [];
 
 class ChatbotPage extends StatefulWidget {
   final String classId;
@@ -610,38 +607,116 @@ class _ChatbotPageState extends State<ChatbotPage> {
   Timer? _cursorTimer;
 
   String? _lastUserMessage;
+  String? _sessionId;
+  bool _isLoadingHistory = true;
+  final List<Map<String, String>> _chatMessages = [];
 
   @override
   void initState() {
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     super.initState();
-    _scrollToBottom();
-
-    if (chatHistory.isEmpty) {
-      Future.delayed(const Duration(milliseconds: 400), () {
-        setState(() {
-          chatHistory.add({
-            'role': 'bot',
-            'msg': '👋 Hi there! How can I help you today?',
-          });
-        });
-      });
-    }
+    _loadChatHistory();
 
     bool lastState = false;
-    // ✅ Track scroll to show/hide FAB
     _scrollController.addListener(() {
+      if (!_scrollController.hasClients) return;
       final atBottom =
           _scrollController.offset >=
           _scrollController.position.maxScrollExtent - 50;
 
-      if (atBottom != lastState) {
+      if (atBottom != lastState && mounted) {
         lastState = atBottom;
-        setState(() {
-          _showFAB = !atBottom;
-        });
+        setState(() => _showFAB = !atBottom);
       }
     });
+  }
+
+  Map<String, String> _authHeaders() {
+    final token = Supabase.instance.client.auth.currentSession?.accessToken;
+    if (token == null || token.isEmpty) {
+      throw Exception('Your session expired. Please sign in again.');
+    }
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $token',
+    };
+  }
+
+  Future<void> _loadChatHistory() async {
+    if (mounted) setState(() => _isLoadingHistory = true);
+
+    try {
+      final headers = _authHeaders();
+      final sessionResponse = await http.post(
+        Uri.parse('${AppSecrets.backendURL}/chatbot/session'),
+        headers: headers,
+        body: jsonEncode({'class_id': widget.classId}),
+      );
+
+      if (sessionResponse.statusCode < 200 ||
+          sessionResponse.statusCode >= 300) {
+        throw Exception('Could not open chat session (${sessionResponse.statusCode}).');
+      }
+
+      final sessionData =
+          jsonDecode(sessionResponse.body) as Map<String, dynamic>;
+      final sessionId = sessionData['session_id']?.toString();
+      if (sessionId == null || sessionId.isEmpty) {
+        throw Exception('The server did not return a chat session.');
+      }
+
+      final historyUri = Uri.parse(
+        '${AppSecrets.backendURL}/chatbot/history',
+      ).replace(queryParameters: {
+        'class_id': widget.classId,
+        'session_id': sessionId,
+      });
+
+      final historyResponse = await http.get(historyUri, headers: headers);
+      if (historyResponse.statusCode < 200 ||
+          historyResponse.statusCode >= 300) {
+        throw Exception('Could not load chat history (${historyResponse.statusCode}).');
+      }
+
+      final historyData =
+          jsonDecode(historyResponse.body) as Map<String, dynamic>;
+      final rows = List<dynamic>.from(historyData['messages'] ?? []);
+      final loadedMessages = rows.map<Map<String, String>>((row) {
+        final item = Map<String, dynamic>.from(row as Map);
+        return {
+          'role': item['role']?.toString() ?? 'bot',
+          'msg': item['msg']?.toString() ?? '',
+        };
+      }).toList();
+
+      if (!mounted) return;
+      setState(() {
+        _sessionId = sessionId;
+        _chatMessages
+          ..clear()
+          ..addAll(loadedMessages);
+
+        if (_chatMessages.isEmpty) {
+          _chatMessages.add({
+            'role': 'bot',
+            'msg': '👋 Hi there! How can I help you today?',
+          });
+        }
+        _isLoadingHistory = false;
+      });
+      _scrollToBottom();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingHistory = false;
+        _chatMessages
+          ..clear()
+          ..add({
+            'role': 'bot_error',
+            'msg': 'Could not load your saved conversation. Check your connection and tap retry.',
+          });
+      });
+    }
   }
 
   // ------------------------------------------------------------
@@ -678,16 +753,22 @@ class _ChatbotPageState extends State<ChatbotPage> {
   // ------------------------------------------------------------
   Future<void> sendMessageStream({String? retryText}) async {
     final question = retryText ?? _controller.text.trim();
-    if (question.isEmpty) return;
+    if (question.isEmpty || _isLoadingHistory) return;
+
+    final sessionId = _sessionId;
+    if (sessionId == null) {
+      _handleError('Saved chat is not ready. Tap retry to reload it.');
+      return;
+    }
 
     await _streamSub?.cancel();
     _cursorTimer?.cancel();
 
     setState(() {
       if (retryText == null) {
-        chatHistory.add({'role': 'user', 'msg': question});
+        _chatMessages.add({'role': 'user', 'msg': question});
       }
-      chatHistory.add({'role': 'bot', 'msg': ''});
+      _chatMessages.add({'role': 'bot', 'msg': ''});
       _isStreaming = true;
       _lastUserMessage = question;
     });
@@ -695,7 +776,6 @@ class _ChatbotPageState extends State<ChatbotPage> {
     _controller.clear();
     _scrollToBottom();
 
-    // Cursor blink
     _cursorTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
       if (!mounted || !_isStreaming) return;
       setState(() => _showCursor = !_showCursor);
@@ -706,62 +786,98 @@ class _ChatbotPageState extends State<ChatbotPage> {
       Uri.parse('${AppSecrets.backendURL}/chatbot/stream'),
     );
 
-    request.headers['Content-Type'] = 'application/json';
-    request.headers['Authorization'] =
-        'Bearer ${Supabase.instance.client.auth.currentSession!.accessToken}';
-    request.body = jsonEncode({
-      'question': question,
-      'class_id': widget.classId,
-    });
-
     try {
-      final response = await request.send();
-      String buffer = "";
+      request.headers.addAll(_authHeaders());
+      request.body = jsonEncode({
+        'question': question,
+        'class_id': widget.classId,
+        'session_id': sessionId,
+      });
 
+      final response = await request.send();
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        final errorBody = await response.stream.bytesToString();
+        String message = 'Chatbot request failed (${response.statusCode}).';
+        try {
+          final decoded = jsonDecode(errorBody);
+          if (decoded is Map && decoded['detail'] != null) {
+            message = decoded['detail'].toString();
+          }
+        } catch (_) {
+          // Keep the safe status message if the backend body is not JSON.
+        }
+        _handleError(message);
+        return;
+      }
+
+      String buffer = '';
       _streamSub = response.stream
           .transform(utf8.decoder)
           .listen(
             (chunk) {
-              if (!mounted) return;
-
+              if (!mounted || _chatMessages.isEmpty) return;
               buffer += chunk;
-
-              final display = buffer.isEmpty
-                  ? (_showCursor ? ' |' : '')
-                  : buffer + (_showCursor ? ' |' : '');
+              final display = buffer + (_showCursor ? ' |' : '');
 
               setState(() {
-                chatHistory.last['msg'] = display;
+                _chatMessages.last['msg'] = display;
               });
 
-              if (!_showFAB) {
-                _scrollToBottom();
-              }
+              if (!_showFAB) _scrollToBottom();
             },
             onDone: () {
               _cursorTimer?.cancel();
-              if (!mounted) return;
+              if (!mounted || _chatMessages.isEmpty) return;
 
               setState(() {
-                chatHistory.last['msg'] = buffer;
+                _chatMessages.last['msg'] = buffer;
                 _isStreaming = false;
+                _showCursor = false;
               });
             },
             onError: (_) {
               _handleError('🌐 Streaming error. Tap retry.');
             },
           );
-    } catch (_) {
+    } catch (error) {
       _handleError('🌐 Network error. Tap retry.');
     }
   }
 
-  //new
-  void _clearChat() {
-    setState(() {
-      chatHistory.clear();
-      _isStreaming = false;
-    });
+  Future<void> _clearChat() async {
+    final sessionId = _sessionId;
+    if (sessionId == null) return;
+
+    try {
+      final uri = Uri.parse(
+        '${AppSecrets.backendURL}/chatbot/history',
+      ).replace(queryParameters: {
+        'class_id': widget.classId,
+        'session_id': sessionId,
+      });
+
+      final response = await http.delete(uri, headers: _authHeaders());
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw Exception('Could not clear chat (${response.statusCode}).');
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _chatMessages
+          ..clear()
+          ..add({
+            'role': 'bot',
+            'msg': '👋 Hi there! How can I help you today?',
+          });
+        _lastUserMessage = null;
+        _isStreaming = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to clear chat: $error')),
+      );
+    }
   }
 
   Future<void> _showClearChatDialog() async {
@@ -797,7 +913,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
       ),
     );
     if (confirm == true) {
-      _clearChat();
+      await _clearChat();
     }
   }
 
@@ -810,8 +926,14 @@ class _ChatbotPageState extends State<ChatbotPage> {
 
     if (!mounted) return;
     setState(() {
-      chatHistory.add({'role': 'bot_error', 'msg': msg});
+      if (_chatMessages.isNotEmpty &&
+          _chatMessages.last['role'] == 'bot' &&
+          (_chatMessages.last['msg'] ?? '').isEmpty) {
+        _chatMessages.removeLast();
+      }
+      _chatMessages.add({'role': 'bot_error', 'msg': msg});
       _isStreaming = false;
+      _showCursor = false;
     });
   }
 
@@ -819,20 +941,35 @@ class _ChatbotPageState extends State<ChatbotPage> {
   // MESSAGE LIST
   // ------------------------------------------------------------
   Widget _buildMessageList() {
+    if (_isLoadingHistory) {
+      return const Expanded(
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Expanded(
       child: ListView.builder(
         controller: _scrollController,
         padding: const EdgeInsets.all(12),
         physics: const BouncingScrollPhysics(),
-        itemCount: chatHistory.length,
+        itemCount: _chatMessages.length,
         itemBuilder: (context, index) {
-          final msg = chatHistory[index];
+          final msg = _chatMessages[index];
 
           if (msg['role'] == 'bot_error') {
             return _RetryBubble(
               message: msg['msg']!,
               onRetry: () {
-                chatHistory.removeLast();
+                if (_lastUserMessage == null) {
+                  _loadChatHistory();
+                  return;
+                }
+                setState(() {
+                  if (_chatMessages.isNotEmpty &&
+                      _chatMessages.last['role'] == 'bot_error') {
+                    _chatMessages.removeLast();
+                  }
+                });
                 sendMessageStream(retryText: _lastUserMessage);
               },
             );
@@ -968,7 +1105,7 @@ class _ChatbotPageState extends State<ChatbotPage> {
       actions: [
         IconButton(
           icon: const Icon(Icons.delete, color: Colors.white),
-          onPressed: _showClearChatDialog,
+          onPressed: _isStreaming ? null : _showClearChatDialog,
         ),
       ],
     );
