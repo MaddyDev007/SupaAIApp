@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import ValidationError
 
@@ -47,7 +49,7 @@ async def handle_upload(
     # private lessons bucket after checking material ownership.
     storage_path_from_reference(pdf_url, "lessons")
 
-    text = extract_text_from_url(pdf_url)
+    text = await asyncio.to_thread(extract_text_from_url, pdf_url)
     if not text or not text.strip():
         raise HTTPException(
             status_code=422,

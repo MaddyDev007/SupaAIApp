@@ -11,15 +11,23 @@ A global profiles.role value must not prevent one account from doing both.
 from typing import Any, Optional
 
 from fastapi import Header, HTTPException
-from supabase import create_client
+from supabase import ClientOptions, create_client
 
 from config import get_settings
 
 
 settings = get_settings()
+
+# Bound both database and Storage requests. In particular, Storage downloads
+# must not wait indefinitely when a PDF object or network path stalls.
+SUPABASE_REQUEST_TIMEOUT_SECONDS = 20
 supabase_admin = create_client(
     settings.supabase_url,
     settings.supabase_service_role_key,
+    options=ClientOptions(
+        postgrest_client_timeout=SUPABASE_REQUEST_TIMEOUT_SECONDS,
+        storage_client_timeout=SUPABASE_REQUEST_TIMEOUT_SECONDS,
+    ),
 )
 
 

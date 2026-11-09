@@ -35,12 +35,22 @@ This file lists discovered issues (logic, data-flow, security, UX, and reliabili
 
 ---
 
-## 4) Backend external requests without timeouts (Reliability) — MEDIUM
+## 4) PDF download timeout and failure handling (Reliability) — MEDIUM — IMPLEMENTED IN CODE (2026-11-09)
 - Files:
-  - `backend/services/pdf_extractor.py` (requests.get without timeout)
-  - `backend/routers/question.py` (requests.get(req.pdf_url) -- no timeout)
-- Description: HTTP requests (PDF download) are performed without timeouts; network stalls could hang worker threads.
-- Impact: Degraded responsiveness, possible worker exhaustion under slow networks.
+  - `backend/security.py`
+  - `backend/services/private_storage.py`
+  - `backend/services/pdf_extractor.py`
+  - `backend/routers/upload.py`
+  - `backend/routers/question.py`
+- Previous issue: The active material/exam flows downloaded PDFs from private Supabase Storage without an explicit SDK timeout. The external HTTP fallback had a 15-second timeout but swallowed timeout/connection failures and returned an empty string, making network failures look like PDF text extraction failures.
+- Resolution:
+  - The shared Supabase client now sets 20-second Storage and PostgREST request timeouts.
+  - External HTTP downloads use a 5-second connect timeout and 20-second read timeout.
+  - Timeouts and upstream failures return explicit 504/503/502 responses; missing files return 404; unreadable PDFs return 422.
+  - Async endpoints offload blocking download and PDF extraction operations to worker threads.
+  - Quiz and exam generation reuse one PDF extraction/OCR helper.
+- Tests: Added `backend/tests/test_pdf_downloads.py` with mocked timeout, connection, upstream-status, empty-file, and unreadable-PDF scenarios.
+- Note: Unit tests and live deployment smoke tests remain to be run.
 
 ---
 
