@@ -141,7 +141,5 @@ This document provides a high-level overview of the project architecture (fronte
 
 ---
 
-If you want, I can:
-- Produce a `API.md` with example payloads and sample success/error responses.
-- Make a prioritized TODO list derived from `error.md` (for fixes and security hardening).
+
 
