@@ -1,29 +1,22 @@
 # backend/routers/question.py
 
 import io
-import os
 import uuid
 from xml.sax.saxutils import escape
 
 import pdfplumber
-from dotenv import load_dotenv
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import ValidationError
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
-from supabase import create_client
 
 from schemas import ExamGenerationPayload, GeneratedExamQuestions
 from security import authenticated_user, ensure_teacher_owns_class, supabase_admin
 from services.private_storage import download_private_file, storage_path_from_reference
 from services.gemini_api import generate_exam_questions
 
-load_dotenv()
 router = APIRouter()
-
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase = supabase_admin
 
 
 @router.post("/generate-exam")

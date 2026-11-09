@@ -1,3 +1,9 @@
+# Validate mandatory settings before importing modules that create external clients.
+# This ensures missing configuration fails once, immediately, and with safe messages.
+from config import get_settings
+
+settings = get_settings()
+
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -44,7 +50,6 @@ async def request_validation_exception_handler(request, exc: RequestValidationEr
     )
 
 
-# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # In production, replace "*" with your frontend URL
@@ -53,7 +58,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include your routers with prefixes
 app.include_router(upload.router, prefix="/upload")
 app.include_router(quiz.router, prefix="/quiz")
 app.include_router(chatbot.router, prefix="/chatbot")

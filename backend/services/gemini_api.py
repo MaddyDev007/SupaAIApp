@@ -1,27 +1,24 @@
 import asyncio
 import io
 import json
-import os
 import re
 from pathlib import Path
 
 import google.generativeai as genai
 import httpx
 import pdfplumber
-from dotenv import load_dotenv
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
-from supabase import create_client
+
+from config import get_settings
+from security import supabase_admin
 from services.private_storage import download_private_file
 
 # -------------------------------------------------------------------
-# Load environment variables
+# Validated application configuration
 # -------------------------------------------------------------------
-load_dotenv(dotenv_path=Path(__file__).resolve().parents[1] / ".env")
-
-GEMINI_KEY = os.getenv("GEMINI_API_KEY")
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+settings = get_settings()
+GEMINI_KEY = settings.gemini_api_key
 
 genai.configure(api_key=GEMINI_KEY)
 
@@ -30,7 +27,7 @@ MCQ_MODEL = genai.GenerativeModel("models/gemini-2.5-flash")
 CHAT_MODEL = genai.GenerativeModel("models/gemini-2.5-flash")
 EXAM_MODEL = genai.GenerativeModel("models/gemini-2.5-flash")
 
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase = supabase_admin
 
 DOCUMENT_CACHE = {}
 MARKDOWN_CACHE = {}

@@ -8,21 +8,19 @@ Class permissions are scoped to each class:
 - A user with a student membership can access that joined class.
 A global profiles.role value must not prevent one account from doing both.
 """
-import os
 from typing import Any, Optional
 
 from fastapi import Header, HTTPException
 from supabase import create_client
-from dotenv import load_dotenv
 
-load_dotenv()
+from config import get_settings
 
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-if not SUPABASE_URL or not SUPABASE_SERVICE_ROLE_KEY:
-    raise RuntimeError("Missing Supabase service configuration")
 
-supabase_admin = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+settings = get_settings()
+supabase_admin = create_client(
+    settings.supabase_url,
+    settings.supabase_service_role_key,
+)
 
 
 def authenticated_user(authorization: Optional[str] = Header(default=None)) -> dict[str, Any]:

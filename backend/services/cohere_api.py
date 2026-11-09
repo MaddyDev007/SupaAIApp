@@ -1,27 +1,30 @@
 import json
-import os
 import re
 import io
 import asyncio
 import httpx
 import pdfplumber
-from dotenv import load_dotenv
-from pathlib import Path
 from cohere import Client
 from fastapi import HTTPException
-from supabase import create_client
 
-# -------------------------------------------------------------------
-# 🔧 Load environment variables
-# -------------------------------------------------------------------
-load_dotenv(dotenv_path=Path(__file__).resolve().parents[1] / ".env")
+from config import get_settings
+from security import supabase_admin
 
-COHERE_KEY = os.getenv("COHERE_API_KEY")
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
-co = Client(COHERE_KEY)
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+settings = get_settings()
+supabase = supabase_admin
+
+
+def _get_cohere_client() -> Client:
+    """Create the optional legacy Cohere client only when a caller uses it."""
+
+    if not settings.cohere_api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="Cohere integration is not configured. Set COHERE_API_KEY to enable it.",
+        )
+
+    return Client(settings.cohere_api_key)
 
 # -------------------------------------------------------------------
 # 🧩 Utility: Split long text into chunks
@@ -52,7 +55,7 @@ Content:
 """
 
     try:
-        response = co.chat(
+        response = _get_cohere_client().chat(
             model="command-a-03-2025",
             message=prompt,
             temperature=0.3,
@@ -71,6 +74,8 @@ Content:
                 detail="Malformed JSON returned by Cohere"
             )
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[Cohere MCQ Error] {e}")
         raise HTTPException(
@@ -98,6 +103,8 @@ def extract_text(file_bytes: bytes) -> str:
     try:
         with pdfplumber.open(io.BytesIO(file_bytes)) as pdf:
             return "\n".join(page.extract_text() or "" for page in pdf.pages)
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[PDF Extraction Error] {e}")
         return ""
@@ -151,6 +158,8 @@ async def fetch_relevant_documents(
 
         return documents
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[Document Fetch Error] {e}")
         return []
@@ -181,7 +190,7 @@ async def ask_chatbot(
         })
 
         def run_cohere():
-            return co.chat(
+            return _get_cohere_client().chat(
                 model="command-a-03-2025",
                 message=question,
                 chat_history=session_history,
@@ -191,6 +200,8 @@ async def ask_chatbot(
         answer = await asyncio.to_thread(run_cohere)
         return answer
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[Chatbot Error] {e}")
         raise HTTPException(
@@ -220,7 +231,7 @@ Return ONLY valid JSON:
 """
 
     try:
-        response = co.chat(
+        response = _get_cohere_client().chat(
             model="command-a-03-2025",
             message=prompt,
             temperature=0.3,
@@ -244,6 +255,8 @@ Return ONLY valid JSON:
             "13_mark": data.get("13_mark", []),
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[Exam Generation Error] {e}")
         raise HTTPException(
