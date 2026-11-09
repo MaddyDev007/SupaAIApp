@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:hive/hive.dart';
 import 'package:smartclass/models/login_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -30,6 +31,83 @@ class _ContinueWithGoogleState extends State<ContinueWithGoogle> {
   static const _callbackScheme = 'smartclass';
   static const _callbackHost = 'login-callback';
   static const _callbackUrl = 'smartclass://login-callback';
+
+  // This is the Web OAuth client ID configured for Google in Supabase.
+  // It is a public client identifier, not a client secret.
+  static const _googleWebClientId = String.fromEnvironment(
+    'GOOGLE_WEB_CLIENT_ID',
+  );
+
+  // google_sign_in 7.x is a singleton and must be initialized only once.
+  static Future<void>? _googleSignInInitialization;
+
+  Future<void> _initializeNativeGoogleSignIn() {
+    final clientId = _googleWebClientId.trim();
+    if (clientId.isEmpty ||
+        !clientId.endsWith('.apps.googleusercontent.com')) {
+      throw StateError(
+        'Native Google Sign-In is not configured. Build the Android app '
+        'with --dart-define=GOOGLE_WEB_CLIENT_ID=<your Web OAuth client ID>.',
+      );
+    }
+
+    return _googleSignInInitialization ??=
+        GoogleSignIn.instance.initialize(serverClientId: clientId);
+  }
+
+  Future<void> _signInWithGoogleOnAndroid() async {
+    await _initializeNativeGoogleSignIn();
+
+    final googleSignIn = GoogleSignIn.instance;
+    if (!googleSignIn.supportsAuthenticate()) {
+      throw UnsupportedError(
+        'Native Google Sign-In is not supported on this device.',
+      );
+    }
+
+    // Android shows Google's native account selector; no embedded WebView or
+    // external Chrome OAuth page is used for this Android path.
+    final googleUser = await googleSignIn.authenticate();
+    final idToken = googleUser.authentication.idToken;
+    if (idToken == null || idToken.isEmpty) {
+      throw const AuthException(
+        'Google did not return an ID token. Check the Web OAuth client ID.',
+      );
+    }
+
+    // Supabase requires both the Google ID token and access token.
+    // The first lookup reuses an existing grant; the second asks Google only
+    // when the email scope has not yet been authorized.
+    final authorization =
+        await googleUser.authorizationClient.authorizationForScopes(
+          const ['email'],
+        ) ??
+        await googleUser.authorizationClient.authorizeScopes(
+          const ['email'],
+        );
+
+    final accessToken = authorization.accessToken;
+    if (accessToken.isEmpty) {
+      throw const AuthException(
+        'Google did not return an access token. Please try again.',
+      );
+    }
+
+    final response = await _supabase.auth.signInWithIdToken(
+      provider: OAuthProvider.google,
+      idToken: idToken,
+      accessToken: accessToken,
+    );
+
+    final session = response.session;
+    if (session == null) {
+      throw const AuthException(
+        'Supabase did not create a session after Google sign-in.',
+      );
+    }
+
+    await _handleSignedInSession(session);
+  }
 
   @override
   void initState() {
@@ -151,10 +229,7 @@ class _ContinueWithGoogleState extends State<ContinueWithGoogle> {
 
     try {
       if (_isAndroid) {
-        await _supabase.auth.signInWithOAuth(
-          OAuthProvider.google,
-          redirectTo: _callbackUrl,
-        );
+        await _signInWithGoogleOnAndroid();
         return;
       }
 
@@ -173,6 +248,24 @@ class _ContinueWithGoogleState extends State<ContinueWithGoogle> {
       setState(() {
         _isLoading = false;
         _errorMessage = error.message;
+      });
+    } on GoogleSignInException catch (error, stackTrace) {
+      debugPrint('Google Sign-In failed: ${error.code}');
+      debugPrint(stackTrace.toString());
+      if (!mounted) return;
+
+      // Account chooser dismissal is a normal cancellation, not an error.
+      if (error.code == GoogleSignInExceptionCode.canceled) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = null;
+        });
+        return;
+      }
+
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Google sign-in failed: ${error.code.name}';
       });
     } on AuthException catch (error, stackTrace) {
       debugPrint('Supabase AuthException: ${error.message}');
