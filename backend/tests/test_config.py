@@ -64,6 +64,25 @@ class BuildSettingsTests(unittest.TestCase):
 
         self.assertIn("invalid format: SUPABASE_URL", str(context.exception))
 
+    def test_rejects_placeholder_api_key(self):
+        env = {**self.valid_env, "GEMINI_API_KEY": "your_gemini_api_key"}
+
+        with self.assertRaises(RuntimeError) as context:
+            build_settings(env)
+
+        self.assertIn("GEMINI_API_KEY", str(context.exception))
+
+    def test_rejects_placeholder_supabase_url(self):
+        env = {
+            **self.valid_env,
+            "SUPABASE_URL": "https://your-project.supabase.co",
+        }
+
+        with self.assertRaises(RuntimeError) as context:
+            build_settings(env)
+
+        self.assertIn("SUPABASE_URL", str(context.exception))
+
     def test_rejects_unresolved_blueprint_placeholder(self):
         env = {**self.valid_env, "GEMINI_API_KEY": "${GEMINI_API_KEY}"}
 
