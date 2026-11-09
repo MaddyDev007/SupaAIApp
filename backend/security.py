@@ -11,8 +11,7 @@ A global profiles.role value must not prevent one account from doing both.
 from typing import Any, Optional
 
 from fastapi import Header, HTTPException
-from supabase import create_client
-from supabase.client import ClientOptions
+from supabase import ClientOptions, create_client
 
 from config import get_settings
 
