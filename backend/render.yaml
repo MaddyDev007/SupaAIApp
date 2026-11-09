@@ -7,9 +7,10 @@ services:
     dockerfilePath: Dockerfile
     autoDeploy: true
     envVars:
-      - key: COHERE_API_KEY
-        value: ${COHERE_API_KEY}
+      # Required secrets: populate these in the Render Dashboard.
       - key: SUPABASE_URL
-        value: ${SUPABASE_URL}
+        sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
-        value: ${SUPABASE_SERVICE_ROLE_KEY}
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
