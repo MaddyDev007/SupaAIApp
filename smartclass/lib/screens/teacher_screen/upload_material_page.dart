@@ -141,7 +141,7 @@ class _UploadMaterialPageState extends State<UploadMaterialPage> {
           }).where((line) => line.isNotEmpty).toList();
 
           if (lines.isNotEmpty) {
-            return '$message\n${lines.join('\n')}';
+            return '$message\n${lines.join("\n")}';
           }
         }
 
