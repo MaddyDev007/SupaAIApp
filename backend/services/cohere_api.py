@@ -158,42 +158,37 @@ async def fetch_relevant_documents(
 # -------------------------------------------------------------------
 # 💬 Chatbot (CLASS-SCOPED CONTEXT)
 # -------------------------------------------------------------------
-# NOTE: Still global memory (acceptable for now)
-chat_history = []
+async def ask_chatbot(
+    question: str,
+    class_id: str,
+    history: list[dict] | None = None,
+):
+    """Answer using only conversation history explicitly supplied by the caller.
 
-async def ask_chatbot(question: str, class_id: str):
-    global chat_history
-
+    Callers must load history from their authenticated user/class/session store.
+    This function intentionally keeps no process-global conversation state.
+    """
     try:
         documents = await fetch_relevant_documents(
             question=question,
             class_id=class_id,
         )
 
-        # Keep history bounded
-        if len(chat_history) > 20:
-            chat_history = chat_history[-20:]
-
-        chat_history.append({
+        session_history = list(history or [])[-20:]
+        session_history.append({
             "role": "USER",
-            "message": question
+            "message": question,
         })
 
         def run_cohere():
             return co.chat(
                 model="command-a-03-2025",
                 message=question,
-                chat_history=chat_history,
+                chat_history=session_history,
                 documents=documents,
             ).text
 
         answer = await asyncio.to_thread(run_cohere)
-
-        chat_history.append({
-            "role": "CHATBOT",
-            "message": answer
-        })
-
         return answer
 
     except Exception as e:
