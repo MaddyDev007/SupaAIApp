@@ -15,12 +15,15 @@ This file lists discovered issues (logic, data-flow, security, UX, and reliabili
 
 ---
 
-## 2) Global in-memory chat history (Data isolation / multi-tenant bug) — HIGH
+## 2) Global in-memory chat history (Data isolation / multi-tenant bug) — HIGH — RESOLVED (2026-11-09)
 - Files:
-  - `backend/services/cohere_api.py` (`chat_history` global)
-  - `smartclass/lib/screens/common_screen/chatbot_page.dart` (`chatHistory` global in client)
-- Description: Backend keeps a single global `chat_history` for all classes and users. Although `ask_chatbot` receives `class_id` and fetches class-scoped documents, the chat history is shared across all classes and sessions. This can leak context across classes and users.
-- Impact: Cross-tenant data leakage; inconsistent or incorrect chatbot responses.
+  - `backend/services/gemini_api.py` (active streaming chatbot)
+  - `backend/services/cohere_api.py` (legacy chatbot service)
+  - `smartclass/lib/screens/common_screen/chatbot_page.dart`
+- Previous issue: Conversation history was held in process-global Python and Dart lists, which could mix users/classes and was lost when the widget or backend process restarted.
+- Resolution: Added private `chat_sessions` and `chat_messages` tables. The backend maintains one persistent session per authenticated user + class, validates session ownership and class membership on every history/stream/clear request, and supplies only that session's recent messages to Gemini. Flutter now loads the saved conversation when the chatbot page opens and stores messages in page-local state. The legacy Cohere helper no longer retains global history.
+- Data access: RLS is enabled; `anon` and `authenticated` cannot read these tables directly. The backend uses `service_role` after authorization checks.
+- Note: Conversations held only in the old in-memory lists were never persisted and cannot be recovered. New messages are persisted after this deployment.
 
 ---
 

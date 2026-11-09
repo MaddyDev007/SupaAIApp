@@ -97,29 +97,78 @@ Notes:
 
 ---
 
-## 3) Chatbot
-POST /chatbot/
-- Description: Ask an AI chatbot a question; returns an answer. **Must include `class_id` to scope documents**.
-- Headers: `Content-Type: application/json`
+## 3) Chatbot (Persistent, class-scoped conversation)
 
-Request body example:
+All chatbot endpoints require:
+- `Authorization: Bearer <Supabase access token>`
+- `Content-Type: application/json` for POST requests.
 
+The backend keeps one persistent conversation session per authenticated user + class. Reopening the chatbot retrieves the same session and its saved messages. Session IDs are not interchangeable between users or classes.
+
+### Open or retrieve the current session
+POST /chatbot/session
+
+Request:
 ```json
-{ "question": "Explain entropy in simple terms.", "class_id": "classA" }
+{ "class_id": "<class UUID>" }
 ```
 
-Success response (200):
-
+Response (200):
 ```json
-{ "answer": "Entropy is ..." }
+{ "session_id": "<session UUID>" }
 ```
+
+The caller must own the class or be a student member of it.
+
+### Load saved messages
+GET /chatbot/history?class_id=<class UUID>&session_id=<session UUID>
+
+Response (200):
+```json
+{
+  "messages": [
+    { "role": "user", "msg": "Explain entropy." },
+    { "role": "bot", "msg": "Entropy is ..." }
+  ]
+}
+```
+
+Only the authenticated user's session for that class can be read. The response includes up to the latest 100 messages.
+
+### Stream a new answer
+POST /chatbot/stream
+
+Request:
+```json
+{
+  "question": "Explain entropy in simple terms.",
+  "class_id": "<class UUID>",
+  "session_id": "<session UUID>"
+}
+```
+
+Response: streamed plain-text assistant content. The user prompt is saved before generation, and the assistant answer is saved after the stream completes. Gemini receives the latest 20 saved messages as conversation context.
+
+### Clear saved messages
+DELETE /chatbot/history?class_id=<class UUID>&session_id=<session UUID>
+
+Response (200):
+```json
+{ "status": "cleared" }
+```
+
+This deletes the messages in the current session but keeps the session itself. The next prompt starts a fresh conversation in that same user/class session.
 
 Errors:
-- 400: Missing `question` or missing `class_id`.
-- 500: Chatbot failed to respond.
+- 401: Missing or invalid Supabase access token.
+- 403: Caller does not own or belong to the requested class.
+- 404: Session does not belong to the authenticated user and requested class.
+- 400/422: Missing or invalid request fields.
+- 500: Session persistence or chatbot generation failure.
 
 Notes:
-- Chat context should be scoped to class; currently backend had a global chat history — ensure you send a `session_id` if added later.
+- Chat messages are stored in private database tables with RLS enabled. The Flutter app accesses them only through these authenticated backend endpoints.
+- There is one active persistent session per user/class pair. Separate users and separate classes never share conversation history.
 
 ---
 
