@@ -4,7 +4,7 @@ Secrets are never included in validation errors or startup logs.
 """
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 from typing import Mapping
@@ -40,9 +40,9 @@ class Settings:
     """Validated runtime settings. Do not log or serialize this object."""
 
     supabase_url: str
-    supabase_service_role_key: str
-    gemini_api_key: str
-    cohere_api_key: str | None = None
+    supabase_service_role_key: str = field(repr=False)
+    gemini_api_key: str = field(repr=False)
+    cohere_api_key: str | None = field(default=None, repr=False)
 
 
 def _is_missing_or_placeholder(value: str | None) -> bool:
@@ -87,7 +87,12 @@ def build_settings(environ: Mapping[str, str]) -> Settings:
             + "). Set these variables in the backend environment and restart."
         )
 
-    cohere_value = (environ.get("COHERE_API_KEY") or "").strip() or None
+    raw_cohere_value = environ.get("COHERE_API_KEY")
+    cohere_value = (
+        raw_cohere_value.strip()
+        if raw_cohere_value and not _is_missing_or_placeholder(raw_cohere_value)
+        else None
+    )
 
     return Settings(
         supabase_url=supabase_url,
