@@ -255,12 +255,13 @@ def build_routing_context_block(intent: str, context_text: str) -> str:
 # -------------------------------------------------------------------
 # Chatbot (multi-context + class-scoped study retrieval)
 # -------------------------------------------------------------------
-chat_history = []
-
-
-async def ask_chatbot_stream(question: str, class_id: str):
-    global chat_history
-
+async def ask_chatbot_stream(
+    question: str,
+    class_id: str,
+    history: list[dict] | None = None,
+    on_answer_complete=None,
+):
+    """Stream a reply using only the supplied user's saved conversation history."""
     try:
         intent = detect_chat_intent(question)
         context_text = ""
@@ -278,9 +279,6 @@ async def ask_chatbot_stream(question: str, class_id: str):
                     for document in documents
                 )
 
-        if len(chat_history) > 20:
-            chat_history = chat_history[-20:]
-
         messages = [{
             "role": "user",
             "parts": [{"text": CHATBOT_SYSTEM_PROMPT}],
@@ -294,11 +292,18 @@ async def ask_chatbot_stream(question: str, class_id: str):
                 }],
             })
 
-        for msg in chat_history:
-            role = "user" if msg["role"] == "USER" else "model"
+        # The caller loads history from the persistent session belonging to
+        # the authenticated user and class. Never use process-global history.
+        for msg in (history or []):
+            stored_role = msg.get("role")
+            content = msg.get("content", "")
+            if not content:
+                continue
+            if stored_role not in {"user", "assistant"}:
+                continue
             messages.append({
-                "role": role,
-                "parts": [{"text": msg["message"]}],
+                "role": "user" if stored_role == "user" else "model",
+                "parts": [{"text": content}],
             })
 
         messages.append({
@@ -315,18 +320,26 @@ async def ask_chatbot_stream(question: str, class_id: str):
             full_answer = ""
 
             for chunk in response:
-                if chunk.text:
-                    full_answer += chunk.text
-                    yield chunk.text
+                chunk_text = getattr(chunk, "text", None)
+                if chunk_text:
+                    full_answer += chunk_text
+                    yield chunk_text
 
-            chat_history.append({"role": "USER", "message": question})
-            chat_history.append({"role": "CHATBOT", "message": full_answer})
+            # Persist only a completed assistant response. User prompt was
+            # stored by the authenticated router before streaming started.
+            if full_answer and on_answer_complete is not None:
+                try:
+                    await on_answer_complete(full_answer)
+                except Exception as persist_error:
+                    print(f"[Chat History Persistence Error] {persist_error}")
 
         return StreamingResponse(
             stream_generator(),
             media_type="text/plain",
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[Chatbot Stream Error] {e}")
         raise HTTPException(
