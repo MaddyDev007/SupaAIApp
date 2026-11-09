@@ -1,6 +1,7 @@
 # backend/routers/question.py
 
 import asyncio
+import io
 import uuid
 from xml.sax.saxutils import escape
 
