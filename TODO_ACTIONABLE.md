@@ -53,17 +53,25 @@ Priority legend
 
 ## P1 — High
 
-### P1-1: Add timeouts and error handling to external PDF HTTP requests
+### P1-1: Add timeouts and error handling to PDF downloads — IMPLEMENTED (2026-11-09)
 - Files:
+  - `backend/security.py`
+  - `backend/services/private_storage.py`
   - `backend/services/pdf_extractor.py`
-  - `backend/routers/question.py` (requests.get(req.pdf_url))
-- Suggested changes:
-  1. Add a sensible timeout (e.g., `timeout=20`) to `requests.get` calls.
-  2. Catch timeout and connection errors and return 4xx/5xx with clear messages.
-- Tests / Acceptance criteria:
-  - Simulate slow / non-responsive endpoints in tests; code should not hang and should return an error.
-- PR guidance: Small PR. Message: `fix(pdf): add timeouts and resilient error handling to PDF downloads`.
-- Est. effort: 1 hour.
+  - `backend/routers/upload.py`
+  - `backend/routers/question.py`
+  - `backend/tests/test_pdf_downloads.py`
+- Implementation:
+  1. Configured the shared synchronous Supabase client with 20-second Storage and PostgREST request timeouts.
+  2. External HTTP PDF downloads use a 5-second connection timeout and 20-second read timeout.
+  3. Map download failures to actionable HTTP responses: timeout `504`, connection failure `503`, upstream request failure `502`, missing object `404`, and invalid/unreadable PDF `422`.
+  4. Stop converting network failures into an empty string, which previously made timeouts look like unreadable PDFs.
+  5. Run blocking PDF download and extraction operations in worker threads from async endpoints.
+  6. Share the same PDF byte extraction/OCR function between material quiz generation and exam generation.
+- Tests:
+  - Added 10 unit tests for external HTTP and private Storage success/failure paths, timeouts, statuses, and unreadable PDFs.
+  - Run from `backend/`: `python -m unittest discover -s tests -v`.
+- Note: Tests are added but have not been executed in this environment. Live Render/Supabase timeout behavior must be smoke-tested after deployment.
 
 ### P1-2: Validate critical environment variables at backend startup — IMPLEMENTED (2026-11-09)
 - Files:
