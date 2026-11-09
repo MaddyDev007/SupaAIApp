@@ -2,6 +2,11 @@
 
 The service-role client bypasses RLS. Every route using it must verify the
 caller and the requested class before doing privileged work.
+
+Class permissions are scoped to each class:
+- The creator is the teacher/owner of that class.
+- A user with a student membership can access that joined class.
+A global profiles.role value must not prevent one account from doing both.
 """
 import os
 from typing import Any, Optional
@@ -40,54 +45,52 @@ def authenticated_user(authorization: Optional[str] = Header(default=None)) -> d
         raise HTTPException(status_code=401, detail="Invalid or expired session")
 
 
-def _profile_role(user_id: str) -> Optional[str]:
-    result = (
-        supabase_admin.table("profiles")
-        .select("role")
-        .eq("id", user_id)
-        .maybe_single()
-        .execute()
-    )
-    return (result.data or {}).get("role")
+def _query_has_row(query: Any) -> bool:
+    """Execute a limited query without maybe_single() response-shape ambiguity."""
+    response = query.limit(1).execute()
+
+    # Supabase/PostgREST normally returns an APIResponse with .data. Be
+    # defensive about None or unexpected wrappers so an empty lookup does
+    # not turn into an AttributeError/500.
+    data = getattr(response, "data", response)
+    if data is None:
+        return False
+    if isinstance(data, (list, tuple)):
+        return len(data) > 0
+    return bool(data)
 
 
-def ensure_teacher_owns_class(user_id: str, class_id: str) -> None:
-    if _profile_role(user_id) != "teacher":
-        raise HTTPException(status_code=403, detail="Teacher account required")
-
-    result = (
+def _class_is_owned_by(user_id: str, class_id: str) -> bool:
+    return _query_has_row(
         supabase_admin.table("classes")
         .select("id")
         .eq("id", class_id)
         .eq("created_by", user_id)
-        .maybe_single()
-        .execute()
     )
-    if not result.data:
-        raise HTTPException(status_code=403, detail="You do not own this class")
 
 
-def ensure_class_access(user_id: str, class_id: str) -> None:
-    if _profile_role(user_id) == "teacher":
-        owned = (
-            supabase_admin.table("classes")
-            .select("id")
-            .eq("id", class_id)
-            .eq("created_by", user_id)
-            .maybe_single()
-            .execute()
-        )
-        if owned.data:
-            return
-
-    membership = (
+def _is_student_member(user_id: str, class_id: str) -> bool:
+    return _query_has_row(
         supabase_admin.table("class_members")
         .select("id")
         .eq("class_id", class_id)
         .eq("user_id", user_id)
         .eq("student", True)
-        .maybe_single()
-        .execute()
     )
-    if not membership.data:
+
+
+def ensure_teacher_owns_class(user_id: str, class_id: str) -> None:
+    # Kept under its existing name for route compatibility. Ownership of the
+    # requested class, not the account's global profile role, is authoritative.
+    if not _class_is_owned_by(user_id, class_id):
+        raise HTTPException(status_code=403, detail="You do not own this class")
+
+
+def ensure_class_access(user_id: str, class_id: str) -> None:
+    # Check ownership first for every account; then check joined-student access.
+    # This allows the same account to own Class A and join Class B.
+    if _class_is_owned_by(user_id, class_id):
+        return
+
+    if not _is_student_member(user_id, class_id):
         raise HTTPException(status_code=403, detail="Class membership required")
