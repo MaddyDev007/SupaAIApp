@@ -3,7 +3,7 @@
 import asyncio
 from typing import Any
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from security import authenticated_user, ensure_class_access, supabase_admin
@@ -134,7 +134,7 @@ async def get_or_create_chat_session(
     payload: ChatSessionRequest,
     user: dict = Depends(authenticated_user),
 ):
-    ensure_class_access(user["id"], payload.class_id)
+    await asyncio.to_thread(ensure_class_access, user["id"], payload.class_id)
     session = await asyncio.to_thread(
         _get_or_create_session, user["id"], payload.class_id
     )
@@ -147,7 +147,7 @@ async def get_chat_history(
     session_id: str = Query(..., min_length=1),
     user: dict = Depends(authenticated_user),
 ):
-    ensure_class_access(user["id"], class_id)
+    await asyncio.to_thread(ensure_class_access, user["id"], class_id)
     await asyncio.to_thread(
         _get_owned_session, session_id, user["id"], class_id
     )
@@ -201,8 +201,10 @@ async def chat_stream(
     class_id = payload.class_id
     session_id = payload.session_id
     question = payload.question.strip()
+    if not question:
+        raise HTTPException(status_code=400, detail="Missing question")
 
-    ensure_class_access(user_id, class_id)
+    await asyncio.to_thread(ensure_class_access, user_id, class_id)
     await asyncio.to_thread(
         _get_owned_session, session_id, user_id, class_id
     )
