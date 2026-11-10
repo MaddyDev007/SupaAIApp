@@ -249,9 +249,9 @@ const String supabaseAnonKey = 'your_anon_key_here';
 const String backendUrl = 'https://your-backend-url.com'; // or localhost:8000 for local development
 ```
 
-### Native Google Sign-In (Android)
+### Google Sign-In (Android, Web, and Windows)
 
-Android uses the native Google account selector through `google_sign_in`; it does not embed Google's OAuth page in a WebView. Windows keeps the existing browser OAuth flow.
+Android uses the native Google account selector through `google_sign_in`; it does not embed Google's OAuth page in a WebView. Flutter Web uses Supabase's browser-based OAuth redirect flow. Windows keeps the existing browser OAuth flow with manual callback capture.
 
 #### 1. Configure Google OAuth clients
 
@@ -271,7 +271,7 @@ Register the SHA-1 for the debug key used by local development. Also register th
 
 #### 2. Configure Supabase
 
-In Supabase Dashboard, open **Authentication → Sign In / Providers → Google**. Enable Google and configure it with the Web application OAuth client ID and its client secret. Use the same Web client ID for the Flutter app's `GOOGLE_WEB_CLIENT_ID` build define below.
+In Supabase Dashboard, open **Authentication → Sign In / Providers → Google**. Enable Google and configure the Web application OAuth client ID and its matching client secret. In the **Client IDs** field, add the Web client ID first, followed by the Android client ID, separated by a comma. Use the Web client ID for the Flutter app's `GOOGLE_WEB_CLIENT_ID` build define below.
 
 Do not put the Google Web client secret in Flutter, source control, or a `--dart-define`. Only the public Web client ID is passed to the app.
 
@@ -291,13 +291,32 @@ flutter build apk --release \
 
 Replace the example value with the Web OAuth client ID configured in Supabase. The ID is public configuration, not a secret. Supply the same define to every Android build (local, CI, and release); without it, native sign-in shows a configuration error rather than falling back to Chrome.
 
-#### 4. Expected platform behavior
+#### 4. Flutter Web redirect configuration
+
+Flutter Web uses `Uri.base.origin` as the OAuth return URL. Add the local development origin and your deployed site origin to **Supabase → Authentication → URL Configuration → Redirect URLs**.
+
+For example, when running Chrome on port 5000:
+
+```text
+http://localhost:5000/**
+```
+
+Also add your production origin, such as `https://your-domain.example/**`. Use the actual domain where the Flutter Web app is hosted.
+
+Run Web locally with:
+
+```bash
+flutter run -d chrome --web-port=5000
+```
+
+#### 5. Expected platform behavior
 
 - **Android:** native Google account selection, followed by Google ID/access-token exchange with Supabase.
+- **Web:** browser-based Supabase Google OAuth; the user returns to the current site origin.
 - **Windows:** existing browser OAuth callback flow remains unchanged.
 - **Other platforms:** the current login screen does not enable Google authentication for them.
 
-If Google reports a client configuration/canceled error after selecting an account, verify the Android package name, signing SHA-1, Web client ID, and Supabase Google provider settings.
+If Google reports a client configuration error after selecting an account, verify the Android package name, signing SHA-1, both OAuth client IDs in Supabase, and the Web client secret. For Web redirect errors, verify the current site origin is in Supabase's redirect allow list.
 ---
 
 ## Dependencies
