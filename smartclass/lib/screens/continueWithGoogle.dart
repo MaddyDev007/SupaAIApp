@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -25,8 +25,10 @@ class _ContinueWithGoogleState extends State<ContinueWithGoogle> {
   bool _hasNavigated = false;
   String? _errorMessage;
 
-  bool get _isAndroid => Platform.isAndroid;
-  bool get _isWindows => Platform.isWindows;
+  bool get _isAndroid =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+  bool get _isWindows =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.windows;
 
   static const _callbackScheme = 'smartclass';
   static const _callbackHost = 'login-callback';
@@ -228,6 +230,16 @@ class _ContinueWithGoogleState extends State<ContinueWithGoogle> {
     });
 
     try {
+      // Flutter Web uses Supabase's browser-based OAuth redirect flow.
+      // Uri.base.origin sends the user back to the current local/deployed site.
+      if (kIsWeb) {
+        await _supabase.auth.signInWithOAuth(
+          OAuthProvider.google,
+          redirectTo: Uri.base.origin,
+        );
+        return;
+      }
+
       if (_isAndroid) {
         await _signInWithGoogleOnAndroid();
         return;
