@@ -38,9 +38,22 @@ class ProfilePageNew extends StatelessWidget {
     PopupMenuButton<ThemeMode>(
       color: Theme.of(context).cardColor,
       icon: const Icon(Icons.brightness_6, color: Colors.white),
-      onSelected: (mode) {
-        themeModeNotifier.value = mode;
-        ThemeService.saveTheme(mode);
+      onSelected: (mode) async {
+        try {
+          // Persist the preference first, then publish it to the app.
+          // The stable root Navigator key keeps the current page in place.
+          await ThemeService.saveTheme(mode);
+          themeModeNotifier.value = mode;
+        } catch (error, stackTrace) {
+          debugPrint('Failed to save theme preference: $error');
+          debugPrintStack(stackTrace: stackTrace);
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Unable to save the appearance preference.'),
+            ),
+          );
+        }
       },
       itemBuilder: (_) =>  [
         PopupMenuItem(
